@@ -233,11 +233,11 @@ bool Adafruit_GrayOLED::_init(uint8_t addr, bool reset) {
   if (reset && (rstPin >= 0)) {
     pinMode(rstPin, OUTPUT);
     digitalWrite(rstPin, HIGH);
-    delay(10);                  // VDD goes high at start, pause
+    _delay_ms(10);                  // VDD goes high at start, pause
     digitalWrite(rstPin, LOW);  // Bring reset low
-    delay(10);                  // Wait 10 ms
+    _delay_ms(10);                  // Wait 10 ms
     digitalWrite(rstPin, HIGH); // Bring out of reset
-    delay(10);
+    _delay_ms(10);
   }
 
   // Setup pin directions

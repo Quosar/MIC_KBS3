@@ -643,11 +643,11 @@ void Adafruit_SPITFT::initSPI(uint32_t freq, uint8_t spiMode) {
     // Toggle _rst low to reset
     pinMode(_rst, OUTPUT);
     digitalWrite(_rst, HIGH);
-    delay(100);
+    _delay_ms(100);
     digitalWrite(_rst, LOW);
-    delay(100);
+    _delay_ms(100);
     digitalWrite(_rst, HIGH);
-    delay(200);
+    _delay_ms(200);
   }
 
 #if defined(USE_SPI_DMA) && (defined(__SAMD51__) || defined(ARDUINO_SAMD_ZERO))
@@ -1395,7 +1395,7 @@ void Adafruit_SPITFT::writeColor(uint16_t color, uint32_t len) {
       if (pixelsThisPass > 50000)
         pixelsThisPass = 50000;
       len -= pixelsThisPass;
-      delay(1); // Periodic delay on long fills
+      _delay_ms(1); // Periodic delay on long fills
       while (pixelsThisPass--) {
         hwspi._spi->write(hi);
         hwspi._spi->write(lo);
