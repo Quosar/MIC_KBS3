@@ -1,18 +1,25 @@
+#include "Nunchuk.h"
 #include <Arduino.h>
 
-// put function declarations here:
-int myFunction(int, int);
+const int NUNCHUCK_ADDRESS = 0x52;
+NunChuk nunchuck;
 
 void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+  Serial.begin(9600);
+  nunchuck.begin(NUNCHUCK_ADDRESS);
 }
+
+uint8_t getNunchuckXAxis() { return nunchuck.state.joy_x_axis; }
+uint8_t getNunchuckYAxis() { return nunchuck.state.joy_y_axis; }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-}
-
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+  if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
+    Serial.print("X axis pos: ");
+    Serial.println((int)getNunchuckXAxis());
+    Serial.print("Y axis pos: ");
+    Serial.println((int)getNunchuckYAxis());
+  } else {
+    Serial.println("Foutje bij lezen?!");
+  }
+  delay(1000);
 }
