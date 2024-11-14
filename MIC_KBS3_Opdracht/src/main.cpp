@@ -1,8 +1,10 @@
+#include "Nunchuk.h"
 #include <Arduino.h>
 #include <SPI.h>
 #include <Wire.h>
 #include "Adafruit_GFX.h"
 #include "Adafruit_ILI9341.h"
+
 
 // LCD Pin Defines
 #define TFT_CLK 13
@@ -30,10 +32,17 @@ const uint16_t TFT_HEIGHT = 320;
 const uint8_t BALL_OFFSET_X = 6;
 const uint8_t BALL_OFFSET_Y = 6;
 
+const int NUNCHUCK_ADDRESS = 0x52;
+NunChuk nunchuck;
+
+  uint8_t getNunchuckXAxis() { return nunchuck.state.joy_x_axis; }
+uint8_t getNunchuckYAxis() { return nunchuck.state.joy_y_axis; }
+
 // Main
 int main() {
   
   Serial.begin(9600);   // Start Serial
+  nunchuck.begin(NUNCHUCK_ADDRESS);
   while(!Serial);       // Wait for Start Serial
 
   // Create Screen Object
@@ -54,7 +63,7 @@ int main() {
   // Last X/Y position of Ball
   uint16_t lastPosX = 1;
   uint16_t lastPosY = 1;
-
+  
   // Superloop
   while (1) {
     for (int i=0; i < 999; i++) {
