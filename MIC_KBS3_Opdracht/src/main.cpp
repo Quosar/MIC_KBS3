@@ -23,50 +23,63 @@
 #define YELLOW 0xFFE0
 #define WHITE 0xFFFF
 
-// LCD Display Width and Height Limits
+// Screen dimencions
 const uint16_t TFT_WIDTH = 240;
 const uint16_t TFT_HEIGHT = 320;
 
-// Offset to set center of ball from top-left corner
-const uint8_t BALL_OFFSET_X = 6;
-const uint8_t BALL_OFFSET_Y = 6;
+// Ball offset (ball so x and y offset)
+const uint8_t BALL_RADIUS = 6;
 
+// Nunchuk adres
 const int NUNCHUCK_ADDRESS = 0x52;
+
+// Create objects for TFT display and nunchuck
+Adafruit_ILI9341 screen(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
 NunChuk nunchuck;
 
-// Function to map joystick value to screen coordinates
+// Function to init screen
+void initializeScreen() {
+  screen.begin();
+  screen.fillScreen(BLACK);
+}
+
+// Function to init nunchuck
+void initializeNunchuk() {
+  Wire.begin();
+  nunchuck.begin(NUNCHUCK_ADDRESS);
+}
+
+// Function to map joystick values to screen coordinates
 uint16_t mapJoystickToScreen(uint8_t joystickValue, uint16_t screenSize) {
-  return map(joystickValue, 0, 255, BALL_OFFSET_X, screenSize - BALL_OFFSET_X);
+  return map(joystickValue, 0, 255, BALL_RADIUS, screenSize - BALL_RADIUS);
+}
+
+// Function to draw a ball
+void drawBall(uint16_t x, uint16_t y, uint16_t color) { // using forloops for drawing circles found online
+  for (int16_t i = -BALL_RADIUS; i <= BALL_RADIUS; i++) {
+    for (int16_t j = -BALL_RADIUS; j <= BALL_RADIUS; j++) {
+      if (i * i + j * j <= BALL_RADIUS * BALL_RADIUS) {
+        screen.drawPixel(x + i, y + j, color); //draw pixel is less intensive than clearing and filling rect
+      }
+    }
+  }
 }
 
 int main() {
   init();
-  Serial.begin(9600); // Start Serial
+  Serial.begin(9600);
 
-  // Initialize I2C for Nunchuk
-  Wire.begin();
-  // Initialize the Nunchuk
-  if (!nunchuck.begin(NUNCHUCK_ADDRESS)) {
-    nunchuck.begin(NUNCHUCK_ADDRESS);
-  }
+  initializeScreen();
+  initializeNunchuk();
 
-  // Create Screen Object
-  Adafruit_ILI9341 screen =
-      Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
+  // Ball position
+  uint16_t posX = TFT_WIDTH / 2, posY = TFT_HEIGHT / 2;
+  uint16_t lastPosX = posX, lastPosY = posY;
 
-  // Initialize Screen
-  screen.begin();
-  screen.fillScreen(BLACK);
+  // Draw start ball
+  drawBall(posX, posY, RED);
 
-  // Ball Position
-  uint16_t posX = TFT_WIDTH / 2;
-  uint16_t posY = TFT_HEIGHT / 2;
-
-  // Last X/Y position of Ball
-  uint16_t lastPosX = posX;
-  uint16_t lastPosY = posY;
-
-  // Superloop
+  // Infinite loop
   while (1) {
     // Update Nunchuk state
     if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
@@ -78,17 +91,18 @@ int main() {
       posX = mapJoystickToScreen(joyX, TFT_WIDTH);
       posY = mapJoystickToScreen(joyY, TFT_HEIGHT);
 
-      // Clear the last ball position
-      screen.fillRect(lastPosX - BALL_OFFSET_X, lastPosY - BALL_OFFSET_Y,
-                      BALL_OFFSET_X * 2, BALL_OFFSET_Y * 2, BLACK);
+      // Update ball position only if it changes (gets rid of flickering)
+      if (posX != lastPosX || posY != lastPosY) {
+        // remove the old ball
+        drawBall(lastPosX, lastPosY, BLACK);
 
-      // Draw the ball at the new position
-      screen.fillRect(posX - BALL_OFFSET_X, posY - BALL_OFFSET_Y,
-                      BALL_OFFSET_X * 2, BALL_OFFSET_Y * 2, RED);
+        // Draw the new ball
+        drawBall(posX, posY, RED);
 
-      // Update last position
-      lastPosX = posX;
-      lastPosY = posY;
+        // Update last position
+        lastPosX = posX;
+        lastPosY = posY;
+      }
     }
 
     // Small delay to avoid overwhelming updates
