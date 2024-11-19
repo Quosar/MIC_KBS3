@@ -38,6 +38,24 @@ Adafruit_ILI9341 screen(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
 
 NunChuk nunchuck;
 
+// Game variables
+const uint8_t GAME_CELLS_WIDTH = 16;
+const uint8_t GAME_CELLS_HEIGHT = 16;
+
+// Snake directions
+enum Direction { UP, DOWN, LEFT, RIGHT };
+
+// Snake variables
+const uint8_t SNAKE_CELL_HEIGHT = TFT_HEIGHT / GAME_CELLS_HEIGHT;
+const uint8_t SNAKE_CELL_WIDTH = TFT_WIDTH / GAME_CELLS_WIDTH;
+Direction snakeDirection = RIGHT;
+uint8_t snakeLength = 3; // start length
+
+// Function to draw the snakes cells
+void drawSnakeCell(uint8_t x, uint8_t y, uint16_t colour) {
+  screen.fillRect(x, y, SNAKE_CELL_WIDTH, SNAKE_CELL_HEIGHT, colour);
+}
+
 // Function to init screen
 void initializeScreen() {
   screen.begin();
@@ -45,15 +63,12 @@ void initializeScreen() {
 }
 
 // Function to init nunchuck
-void initializeNunchuk() {
-  Wire.begin();
-}
+void initializeNunchuk() { Wire.begin(); }
 
 // Function to map joystick values to screen coordinates
 uint16_t mapJoystickToScreen(uint8_t joystickValue, uint16_t screenSize) {
   return map(joystickValue, 0, 255, BALL_RADIUS, screenSize - BALL_RADIUS);
 }
-
 
 int main() {
   init();
@@ -96,7 +111,7 @@ int main() {
     }
 
     // Small delay to avoid overwhelming updates
-    delay(10);
+    _delay_ms(10);
   }
 
   // Never reach
