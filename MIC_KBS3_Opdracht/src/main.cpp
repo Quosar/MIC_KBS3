@@ -52,8 +52,24 @@ Direction snakeDirection = RIGHT;
 uint8_t snakeLength = 3; // start length
 
 // Function to draw the snakes cells
-void drawSnakeCell(uint8_t x, uint8_t y, uint16_t colour) {
+void drawSnakeCell(uint16_t x, uint16_t y, uint16_t colour) {
   screen.fillRect(x, y, SNAKE_CELL_WIDTH, SNAKE_CELL_HEIGHT, colour);
+}
+
+void updateDirection() {
+  if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
+    uint8_t joyX = nunchuck.state.joy_x_axis;
+    uint8_t joyY = nunchuck.state.joy_y_axis;
+
+    if (joyX < 100 && snakeDirection != RIGHT) //TODO: magic numbers van joystick activatie weghalen voor consts
+      snakeDirection = LEFT;
+    else if (joyX > 150 && snakeDirection != LEFT) //TODO: same 
+      snakeDirection = RIGHT;
+    else if (joyY < 100 && snakeDirection != DOWN)
+      snakeDirection = UP;
+    else if (joyY > 150 && snakeDirection != UP)
+      snakeDirection = DOWN;
+  }
 }
 
 // Function to init screen
@@ -86,30 +102,25 @@ int main() {
 
   // Infinite loop
   while (1) {
-    // Update Nunchuk state
-    if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-      // Get joystick positions
-      uint8_t joyX = nunchuck.state.joy_x_axis;
-      uint8_t joyY = nunchuck.state.joy_y_axis;
+    updateDirection();
+    switch (snakeDirection)
+    {
+    case LEFT:
+      posX--;
+      break;
 
-      // Map joystick values to screen coordinates
-      posX = mapJoystickToScreen(joyX, TFT_WIDTH);
-      posY = mapJoystickToScreen(joyY, TFT_HEIGHT);
-
-      // Update ball position only if it changes (gets rid of flickering)
-      if (posX != lastPosX || posY != lastPosY) {
-        // remove the old ball
-        screen.fillCircle(lastPosX, lastPosY, BALL_RADIUS, BLACK);
-
-        // Draw the new ball
-        screen.fillCircle(posX, posY, BALL_RADIUS, RED);
-
-        // Update last position
-        lastPosX = posX;
-        lastPosY = posY;
-      }
+    case RIGHT:
+      posX++;
+      break;
+    case UP:
+      posY++;
+      break;
+    case DOWN:
+      posY--;
+      break;
     }
 
+    drawSnakeCell(posX, posY, RED);
     // Small delay to avoid overwhelming updates
     _delay_ms(10);
   }
