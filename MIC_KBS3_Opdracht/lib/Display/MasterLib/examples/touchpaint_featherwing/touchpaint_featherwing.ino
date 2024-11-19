@@ -99,20 +99,20 @@ void setup(void) {
   Serial.begin(115200);
   //while (!Serial);
   
-  delay(10);
+  _delay_ms(10);
   Serial.println("FeatherWing TFT Demo sketch");
   
 #if defined(_ADAFRUIT_STMPE610H_)
   if (!ts.begin()) {
     Serial.println("Couldn't start STMPE touchscreen controller");
-    while (1) delay(100);
+    while (1) _delay_ms(100);
   }
   min_x = STMPE_TS_MINX; max_x = STMPE_TS_MAXX;
   min_y = STMPE_TS_MINY; max_y = STMPE_TS_MAXY;
 #else
   if (! ts.begin(0x48, &Wire)) {
     Serial.println("Couldn't start TSC2007 touchscreen controller");
-    while (1) delay(100);
+    while (1) _delay_ms(100);
   }
   min_x = TSC_TS_MINX; max_x = TSC_TS_MAXX;
   min_y = TSC_TS_MINY; max_y = TSC_TS_MAXY;

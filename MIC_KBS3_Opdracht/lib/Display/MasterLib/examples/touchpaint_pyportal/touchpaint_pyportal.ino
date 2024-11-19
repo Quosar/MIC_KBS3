@@ -30,7 +30,7 @@ int oldcolor, currentcolor;
 void setup(void) {
  // while (!Serial);     // used for leonardo debugging
 
-  delay(100);
+  _delay_ms(100);
   Serial.begin(9600);
   Serial.println(F("Touch Paint!"));
 

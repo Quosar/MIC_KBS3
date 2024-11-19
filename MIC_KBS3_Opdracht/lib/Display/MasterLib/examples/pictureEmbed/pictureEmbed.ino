@@ -62,8 +62,8 @@ void loop(void) {
         (uint16_t *)dragonBitmap,
 #endif
         DRAGON_WIDTH, DRAGON_HEIGHT);
-      delay(1); // Allow ESP8266 to handle watchdog & WiFi stuff
+      _delay_ms(1); // Allow ESP8266 to handle watchdog & WiFi stuff
     }
-    delay(3000);
+    _delay_ms(3000);
   }
 }
