@@ -52,12 +52,15 @@ const uint8_t SNAKE_CELL_HEIGHT = TFT_HEIGHT / CELL_HEIGHT;
 const uint8_t SNAKE_CELL_WIDTH = TFT_WIDTH / CELL_WIDTH;
 Direction snakeDirection = RIGHT;
 uint8_t snakeLength = 3; // start length
+
+// snake head starts at snakeX[0] and snakeY[0]. The end of the tail is is
+// stored inn the last used index (so snakeX[length-1] and snakeY[length-1])
 uint8_t snakeX[MAX_SIZE];
 uint8_t snakeY[MAX_SIZE];
 
 // Snake position
-uint16_t posX = TFT_WIDTH / 2, posY = TFT_HEIGHT / 2;
-uint16_t lastPosX = posX, lastPosY = posY;
+uint16_t snakePosX = TFT_WIDTH / 2, snakePosY = TFT_HEIGHT / 2;
+uint16_t lastPosX = snakePosX, lastPosY = snakePosY;
 
 // Function to draw the snakes cells
 void drawSnakeCell(uint16_t x, uint16_t y, uint16_t colour) {
@@ -69,13 +72,15 @@ void updateDirection() {
     uint8_t joyX = nunchuck.state.joy_x_axis;
     uint8_t joyY = nunchuck.state.joy_y_axis;
 
-    if (joyX < 100 && snakeDirection != LEFT) //TODO: magic numbers van joystick activatie weghalen voor consts
+    if (joyX < 100 &&
+        snakeDirection != LEFT) // TODO: magic numbers van joystick activatie
+                                // weghalen voor consts
       snakeDirection = RIGHT;
-    else if (joyX > 150 && snakeDirection != RIGHT) //TODO: same 
+    else if (joyX > 150 && snakeDirection != RIGHT) // TODO: same
       snakeDirection = LEFT;
-    else if (joyY < 100 && snakeDirection != DOWN) //TODO: same
+    else if (joyY < 100 && snakeDirection != DOWN) // TODO: same
       snakeDirection = UP;
-    else if (joyY > 150 && snakeDirection != UP) //TODO: same
+    else if (joyY > 150 && snakeDirection != UP) // TODO: same
       snakeDirection = DOWN;
   }
 }
@@ -92,19 +97,24 @@ void moveSnake() {
   }
 
   // Move snake head
-  if (snakeDirection == UP)
+  switch (snakeDirection) {
+  case UP:
     snakeY[0]--;
-  else if (snakeDirection == DOWN)
+    break;
+  case DOWN:
     snakeY[0]++;
-  else if (snakeDirection == LEFT)
-    snakeX[0]--;
-  else if (snakeDirection == RIGHT)
+    break;
+  case RIGHT:
     snakeX[0]++;
+    break;
+  case LEFT:
+    snakeX[0]--;
+    break;
+  }
 
   // Clear the old cells before drawing new snake
   drawSnakeCell(tailX * CELL_WIDTH, tailY * CELL_HEIGHT, BLACK);
 }
-
 
 void drawSnake() {
   // Draw the snake
@@ -142,11 +152,11 @@ int main() {
 
     updateDirection();
     moveSnake();
-    
-//TODO: tussen het bewegen en het tekenen checken voor een collision. Dan kan je het spel stoppen voordat het grafisch slecht loopt
+
+    // TODO: tussen het bewegen en het tekenen checken voor een collision. Dan
+    // kan je het spel stoppen voordat het grafisch slecht loopt
 
     drawSnake();
-  
 
     // Small delay to avoid overwhelming updates
     _delay_ms(200);
