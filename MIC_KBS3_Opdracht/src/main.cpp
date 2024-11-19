@@ -39,17 +39,25 @@ Adafruit_ILI9341 screen(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
 NunChuk nunchuck;
 
 // Game variables
-const uint8_t GAME_CELLS_WIDTH = 16;
-const uint8_t GAME_CELLS_HEIGHT = 16;
+const uint8_t GRID_SIZE = 16;
+const uint16_t CELL_WIDTH = TFT_WIDTH / GRID_SIZE;
+const uint16_t CELL_HEIGHT = TFT_HEIGHT / GRID_SIZE;
+const uint16_t MAX_SIZE = CELL_HEIGHT * CELL_WIDTH;
 
 // Snake directions
 enum Direction { UP, DOWN, LEFT, RIGHT };
 
 // Snake variables
-const uint8_t SNAKE_CELL_HEIGHT = TFT_HEIGHT / GAME_CELLS_HEIGHT;
-const uint8_t SNAKE_CELL_WIDTH = TFT_WIDTH / GAME_CELLS_WIDTH;
+const uint8_t SNAKE_CELL_HEIGHT = TFT_HEIGHT / CELL_HEIGHT;
+const uint8_t SNAKE_CELL_WIDTH = TFT_WIDTH / CELL_WIDTH;
 Direction snakeDirection = RIGHT;
 uint8_t snakeLength = 3; // start length
+uint8_t snakeX[MAX_SIZE];
+uint8_t snakeY[MAX_SIZE];
+
+// Snake position
+uint16_t posX = TFT_WIDTH / 2, posY = TFT_HEIGHT / 2;
+uint16_t lastPosX = posX, lastPosY = posY;
 
 // Function to draw the snakes cells
 void drawSnakeCell(uint16_t x, uint16_t y, uint16_t colour) {
@@ -61,14 +69,47 @@ void updateDirection() {
     uint8_t joyX = nunchuck.state.joy_x_axis;
     uint8_t joyY = nunchuck.state.joy_y_axis;
 
-    if (joyX < 100 && snakeDirection != RIGHT) //TODO: magic numbers van joystick activatie weghalen voor consts
-      snakeDirection = LEFT;
-    else if (joyX > 150 && snakeDirection != LEFT) //TODO: same 
+    if (joyX < 100 && snakeDirection != LEFT) //TODO: magic numbers van joystick activatie weghalen voor consts
       snakeDirection = RIGHT;
-    else if (joyY < 100 && snakeDirection != DOWN)
+    else if (joyX > 150 && snakeDirection != RIGHT) //TODO: same 
+      snakeDirection = LEFT;
+    else if (joyY < 100 && snakeDirection != DOWN) //TODO: same
       snakeDirection = UP;
-    else if (joyY > 150 && snakeDirection != UP)
+    else if (joyY > 150 && snakeDirection != UP) //TODO: same
       snakeDirection = DOWN;
+  }
+}
+
+void moveSnake() {
+  // Store the position of the tail (to clear later)
+  uint8_t tailX = snakeX[snakeLength - 1];
+  uint8_t tailY = snakeY[snakeLength - 1];
+
+  // Shift snake body
+  for (int i = snakeLength - 1; i > 0; i--) {
+    snakeX[i] = snakeX[i - 1];
+    snakeY[i] = snakeY[i - 1];
+  }
+
+  // Move snake head
+  if (snakeDirection == UP)
+    snakeY[0]--;
+  else if (snakeDirection == DOWN)
+    snakeY[0]++;
+  else if (snakeDirection == LEFT)
+    snakeX[0]--;
+  else if (snakeDirection == RIGHT)
+    snakeX[0]++;
+
+  // Clear the old cells before drawing new snake
+  drawSnakeCell(tailX * CELL_WIDTH, tailY * CELL_HEIGHT, BLACK);
+}
+
+
+void drawSnake() {
+  // Draw the snake
+  for (int i = 0; i < snakeLength; i++) {
+    drawSnakeCell(snakeX[i] * CELL_WIDTH, snakeY[i] * CELL_HEIGHT, GREEN);
   }
 }
 
@@ -93,36 +134,22 @@ int main() {
   initializeScreen();
   initializeNunchuk();
 
-  // Ball position
-  uint16_t posX = TFT_WIDTH / 2, posY = TFT_HEIGHT / 2;
-  uint16_t lastPosX = posX, lastPosY = posY;
-
-  // Draw start ball
-  screen.fillCircle(posX, posY, BALL_RADIUS, RED);
+  snakeX[0] = GRID_SIZE / 2;
+  snakeY[0] = GRID_SIZE / 2;
 
   // Infinite loop
   while (1) {
+
     updateDirection();
-    switch (snakeDirection)
-    {
-    case LEFT:
-      posX--;
-      break;
+    moveSnake();
+    
+//TODO: tussen het bewegen en het tekenen checken voor een collision. Dan kan je het spel stoppen voordat het grafisch slecht loopt
 
-    case RIGHT:
-      posX++;
-      break;
-    case UP:
-      posY++;
-      break;
-    case DOWN:
-      posY--;
-      break;
-    }
+    drawSnake();
+  
 
-    drawSnakeCell(posX, posY, RED);
     // Small delay to avoid overwhelming updates
-    _delay_ms(10);
+    _delay_ms(200);
   }
 
   // Never reach
