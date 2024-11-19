@@ -51,7 +51,7 @@ enum Direction { UP, DOWN, LEFT, RIGHT };
 const uint8_t SNAKE_CELL_HEIGHT = TFT_HEIGHT / CELL_HEIGHT;
 const uint8_t SNAKE_CELL_WIDTH = TFT_WIDTH / CELL_WIDTH;
 Direction snakeDirection = RIGHT;
-uint8_t snakeLength = 3; // start length
+uint8_t snakeLength = 9; // start length
 
 // snake head starts at snakeX[0] and snakeY[0]. The end of the tail is is
 // stored inn the last used index (so snakeX[length-1] and snakeY[length-1])
@@ -99,16 +99,16 @@ void moveSnake() {
   // Move snake head
   switch (snakeDirection) {
   case UP:
-    snakeY[0]--;
-    break;
-  case DOWN:
     snakeY[0]++;
     break;
+  case DOWN:
+    snakeY[0]--;
+    break;
   case RIGHT:
-    snakeX[0]++;
+    snakeX[0]--;
     break;
   case LEFT:
-    snakeX[0]--;
+    snakeX[0]++;
     break;
   }
 
@@ -121,6 +121,24 @@ void drawSnake() {
   for (int i = 0; i < snakeLength; i++) {
     drawSnakeCell(snakeX[i] * CELL_WIDTH, snakeY[i] * CELL_HEIGHT, GREEN);
   }
+}
+
+// check true if snake hits itself or a border
+bool checkCollision() {
+  // Check for a collision with a border
+  if (snakeX[0] < 0 || snakeX[0] >= GRID_SIZE || snakeY[0] < 0 ||
+      snakeY[0] >= GRID_SIZE) {
+    return true;
+  }
+
+  // Check collision with itslef
+  for (int i = 1; i < snakeLength; i++) {
+    if (snakeX[0] == snakeX[i] && snakeY[0] == snakeY[i]) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 // Function to init screen
@@ -155,6 +173,14 @@ int main() {
 
     // TODO: tussen het bewegen en het tekenen checken voor een collision. Dan
     // kan je het spel stoppen voordat het grafisch slecht loopt
+
+    if (checkCollision()) {
+      screen.fillScreen(BLACK);
+      screen.setCursor(60, TFT_HEIGHT / 2);
+      screen.setTextColor(RED);
+      screen.setTextSize(2);
+      screen.print("Game Over!");
+    }
 
     drawSnake();
 
