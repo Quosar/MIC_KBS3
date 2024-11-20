@@ -117,7 +117,13 @@ uint8_t constructChecksum(uint32_t value) {
 uint32_t constructBus() {
   uint32_t out = 0;
   uint8_t posSnake;
-  posSnake = ((snake.snakeX[0] << 4) || snake.snakeY[0]);
+  // posSnake = ((snake.snakeX[0] << 4) || snake.snakeY[0]);
+  if(nunchuck.getState(NUNCHUCK_ADDRESS)){
+    uint8_t nunchuckX = nunchuck.state.joy_x_axis;
+    uint8_t nunchuckY = nunchuck.state.joy_y_axis;
+    posSnake = ((nunchuckX << 4) || nunchuckY);
+  }
+
   out |= ((uint32_t)posSnake & 0xFF) << 24;          // Bit 31–24: posSnake
   out |= ((uint32_t)snake.snakeLength & 0xFF) << 16; // Bit 23–16: lengthSnake
   out |= ((uint32_t)1 & 0xFF) << 8; // Bit 15–8: posApple //TODO: make pos apple
