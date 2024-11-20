@@ -193,9 +193,8 @@ int main() {
 
     // Test voor nunchuk transmissie
     if (!isNunchukController) {
-      uint32_t snakeX = inBus >> 28;
-      uint32_t snakeY = inBus << 4;
-      snakeY = snakeY >> 28;
+      uint32_t snakeX = (inBus >> 28) & 0x0F;
+      uint32_t snakeY = (inBus >> 24) & 0x0F;
 
       screen.fillScreen(BLACK);
       screen.setCursor(60, TFT_WIDTH / 2);
