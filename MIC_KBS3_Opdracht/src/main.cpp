@@ -52,6 +52,7 @@ volatile bool appleGatheredByPlayer2 = false;
 volatile bool gamePaused = false;
 volatile bool isAlive = true;
 volatile uint8_t checksum;
+uint16_t counter = 0;
 
 void setupPins() {
   DDRD |= (1 << PD6);   // PD6 Ouptut
@@ -174,36 +175,88 @@ int main() {
     }
 
     // snake afhandeling
-    if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-      snake.updateDirection(nunchuck.state.joy_x_axis,
-                            nunchuck.state.joy_y_axis);
+    // if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
+    //   snake.updateDirection(nunchuck.state.joy_x_axis,
+    //                         nunchuck.state.joy_y_axis);
+    // }
+
+    // snake.move();
+
+    // if (snake.checkCollision()) {
+    //   screen.fillScreen(BLACK);
+    //   screen.setCursor(60, TFT_HEIGHT / 2);
+    //   screen.setTextColor(RED);
+    //   screen.setTextSize(2);
+    //   screen.println("Game Over!");
+    //   screen.println("PRESS Z TO CONTINUE");
+
+    //   while (1) { // TODO: REMOVE WHILE
+    //     if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
+    //       if (nunchuck.state.z_button) { // press z to reset game
+    //         snake.start(); // TODO: reset previouse snake positions. It now
+    //                        // restarts with half the tail on old pos
+    //         break;
+    //       }
+    //     }
+    //   }
+    // }
+
+    // snake.draw();
+    if (counter >= 1000) {
+      counter = 0;
     }
 
-    snake.move();
-
-    if (snake.checkCollision()) {
-      screen.fillScreen(BLACK);
-      screen.setCursor(60, TFT_HEIGHT / 2);
-      screen.setTextColor(RED);
-      screen.setTextSize(2);
-      screen.println("Game Over!");
-      screen.println("PRESS Z TO CONTINUE");
-
-      while (1) { // TODO: REMOVE WHILE
-        if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-          if (nunchuck.state.z_button) { // press z to reset game
-            snake.start(); // TODO: reset previouse snake positions. It now
-                           // restarts with half the tail on old pos
-            break;
-          }
-        }
-      }
-    }
-
-    snake.draw();
-
-    _delay_ms(200); // game speed
+    _delay_ms(1); // game speed
   }
 
   return 0;
+}
+
+ISR(TIMER1_COMPA_vect) {
+  if (status == WRITING) {
+    if (busBit_index == 0) {
+      TCCR0A &= ~(1 << COM0A0); // Stuur start bit (1)
+    } else if (busBit_index > 0 && busBit_index <= DATABITCOUNT) {
+      uint8_t bit = (outBus >> (DATABITCOUNT - busBit_index)) & 0x01;
+      if (bit) {
+        TCCR0A |= (1 << COM0A0); // Stuur data bit waarde (1)
+      } else {
+        TCCR0A &= ~(1 << COM0A0); // Stuur data bit waarde (0)
+      }
+    } else if (busBit_index == FRAME_BITS - 1) {
+      TCCR0A |= (1 << COM0A0); // stuur stop bit (0)
+    }
+    busBit_index++;
+    if (busBit_index >= FRAME_BITS) {
+      busBit_index = 0;
+      status = IDLE; // Status naar idle
+    }
+  }
+
+  if (status == READING) {
+    if (busBit_index <= DATABITCOUNT) {
+      if (PIND & (1 << IR_RECEIVER_PIN)) {
+        inBus = (inBus << 1) | 1; // Bit = 1
+      } else {
+        inBus = (inBus << 1); // Bit = 0
+      }
+      busBit_index++;
+    } else if (busBit_index == FRAME_BITS - 1) { // laatse bit/stop bit
+      status = IDLE;
+      busBit_index = 0;         // bus index resetten
+      TIMSK1 &= ~(1 << OCIE1A); // Timer1 interrupts uit
+    }
+  }
+}
+
+ISR(INT0_vect) {
+  if (busBit_index == 0) {
+    inBus = 0;        // inbus clearen
+    busBit_index = 1; // eerste bit lezen
+    TCNT1 = 0;        // Reset Timer1
+    status = READING;
+
+    // Timer 1 aan ingeval van eerste keer sturen
+    TIMSK1 |= (1 << OCIE1A);
+  }
 }
