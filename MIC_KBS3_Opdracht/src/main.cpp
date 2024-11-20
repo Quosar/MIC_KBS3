@@ -15,6 +15,20 @@
 #define TFT_CS 10
 #define TFT_RST 8
 
+const int8_t NUNCHUCK_ADDRESS = 0x52;
+
+// Screen dimensions
+const uint16_t TFT_WIDTH = 240;
+const uint16_t TFT_HEIGHT = 320;
+const uint8_t GRID_SIZE = 16;
+
+// Create TFT and Nunchuk objects
+Adafruit_ILI9341 screen(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
+NunChuk nunchuck;
+
+// Create Snake object
+Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_HEIGHT / GRID_SIZE, screen);
+
 // Color defines
 #define BLACK 0x0000
 #define BLUE 0x001F
@@ -120,20 +134,6 @@ uint32_t constructBus() {
 
 // TODO: TOT HIER COMMUNICATIE VAR AND FUNCS VOOR IN EEN CLASS ZO
 
-const int8_t NUNCHUCK_ADDRESS = 0x52;
-
-// Screen dimensions
-const uint16_t TFT_WIDTH = 240;
-const uint16_t TFT_HEIGHT = 320;
-const uint8_t GRID_SIZE = 16;
-
-// Create TFT and Nunchuk objects
-Adafruit_ILI9341 screen(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
-NunChuk nunchuck;
-
-// Create Snake object
-Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_HEIGHT / GRID_SIZE, screen);
-
 void initialiseScreen() {
   screen.begin();
   screen.fillScreen(BLACK);
@@ -141,6 +141,7 @@ void initialiseScreen() {
 
 int main() {
   init();
+  Serial.begin(9600);
   Wire.begin();       // start wire for nunchuck
   initialiseScreen(); // init the screen
 
@@ -160,7 +161,7 @@ int main() {
     case IDLE:
       if (isSender) {
         uint32_t bus = constructBus();
-        start_writing(outBus); // Start writing
+        start_writing(bus); // Start writing
       } else {
         start_reading(); // Start reading
       }
@@ -174,39 +175,38 @@ int main() {
       break;
     }
 
-    // snake afhandeling
-    // if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-    //   snake.updateDirection(nunchuck.state.joy_x_axis,
-    //                         nunchuck.state.joy_y_axis);
-    // }
+    // if (counter >= 64000) { //TODO: magic number weg
+    //   counter = 0;
+    //   // snake afhandeling
+    //   if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
+    //     snake.updateDirection(nunchuck.state.joy_x_axis,
+    //                           nunchuck.state.joy_y_axis);
+    //   }
 
-    // snake.move();
+    //   snake.move();
 
-    // if (snake.checkCollision()) {
-    //   screen.fillScreen(BLACK);
-    //   screen.setCursor(60, TFT_HEIGHT / 2);
-    //   screen.setTextColor(RED);
-    //   screen.setTextSize(2);
-    //   screen.println("Game Over!");
-    //   screen.println("PRESS Z TO CONTINUE");
+    //   if (snake.checkCollision()) {
+    //     screen.fillScreen(BLACK);
+    //     screen.setCursor(60, TFT_HEIGHT / 2);
+    //     screen.setTextColor(RED);
+    //     screen.setTextSize(2);
+    //     screen.println("Game Over!");
+    //     screen.println("PRESS Z TO CONTINUE");
 
-    //   while (1) { // TODO: REMOVE WHILE
-    //     if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-    //       if (nunchuck.state.z_button) { // press z to reset game
-    //         snake.start(); // TODO: reset previouse snake positions. It now
-    //                        // restarts with half the tail on old pos
-    //         break;
+    //     while (1) { // TODO: REMOVE WHILE
+    //       if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
+    //         if (nunchuck.state.z_button) { // press z to reset game
+    //           snake.start(); // TODO: reset previouse snake positions. It now
+    //                          // restarts with half the tail on old pos
+    //           break;
+    //         }
     //       }
     //     }
     //   }
+
+    //   snake.draw();
     // }
-
-    // snake.draw();
-    if (counter >= 1000) {
-      counter = 0;
-    }
-
-    _delay_ms(1); // game speed
+    // counter++;
   }
 
   return 0;
