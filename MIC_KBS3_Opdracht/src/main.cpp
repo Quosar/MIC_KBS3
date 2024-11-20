@@ -53,7 +53,7 @@ enum Status { // enum om tatus te wisselen
 };
 
 // TODO: Test bool voor nunchuk transmissie
-volatile bool isNunchukController = true;
+volatile bool isNunchukController = false;
 
 // communication
 volatile Status status = IDLE; // Naar IDLE om te beginnen met communicatie
@@ -160,6 +160,7 @@ int main() {
   // TODO: deze test voor scherm testen moet later weg
   screen.setCursor(60, TFT_WIDTH / 2);
   screen.setTextColor(RED);
+  screen.setTextSize(3);
   screen.println("X: " + snake.snakeX[0]);
   screen.println("Y: " + snake.snakeY[0]);
 
@@ -187,14 +188,14 @@ int main() {
 
     // Test voor nunchuk transmissie
     if (!isNunchukController) {
-      uint8_t snakeX = snake.snakeX[0] >> 4;
-      uint8_t snakeY = snake.snakeY[0] << 4;
-      snakeY >> 4;
+      uint32_t snakeX = inBus >> 28;
+      uint32_t snakeY = inBus << 4;
+      snakeY = snakeY >> 28;
 
       screen.fillScreen(BLACK);
       screen.setCursor(60, TFT_WIDTH / 2);
-      screen.println("X: " + snake.snakeX[0]);
-      screen.println("Y: " + snake.snakeY[0]); 
+      screen.println("X: " + snakeX);
+      screen.println("Y: " + snakeY); 
     }
 
     // snake afhandeling
