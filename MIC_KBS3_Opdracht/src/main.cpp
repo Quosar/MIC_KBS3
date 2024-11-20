@@ -118,10 +118,10 @@ uint32_t constructBus() {
   uint32_t out = 0;
   uint8_t posSnake;
   // posSnake = ((snake.snakeX[0] << 4) || snake.snakeY[0]);
-  if(nunchuck.getState(NUNCHUCK_ADDRESS)){
+  if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
     uint8_t nunchuckX = nunchuck.state.joy_x_axis;
     uint8_t nunchuckY = nunchuck.state.joy_y_axis;
-    posSnake = ((nunchuckX << 4) || nunchuckY);
+    posSnake = ((nunchuckX << 4) | nunchuckY);
   }
 
   out |= ((uint32_t)posSnake & 0xFF) << 24;          // Bit 31–24: posSnake
@@ -191,7 +191,6 @@ int main() {
       break;
     }
 
-
     // Test voor nunchuk transmissie
     if (!isNunchukController) {
       uint32_t snakeX = inBus >> 28;
@@ -201,7 +200,7 @@ int main() {
       screen.fillScreen(BLACK);
       screen.setCursor(60, TFT_WIDTH / 2);
       screen.println("X: " + snakeX);
-      screen.println("Y: " + snakeY); 
+      screen.println("Y: " + snakeY);
     }
 
     // snake afhandeling
