@@ -15,14 +15,14 @@ public:
   void draw();
   bool checkCollision();
   void grow();
+  uint8_t *snakeX; // pointer for dynamic memory, because we dont always use the
+                   // hole array
+  uint8_t *snakeY;
+  uint8_t snakeLength;
 
 private:
   uint8_t gridSize;
   uint16_t cellWidth, cellHeight;
-  uint8_t snakeLength;
-  uint8_t *snakeX; // pointer for dynamic memory, because we dont always use the
-                   // hole array
-  uint8_t *snakeY;
   Adafruit_ILI9341 screen;
   enum Direction { UP, DOWN, LEFT, RIGHT };
   Direction direction;
