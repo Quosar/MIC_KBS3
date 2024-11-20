@@ -118,11 +118,10 @@ uint32_t constructBus() {
   uint32_t out = 0;
   uint8_t posSnake;
   // posSnake = ((snake.snakeX[0] << 4) || snake.snakeY[0]);
-  if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-    uint8_t nunchuckX = nunchuck.state.joy_x_axis;
-    uint8_t nunchuckY = nunchuck.state.joy_y_axis;
-    posSnake = ((nunchuckX << 4) | nunchuckY);
-  }
+
+  posSnake =
+      ((0x01 << 4) |
+       0x06); // sending dummy data as pos to check if we can receive this
 
   out |= ((uint32_t)posSnake & 0xFF) << 24;          // Bit 31–24: posSnake
   out |= ((uint32_t)snake.snakeLength & 0xFF) << 16; // Bit 23–16: lengthSnake
