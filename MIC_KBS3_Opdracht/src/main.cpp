@@ -274,6 +274,7 @@ ISR(TIMER1_COMPA_vect) {
   }
 
   if (status == READING) {
+    cli();
     if (busBit_index <= DATABITCOUNT) {
       if (!(PIND & (1 << IR_RECEIVER_PIN))) {
         inBus = (inBus << 1) | 1; // Bit = 1
@@ -286,6 +287,7 @@ ISR(TIMER1_COMPA_vect) {
       busBit_index = 0;         // bus index resetten
       TIMSK1 &= ~(1 << OCIE1A); // Timer1 interrupts uit
     }
+    sei();
   }
 }
 
