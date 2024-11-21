@@ -53,14 +53,14 @@ enum Status { // enum om tatus te wisselen
 };
 
 // TODO: Test bool voor nunchuk transmissie
-volatile bool isNunchukController = false;
+volatile bool isNunchukController = true;
 
 // communication
 volatile Status status = IDLE; // Naar IDLE om te beginnen met communicatie
 volatile uint32_t outBus = 0x55555555; // Uitgaande data bus
 volatile uint32_t inBus = 0;           // Binnenkomende data bus
 volatile uint8_t busBit_index = 0;     // huidige bit index in outbus en inbus
-volatile bool isSender = false; // player1 begint met senden en zetten timer
+volatile bool isSender = true; // player1 begint met senden en zetten timer
 
 // settings
 volatile bool isPlayer1 = true;
@@ -169,7 +169,7 @@ int main() {
   screen.println("X: " + snake.snakeX[0]);
   screen.println("Y: " + snake.snakeY[0]);
 
-  Serial.println("ja hoor");
+  //Serial.println("ja hoor");
 
   while (1) {
 
@@ -190,6 +190,21 @@ int main() {
     case WRITING: // wordt gedaan via interrupts
     case READING: // wordt gedaan via interrupts
       break;
+    }
+
+
+
+    if (!isNunchukController) {
+      screen.println(String(inBus));
+
+      uint32_t snakeX = inBus >> 28;
+      uint32_t snakeY = inBus << 4;
+      snakeY >> 28;
+
+      screen.fillScreen(BLACK);
+      screen.setCursor(60, TFT_WIDTH / 2);
+      screen.println("X: " + String(snakeX));
+      screen.println("Y: " + String(snakeY)); 
     }
 
     //Serial.println(String(inBus));
