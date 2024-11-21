@@ -123,7 +123,7 @@ uint32_t constructBus() {
       ((0x01 << 4) |
        0x06); // sending dummy data as pos to check if we can receive this
 
-  out |= ((uint32_t)posSnake & 0xFF) << 24;          // Bit 31–24: posSnake
+  out |= ((uint32_t)posSnake) << 24;          // Bit 31–24: posSnake
   out |= ((uint32_t)snake.snakeLength & 0xFF) << 16; // Bit 23–16: lengthSnake
   out |= ((uint32_t)1 & 0xFF) << 8; // Bit 15–8: posApple //TODO: make pos apple
   out |=
@@ -169,6 +169,8 @@ int main() {
   screen.println("X: " + snake.snakeX[0]);
   screen.println("Y: " + snake.snakeY[0]);
 
+  Serial.println("ja hoor");
+
   while (1) {
 
     // communication afhandeling
@@ -190,16 +192,8 @@ int main() {
       break;
     }
 
-    // Test voor nunchuk transmissie
-    if (!isNunchukController) {
-      uint32_t snakeX = (inBus >> 28) & 0x0F;
-      uint32_t snakeY = (inBus >> 24) & 0x0F;
+    //Serial.println(String(inBus));
 
-      screen.fillScreen(BLACK);
-      screen.setCursor(60, TFT_WIDTH / 2);
-      screen.println("X: " + snakeX);
-      screen.println("Y: " + snakeY);
-    }
 
     // snake afhandeling
     // if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
@@ -266,7 +260,7 @@ ISR(TIMER1_COMPA_vect) {
 
   if (status == READING) {
     if (busBit_index <= DATABITCOUNT) {
-      if (PIND & (1 << IR_RECEIVER_PIN)) {
+      if (!(PIND & (1 << IR_RECEIVER_PIN))) {
         inBus = (inBus << 1) | 1; // Bit = 1
       } else {
         inBus = (inBus << 1); // Bit = 0
