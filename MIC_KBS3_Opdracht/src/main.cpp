@@ -57,7 +57,7 @@ volatile bool isNunchukController = true;
 
 // communication
 volatile Status status = IDLE; // Naar IDLE om te beginnen met communicatie
-volatile uint32_t outBus = 0x55555555; // Uitgaande data bus
+volatile uint32_t outBus = 0x00000000; // Uitgaande data bus
 volatile uint32_t inBus = 0;           // Binnenkomende data bus
 volatile uint8_t inBusBit_index = 0;     // huidige bit index inBus
 volatile uint8_t outBusBit_index = 0;     // huidige bit index outBus
@@ -157,6 +157,16 @@ uint32_t constructBus() {
   return out;
 }
 
+void nunchuckHandler() {
+  if (nunchuck.getState(NUNCHUCK_ADDRESS)){
+   if(nunchuck.state.z_button){
+    //outBus = 0xFFFFFFFF; 
+   } else {
+    //outBus = 0x00000000;
+   }
+  }
+}
+
 // TODO: TOT HIER COMMUNICATIE VAR AND FUNCS VOOR IN EEN CLASS ZO
 
 void initialiseScreen() {
@@ -166,8 +176,8 @@ void initialiseScreen() {
 
 int main() {
   init();
-  //Serial.begin(9600);
-  //Wire.begin();       // start wire for nunchuck
+  Serial.begin(9600);
+  Wire.begin();       // start wire for nunchuck
   //initialiseScreen(); // init the screen
 
   // communication setup
@@ -190,6 +200,7 @@ int main() {
 
   while (1) {
 
+    nunchuckHandler();
     // communication afhandeling
     switch (status) {
     case IDLE:
