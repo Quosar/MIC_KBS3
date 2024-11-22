@@ -42,7 +42,7 @@ Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_HEIGHT / GRID_SIZE, screen);
 // TODO: VANAF HIER COMMUNICATIE VAR AND FUNCS VOOR IN EEN CLASS ZO
 #define IR_LED_PIN PD6      // Pin 6 voor IR LED (OC0A)
 #define IR_RECEIVER_PIN PD2 // Pin 2 voor IR Receiver (INT0)
-#define BIT_DURATION 919    // Bit tijd voor Timer1 (3.676 ms at 16 MHz / 64)
+#define BIT_DURATION 1099 // Updated Bit duration for Timer1 (0.550 ms at 16 MHz / 8)
 #define FRAME_BITS 34       // 1 start bit + 32 data bits + 1 stop bit
 #define DATABITCOUNT 32
 
@@ -82,12 +82,21 @@ void setupPins() {
 }
 
 void setupTimers() {
-  TCCR0A |= (1 << WGM01) | (1 << COM0A0); // CTC mode, toggle OC0A
-  TCCR0B |= (1 << CS01);                  // Prescaler 8
-  OCR0A = 25; // Timer Compare interrupt tijd voor 58 kHz // 0x22 = 34
+    // Reset Timer1 control registers
+    TCCR1A = 0;
+    TCCR1B = 0;
 
-  TCCR1B |= (1 << WGM12) | (1 << CS11) | (1 << CS10); // CTC mode, prescaler 64
-  OCR1A = BIT_DURATION; // Timer Compare interrupt tijd voor lezen iedere bit
+    // Set Timer1 to CTC mode
+    TCCR1B |= (1 << WGM12);
+
+    // Set prescaler to 8
+    TCCR1B |= (1 << CS11); // CS11 = 1, prescaler = 8
+
+    // Set OCR1A for 0.550 ms interrupt
+    OCR1A = 1099; // (550 μs / 0.5 μs) - 1
+
+    // Enable Timer1 Compare Match A interrupt
+    TIMSK1 |= (1 << OCIE1A);
 }
 
 void SetupInterrupts() {
