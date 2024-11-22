@@ -180,7 +180,7 @@ int main() {
     case IDLE:
       if (isSender) {
         uint32_t bus = constructBus();
-        start_writing(outBus); // Start writing
+        start_writing(bus); // Start writing
       } else {
         start_reading(); // Start reading
       }
