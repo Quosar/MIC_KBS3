@@ -224,13 +224,14 @@ if(getNunchuckZButton()){
   stopTimer2();
 }
 
-if(PORTD | (1 << PD6)){
+//if (!(PIND & (1 << IR_RECEIVER_PIN))){
+if (getNunchuckZButton()){
   screen.fillRect(100, 100, 100, 100, BLACK);
   screen.fillRect(100, 100, 100, 100, MAGENTA);
 }else{
   screen.fillRect(100, 100, 100, 100, BLACK);
   
-  screen.fillRect(100, 100, 100, 100, YELLOW);
+  screen.fillRect(50, 50, 100, 100, YELLOW);
 }
   }
 
