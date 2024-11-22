@@ -59,7 +59,9 @@ volatile bool isNunchukController = true;
 volatile Status status = IDLE; // Naar IDLE om te beginnen met communicatie
 volatile uint32_t outBus = 0x55555555; // Uitgaande data bus
 volatile uint32_t inBus = 0;           // Binnenkomende data bus
-volatile uint8_t busBit_index = 0;     // huidige bit index in outbus en inbus
+volatile uint8_t inBusBit_index = 0;     // huidige bit index inBus
+volatile uint8_t outBusBit_index = 0;     // huidige bit index outBus
+
 volatile bool isSender = true; // player1 begint met senden en zetten timer
 
 // settings
@@ -95,13 +97,13 @@ void SetupInterrupts() {
 
 void start_writing(uint32_t data) {
   outBus = data;
-  busBit_index = 0;
+  outBusBit_index = 0;
   status = WRITING;
   TIMSK1 |= (1 << OCIE1A); // Enable Timer1 Compare Match interrupt
 }
 
 void start_reading() {
-  busBit_index = 0;
+  inBusBit_index = 0;
   inBus = 0;
   status = READING;
 }
@@ -178,7 +180,7 @@ int main() {
     case IDLE:
       if (isSender) {
         uint32_t bus = constructBus();
-        start_writing(bus); // Start writing
+        start_writing(outBus); // Start writing
       } else {
         start_reading(); // Start reading
       }
@@ -189,6 +191,7 @@ int main() {
 
     case WRITING: // wordt gedaan via interrupts
     case READING: // wordt gedaan via interrupts
+    Serial.println(inBus);
       break;
     }
 
@@ -254,50 +257,47 @@ int main() {
 
 ISR(TIMER1_COMPA_vect) {
   if (status == WRITING) {
-    if (busBit_index == 0) {
+    if (outBusBit_index == 0) {
       TCCR0A &= ~(1 << COM0A0); // Stuur start bit (1)
-    } else if (busBit_index > 0 && busBit_index <= DATABITCOUNT) {
-      uint8_t bit = (outBus >> (DATABITCOUNT - busBit_index)) & 0x01;
+    } else if (outBusBit_index > 0 && outBusBit_index <= DATABITCOUNT) {
+      uint8_t bit = (outBus >> (DATABITCOUNT - outBusBit_index)) & 0x01;
       if (bit) {
         TCCR0A |= (1 << COM0A0); // Stuur data bit waarde (1)
       } else {
         TCCR0A &= ~(1 << COM0A0); // Stuur data bit waarde (0)
       }
-    } else if (busBit_index == FRAME_BITS - 1) {
+    } else if (outBusBit_index == FRAME_BITS - 1) {
       TCCR0A |= (1 << COM0A0); // stuur stop bit (0)
     }
-    busBit_index++;
-    if (busBit_index >= FRAME_BITS) {
-      busBit_index = 0;
+    outBusBit_index++;
+    if (outBusBit_index >= FRAME_BITS) {
+      outBusBit_index = 0;
       status = IDLE; // Status naar idle
     }
   }
 
   if (status == READING) {
-    cli();
-    if (busBit_index <= DATABITCOUNT) {
+    if (inBusBit_index <= DATABITCOUNT) {
       if (!(PIND & (1 << IR_RECEIVER_PIN))) {
         inBus = (inBus << 1) | 1; // Bit = 1
       } else {
         inBus = (inBus << 1); // Bit = 0
       }
-      busBit_index++;
-    } else if (busBit_index == FRAME_BITS - 1) { // laatse bit/stop bit
+      inBusBit_index++;
+    } else if (inBusBit_index == FRAME_BITS - 1) { // laatse bit/stop bit
       status = IDLE;
-      busBit_index = 0;         // bus index resetten
+      inBusBit_index = 0;         // bus index resetten
       TIMSK1 &= ~(1 << OCIE1A); // Timer1 interrupts uit
     }
-    sei();
   }
 }
 
 ISR(INT0_vect) {
-  if (busBit_index == 0) {
+  if (inBusBit_index == 0) {
     inBus = 0;        // inbus clearen
-    busBit_index = 1; // eerste bit lezen
+    inBusBit_index = 1; // eerste bit lezen
     TCNT1 = 0;        // Reset Timer1
     status = READING;
-
     // Timer 1 aan ingeval van eerste keer sturen
     TIMSK1 |= (1 << OCIE1A);
   }
