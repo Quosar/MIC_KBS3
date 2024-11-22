@@ -86,7 +86,7 @@ void startTimer2(){
 
 bool getNunchuckZButton(){
   if(nunchuck.getState(NUNCHUCK_ADDRESS)){
-    return nunchuck.state.z_button;
+    return (bool)nunchuck.state.z_button;
   }
 }
 
@@ -225,8 +225,11 @@ if(getNunchuckZButton()){
 }
 
 if(PORTD | (1 << PD6)){
+  screen.fillRect(100, 100, 100, 100, BLACK);
   screen.fillRect(100, 100, 100, 100, MAGENTA);
 }else{
+  screen.fillRect(100, 100, 100, 100, BLACK);
+  
   screen.fillRect(100, 100, 100, 100, YELLOW);
 }
   }
