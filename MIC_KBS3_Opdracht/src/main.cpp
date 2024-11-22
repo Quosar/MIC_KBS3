@@ -76,6 +76,20 @@ volatile bool isAlive = true;
 volatile uint8_t checksum;
 uint16_t counter = 0;
 
+void stopTimer2(){
+     TCCR2A &= ~(1 << COM2A0); // Disable Timer1 Compare Match interrupt
+}
+
+void startTimer2(){
+     TCCR2A |= (1 << COM2A0); // enable
+}
+
+bool getNunchuckZButton(){
+  if(nunchuck.getState(NUNCHUCK_ADDRESS)){
+    return nunchuck.state.z_button;
+  }
+}
+
 void setupPins() {
   DDRD |= (1 << PD6);   // PD6 Ouptut
   PORTD &= ~(1 << PD6); // PD6 begint LOW
@@ -204,82 +218,17 @@ int main() {
   //Serial.println("ja hoor");
 
   while (1) {
+if(getNunchuckZButton()){
+  startTimer2();
+}else{
+  stopTimer2();
+}
 
-    nunchuckHandler();
-    // communication afhandeling
-    switch (status) {
-    case IDLE:
-      if (isSender) {
-        //uint32_t bus = constructBus();
-        start_writing(outBus); // Start writing
-      } else {
-        start_reading(); // Start reading
-      }
-      //_delay_ms(1);
-      isSender = !isSender; // switch tussen readen en writen na ieder frame
-                            // voor full-duplex
-      break;
-
-    case WRITING: // wordt gedaan via interrupts
-    case READING: // wordt gedaan via interrupts
-      break;
-    }
-
-
-
-    // if (!isNunchukController) {
-    //   screen.println(String(inBus));
-
-    //   uint32_t snakeX = inBus >> 28;
-    //   uint32_t snakeY = inBus << 4;
-    //   snakeY >> 28;
-
-    //   screen.fillScreen(BLACK);
-    //   screen.setCursor(60, TFT_WIDTH / 2);
-    //   screen.println("X: " + String(snakeX));
-    //   screen.println("Y: " + String(snakeY)); 
-    // }
-
-    //Serial.println(String(inBus));
-
-
-    // snake afhandeling
-    // if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-    //   snake.updateDirection(nunchuck.state.joy_x_axis,
-    //                         nunchuck.state.joy_y_axis);
-    // }
-    // if (counter >= 64000) { //TODO: magic number weg
-    //   counter = 0;
-    //   // snake afhandeling
-    //   if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-    //     snake.updateDirection(nunchuck.state.joy_x_axis,
-    //                           nunchuck.state.joy_y_axis);
-    //   }
-
-    //   snake.move();
-
-    //   if (snake.checkCollision()) {
-    //     screen.fillScreen(BLACK);
-    //     screen.setCursor(60, TFT_HEIGHT / 2);
-    //     screen.setTextColor(RED);
-    //     screen.setTextSize(2);
-    //     screen.println("Game Over!");
-    //     screen.println("PRESS Z TO CONTINUE");
-
-    //     while (1) { // TODO: REMOVE WHILE
-    //       if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-    //         if (nunchuck.state.z_button) { // press z to reset game
-    //           snake.start(); // TODO: reset previouse snake positions. It now
-    //                          // restarts with half the tail on old pos
-    //           break;
-    //         }
-    //       }
-    //     }
-    //   }
-
-    //   snake.draw();
-    // }
-    // counter++;
+if(PORTD | (1 << PD6)){
+  screen.fillRect(100, 100, 100, 100, MAGENTA);
+}else{
+  screen.fillRect(100, 100, 100, 100, YELLOW);
+}
   }
 
   return 0;
