@@ -151,9 +151,9 @@ void initialiseScreen() {
 
 int main() {
   init();
-  Serial.begin(9600);
-  Wire.begin();       // start wire for nunchuck
-  initialiseScreen(); // init the screen
+  //Serial.begin(9600);
+  //Wire.begin();       // start wire for nunchuck
+  //initialiseScreen(); // init the screen
 
   // communication setup
   cli();
@@ -162,14 +162,14 @@ int main() {
   SetupInterrupts();
   sei();
 
-  snake.start(); // start snake on middle of the screen
+  // snake.start(); // start snake on middle of the screen
 
-  // TODO: deze test voor scherm testen moet later weg
-  screen.setCursor(60, TFT_WIDTH / 2);
-  screen.setTextColor(RED);
-  screen.setTextSize(3);
-  screen.println("X: " + snake.snakeX[0]);
-  screen.println("Y: " + snake.snakeY[0]);
+  // // TODO: deze test voor scherm testen moet later weg
+  // screen.setCursor(60, TFT_WIDTH / 2);
+  // screen.setTextColor(RED);
+  // screen.setTextSize(3);
+  // screen.println("X: " + snake.snakeX[0]);
+  // screen.println("Y: " + snake.snakeY[0]);
 
   //Serial.println("ja hoor");
 
@@ -179,7 +179,7 @@ int main() {
     switch (status) {
     case IDLE:
       if (isSender) {
-        uint32_t bus = constructBus();
+        //uint32_t bus = constructBus();
         start_writing(outBus); // Start writing
       } else {
         start_reading(); // Start reading
@@ -197,18 +197,18 @@ int main() {
 
 
 
-    if (!isNunchukController) {
-      screen.println(String(inBus));
+    // if (!isNunchukController) {
+    //   screen.println(String(inBus));
 
-      uint32_t snakeX = inBus >> 28;
-      uint32_t snakeY = inBus << 4;
-      snakeY >> 28;
+    //   uint32_t snakeX = inBus >> 28;
+    //   uint32_t snakeY = inBus << 4;
+    //   snakeY >> 28;
 
-      screen.fillScreen(BLACK);
-      screen.setCursor(60, TFT_WIDTH / 2);
-      screen.println("X: " + String(snakeX));
-      screen.println("Y: " + String(snakeY)); 
-    }
+    //   screen.fillScreen(BLACK);
+    //   screen.setCursor(60, TFT_WIDTH / 2);
+    //   screen.println("X: " + String(snakeX));
+    //   screen.println("Y: " + String(snakeY)); 
+    // }
 
     //Serial.println(String(inBus));
 
@@ -258,25 +258,23 @@ int main() {
 ISR(TIMER1_COMPA_vect) {
   if (status == WRITING) {
     if (outBusBit_index == 0) {
-      TCCR0A &= ~(1 << COM0A0); // Stuur start bit (1)
+      PORTD |= (1 << PD6); // Set PD6 HIGH
     } else if (outBusBit_index > 0 && outBusBit_index <= DATABITCOUNT) {
-      uint8_t bit = (outBus >> (DATABITCOUNT - outBusBit_index)) & 0x01;
+      bool bit = (outBus >> (DATABITCOUNT - outBusBit_index)) & 0x01;
       if (bit) {
-        TCCR0A |= (1 << COM0A0); // Stuur data bit waarde (1)
+        PORTD |= (1 << PD6); // Set PD6 HIGH
       } else {
-        TCCR0A &= ~(1 << COM0A0); // Stuur data bit waarde (0)
+        PORTD &= ~(1 << PD6); // Set PD6 LOW
       }
     } else if (outBusBit_index == FRAME_BITS - 1) {
-      TCCR0A |= (1 << COM0A0); // stuur stop bit (0)
+      PORTD &= ~(1 << PD6); // Set PD6 LOW
     }
     outBusBit_index++;
     if (outBusBit_index >= FRAME_BITS) {
       outBusBit_index = 0;
       status = IDLE; // Status naar idle
     }
-  }
-
-  if (status == READING) {
+  } else if (status == READING) {
     if (inBusBit_index <= DATABITCOUNT) {
       if (!(PIND & (1 << IR_RECEIVER_PIN))) {
         inBus = (inBus << 1) | 1; // Bit = 1
