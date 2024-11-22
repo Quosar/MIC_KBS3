@@ -64,6 +64,8 @@ volatile uint8_t outBusBit_index = 0;     // huidige bit index outBus
 
 volatile bool isSender = true; // player1 begint met senden en zetten timer
 
+volatile bool ledOn = false;
+
 // settings
 volatile bool isPlayer1 = true;
 volatile bool isSmallField = true;
@@ -82,22 +84,24 @@ void setupPins() {
 }
 
 void setupTimers() {
-    // Reset Timer1 control registers
-    TCCR1A = 0;
-    TCCR1B = 0;
+  TCCR0A |= (1 << WGM01) | (1 << COM0A0); // CTC mode, toggle OC0A
+  TCCR0B |= (1 << CS01);                  // Prescaler 8
+  OCR0A = 25; // Timer Compare interrupt tijd voor 58 kHz // 0x22 = 34
 
-    // Set Timer1 to CTC mode
-    TCCR1B |= (1 << WGM12);
+  TCCR1B |= (1 << WGM12) | (1 << CS11) | (1 << CS10); // CTC mode, prescaler 64
+  OCR1A = BIT_DURATION; // Timer Compare interrupt tijd voor lezen iedere bit
 
-    // Set prescaler to 8
-    TCCR1B |= (1 << CS11); // CS11 = 1, prescaler = 8
+  // Set Timer 2 to CTC mode (WGM22:0 = 010)
+  TCCR2A = (1 << WGM21);
+  TCCR2B = (1 << CS20); // No prescaler
 
-    // Set OCR1A for 0.550 ms interrupt
-    OCR1A = 1099; // (550 μs / 0.5 μs) - 1
+  // Toggle OC2A on compare match (COM2A0 = 1)
+  TCCR2A |= (1 << COM2A0);
 
-    // Enable Timer1 Compare Match A interrupt
-    TIMSK1 |= (1 << OCIE1A);
+  // Set OCR2A to 209 for 38 kHz
+  OCR2A = 209;
 }
+
 
 void SetupInterrupts() {
   EICRA |= (1 << ISC00); // Trigger bij iedere verrandering
@@ -268,16 +272,17 @@ int main() {
 ISR(TIMER1_COMPA_vect) {
   if (status == WRITING) {
     if (outBusBit_index == 0) {
-      PORTD |= (1 << PD6); // Set PD6 HIGH
+      TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
     } else if (outBusBit_index > 0 && outBusBit_index <= DATABITCOUNT) {
       bool bit = (outBus >> (DATABITCOUNT - outBusBit_index)) & 0x01;
       if (bit) {
-        PORTD |= (1 << PD6); // Set PD6 HIGH
+        TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
       } else {
+        TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
         PORTD &= ~(1 << PD6); // Set PD6 LOW
       }
     } else if (outBusBit_index == FRAME_BITS - 1) {
-      PORTD &= ~(1 << PD6); // Set PD6 LOW
+      TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
     }
     outBusBit_index++;
     if (outBusBit_index >= FRAME_BITS) {
@@ -298,6 +303,10 @@ ISR(TIMER1_COMPA_vect) {
       TIMSK1 &= ~(1 << OCIE1A); // Timer1 interrupts uit
     }
   }
+}
+
+ISR(TIMER2_COMPA_vect){
+  PORTD ^= (1 << PD6);
 }
 
 ISR(INT0_vect) {
