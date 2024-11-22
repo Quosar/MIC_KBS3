@@ -100,11 +100,13 @@ void start_writing(uint32_t data) {
   outBusBit_index = 0;
   status = WRITING;
   TIMSK1 |= (1 << OCIE1A); // Enable Timer1 Compare Match interrupt
+  EIMSK &= ~(1 << INT0);  // INT0 interrupt disable
 }
 
 void start_reading() {
   inBusBit_index = 0;
   inBus = 0;
+  EIMSK |= (1 << INT0);  // INT0 interrupt enable
   status = READING;
 }
 
@@ -256,7 +258,6 @@ int main() {
 
 ISR(TIMER1_COMPA_vect) {
   if (status == WRITING) {
-    EIMSK &= ~(1 << INT0);  // INT0 interrupt disable
     if (outBusBit_index == 0) {
       PORTD |= (1 << PD6); // Set PD6 HIGH
     } else if (outBusBit_index > 0 && outBusBit_index <= DATABITCOUNT) {
@@ -272,7 +273,6 @@ ISR(TIMER1_COMPA_vect) {
     outBusBit_index++;
     if (outBusBit_index >= FRAME_BITS) {
       outBusBit_index = 0;
-      EIMSK |= (1 << INT0);  // INT0 interrupt enable
       status = IDLE; // Status naar idle
     }
   } else if (status == READING) {
