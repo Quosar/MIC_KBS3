@@ -65,6 +65,7 @@ volatile uint8_t outBusBit_index = 0;     // huidige bit index outBus
 volatile bool isSender = true; // player1 begint met senden en zetten timer
 
 volatile bool ledOn = false;
+volatile bool previousColorBlue = false;
 
 // settings
 volatile bool isPlayer1 = true;
@@ -159,10 +160,14 @@ uint32_t constructBus() {
 
 void nunchuckHandler() {
   if (nunchuck.getState(NUNCHUCK_ADDRESS)){
-   if(nunchuck.state.z_button){
+   if(nunchuck.state.z_button && !previousColorBlue){
     //outBus = 0xFFFFFFFF; 
-   } else {
+    screen.fillScreen(BLUE);
+    previousColorBlue = true;
+   } else if (!nunchuck.state.z_button && previousColorBlue) {
     //outBus = 0x00000000;
+    screen.fillScreen(RED);
+    previousColorBlue = false;
    }
   }
 }
@@ -178,7 +183,7 @@ int main() {
   init();
   Serial.begin(9600);
   Wire.begin();       // start wire for nunchuck
-  //initialiseScreen(); // init the screen
+  initialiseScreen(); // init the screen
 
   // communication setup
   cli();
@@ -190,11 +195,11 @@ int main() {
   // snake.start(); // start snake on middle of the screen
 
   // // TODO: deze test voor scherm testen moet later weg
-  // screen.setCursor(60, TFT_WIDTH / 2);
-  // screen.setTextColor(RED);
-  // screen.setTextSize(3);
-  // screen.println("X: " + snake.snakeX[0]);
-  // screen.println("Y: " + snake.snakeY[0]);
+  screen.setCursor(60, TFT_WIDTH / 2);
+  screen.setTextColor(RED);
+  screen.setTextSize(3);
+  screen.println("X: " + snake.snakeX[0]);
+  screen.println("Y: " + snake.snakeY[0]);
 
   //Serial.println("ja hoor");
 
