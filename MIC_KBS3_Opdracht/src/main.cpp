@@ -1,16 +1,16 @@
+#include "Nunchuk.h"
 #include <Arduino.h>
 #include <Wire.h>
 #include <avr/interrupt.h>
 #include <avr/io.h>
-#include "Nunchuk.h"
 
 NunChuk nunchuck;
 bool zPressed;
 const uint8_t NUNCHUCK_ADDRESS = 0x52;
 
 // IR Pins
-#define IR_TRANSMITTER_PIN PD6 
-#define IR_RECEIVER_PIN PD2   
+#define IR_TRANSMITTER_PIN PD6
+#define IR_RECEIVER_PIN PD2
 
 // I2C address for 7-segment display
 uint8_t address = 0x21;
@@ -60,15 +60,14 @@ int main() {
   DDRD &= ~(1 << IR_RECEIVER_PIN);
 
   while (1) {
-    //checken of nunchuck z is ingedrukt
-    if(nunchuck.getState(NUNCHUCK_ADDRESS)){
+    // checken of nunchuck z is ingedrukt
+    if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
       zPressed = nunchuck.state.z_button;
     }
-    if (zPressed)
-    {
-      startTimer0(); //start timer0 interupts als knop is ingedrukt
-    }else{
-      stopTimer0(); //stop timer0 ints z is los
+    if (zPressed) {
+      startTimer0(); // start timer0 interupts als knop is ingedrukt
+    } else {
+      stopTimer0(); // stop timer0 ints z is los
     }
 
     // Controleer de status van IR_RECEIVER_PIN (PD2)
