@@ -1,289 +1,85 @@
-#include "Adafruit_GFX.h"
-#include "Adafruit_ILI9341.h"
-#include "Nunchuk.h"
-#include "Snake.h"
 #include <Arduino.h>
-#include <SPI.h>
 #include <Wire.h>
 #include <avr/interrupt.h>
+#include <avr/io.h>
+#include "Nunchuk.h"
 
-// LCD Pin Defines
-#define TFT_CLK 13
-#define TFT_MISO 12
-#define TFT_MOSI 11
-#define TFT_DC 9
-#define TFT_CS 10
-#define TFT_RST 8
-
-const int8_t NUNCHUCK_ADDRESS = 0x52;
-
-// Screen dimensions
-const uint16_t TFT_WIDTH = 240;
-const uint16_t TFT_HEIGHT = 320;
-const uint8_t GRID_SIZE = 16;
-
-// Create TFT and Nunchuk objects
-Adafruit_ILI9341 screen(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
 NunChuk nunchuck;
+bool zPressed;
+const uint8_t NUNCHUCK_ADDRESS = 0x52;
 
-// Create Snake object
-Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_HEIGHT / GRID_SIZE, screen);
+// IR Pins
+#define IR_TRANSMITTER_PIN PD6 
+#define IR_RECEIVER_PIN PD2   
 
-// Color defines
-#define BLACK 0x0000
-#define BLUE 0x001F
-#define RED 0xF800
-#define GREEN 0x07E0
-#define CYAN 0x07FF
-#define MAGENTA 0xF81F
-#define YELLOW 0xFFE0
-#define WHITE 0xFFFF
+// I2C address for 7-segment display
+uint8_t address = 0x21;
 
-// TODO: VANAF HIER COMMUNICATIE VAR AND FUNCS VOOR IN EEN CLASS ZO
-#define IR_LED_PIN PD6      // Pin 6 voor IR LED (OC0A)
-#define IR_RECEIVER_PIN PD2 // Pin 2 voor IR Receiver (INT0)
-#define BIT_DURATION 1099 // Updated Bit duration for Timer1 (0.550 ms at 16 MHz / 8)
-#define FRAME_BITS 34       // 1 start bit + 32 data bits + 1 stop bit
-#define DATABITCOUNT 32
-
-enum Status { // enum om tatus te wisselen
-  IDLE,
-  WRITING,
-  READING,
-};
-
-// TODO: Test bool voor nunchuk transmissie
-volatile bool isNunchukController = true;
-
-// communication
-volatile Status status = IDLE; // Naar IDLE om te beginnen met communicatie
-volatile uint32_t outBus = 0x00000000; // Uitgaande data bus
-volatile uint32_t inBus = 0;           // Binnenkomende data bus
-volatile uint8_t inBusBit_index = 0;     // huidige bit index inBus
-volatile uint8_t outBusBit_index = 0;     // huidige bit index outBus
-
-volatile bool isSender = true; // player1 begint met senden en zetten timer
-
-volatile bool ledOn = false;
-volatile bool previousColorBlue = false;
-
-// settings
-volatile bool isPlayer1 = true;
-volatile bool isSmallField = true;
-volatile bool appleGatheredByPlayer2 = false;
-volatile bool gamePaused = false;
-volatile bool isAlive = true;
-volatile uint8_t checksum;
-uint16_t counter = 0;
-
-void stopTimer2(){
-     TCCR2A &= ~(1 << COM2A0); // Disable Timer1 Compare Match interrupt
+// Timer interrupt voor 38 kHz toggling van IR transmitter
+ISR(TIMER0_COMPA_vect) {
+  PORTD ^= (1 << IR_TRANSMITTER_PIN); // Toggle PD6
 }
 
-void startTimer2(){
-     TCCR2A |= (1 << COM2A0); // enable
+void startTimer0() { TIMSK0 |= (1 << OCIE0A); }
+
+void stopTimer0() { TIMSK0 &= ~(1 << OCIE0A); }
+
+// init timer0 voor 38 kHz
+void init_timer0() {
+  // PD6 OUTPUT
+  DDRD |= (1 << IR_TRANSMITTER_PIN);
+
+  // Timer0 CTC modus
+  TCCR0A = (1 << WGM01); // CTC modus
+  TCCR0B = (1 << CS00);  // Geen prescaler (snelste klok)
+
+  // outputcompare in voor 38 kHz
+  OCR0A = 209; // (16 MHz / (2 * 38 kHz)) - 1
+
+  // compare match interrupt aan
+  TIMSK0 = (1 << OCIE0A);
 }
 
-bool getNunchuckZButton(){
-  if(nunchuck.getState(NUNCHUCK_ADDRESS)){
-    return (bool)nunchuck.state.z_button;
+// Verstuur een cijfer naar het 7-segment display via I2C
+void sendToSegmentDisplay(uint8_t value) {
+  Wire.beginTransmission(address);
+  if (value == 0) {
+    Wire.write(0b11000000); // 0 displayen
+  } else if (value == 1) {
+    Wire.write(0b11111001); // 1 displayen
   }
-}
-
-void setupPins() {
-  DDRD |= (1 << PD6);   // PD6 Ouptut
-  PORTD &= ~(1 << PD6); // PD6 begint LOW
-
-  DDRD &= ~(1 << PD2);  // PD2 Input
-  PORTD &= ~(1 << PD2); // pull-up resistor uit
-}
-
-void setupTimers() {
-  TCCR0A |= (1 << WGM01) | (1 << COM0A0); // CTC mode, toggle OC0A
-  TCCR0B |= (1 << CS01);                  // Prescaler 8
-  OCR0A = 25; // Timer Compare interrupt tijd voor 58 kHz // 0x22 = 34
-
-  TCCR1B |= (1 << WGM12) | (1 << CS11) | (1 << CS10); // CTC mode, prescaler 64
-  OCR1A = BIT_DURATION; // Timer Compare interrupt tijd voor lezen iedere bit
-
-  // Set Timer 2 to CTC mode (WGM22:0 = 010)
-  TCCR2A = (1 << WGM21);
-  TCCR2B = (1 << CS20); // No prescaler
-
-  // Toggle OC2A on compare match (COM2A0 = 1)
-  TCCR2A |= (1 << COM2A0);
-
-  // Set OCR2A to 209 for 38 kHz
-  OCR2A = 209;
-}
-
-
-void SetupInterrupts() {
-  EICRA |= (1 << ISC00); // Trigger bij iedere verrandering
-  EIMSK |= (1 << INT0);  // INT0 interrupt enable
-}
-
-void start_writing(uint32_t data) {
-  outBus = data;
-  outBusBit_index = 0;
-  status = WRITING;
-  TIMSK1 |= (1 << OCIE1A); // Enable Timer1 Compare Match interrupt
-  EIMSK &= ~(1 << INT0);  // INT0 interrupt disable
-}
-
-void start_reading() {
-  inBusBit_index = 0;
-  inBus = 0;
-  EIMSK |= (1 << INT0);  // INT0 interrupt enable
-  status = READING;
-}
-
-uint8_t constructChecksum(uint32_t value) {
-  uint8_t checksum = 0;
-  for (uint8_t i = 3; i < 32; i++) { // Start bij bit 3
-    checksum ^= (value >> i) & 0x01;
-  }
-  return checksum & 0x07; // Return 3-bit checksum
-}
-
-uint32_t constructBus() {
-  uint32_t out = 0;
-  uint8_t posSnake;
-  // posSnake = ((snake.snakeX[0] << 4) || snake.snakeY[0]);
-
-  posSnake =
-      ((0x01 << 4) |
-       0x06); // sending dummy data as pos to check if we can receive this
-
-  out |= ((uint32_t)posSnake) << 24;          // Bit 31–24: posSnake
-  out |= ((uint32_t)snake.snakeLength & 0xFF) << 16; // Bit 23–16: lengthSnake
-  out |= ((uint32_t)1 & 0xFF) << 8; // Bit 15–8: posApple //TODO: make pos apple
-  out |=
-      ((isPlayer1 & 0x01) << 7) |              // Bit 7: isPlayer1
-      ((isSmallField & 0x01) << 6) |           // Bit 6: isSmallField
-      ((appleGatheredByPlayer2 & 0x01) << 5) | // Bit 5: appleGatheredByPlayer2
-      ((gamePaused & 0x01) << 4) |             // Bit 4: gamePaused
-      ((isAlive & 0x01) << 3);                 // Bit 3: isAlive
-
-  // checksum toevoegen aan laatste 3 data bits
-  uint8_t checksum = constructChecksum(out);
-  out |= (uint32_t)(checksum & 0x07); // Bits 2–0: checksum
-
-  return out;
-}
-
-void nunchuckHandler() {
-  if (nunchuck.getState(NUNCHUCK_ADDRESS)){
-   if(nunchuck.state.z_button && !previousColorBlue){
-    //outBus = 0xFFFFFFFF; 
-    screen.fillScreen(BLUE);
-    previousColorBlue = true;
-   } else if (!nunchuck.state.z_button && previousColorBlue) {
-    //outBus = 0x00000000;
-    screen.fillScreen(RED);
-    previousColorBlue = false;
-   }
-  }
-}
-
-// TODO: TOT HIER COMMUNICATIE VAR AND FUNCS VOOR IN EEN CLASS ZO
-
-void initialiseScreen() {
-  screen.begin();
-  screen.fillScreen(BLACK);
+  Wire.endTransmission();
 }
 
 int main() {
-  init();
-  Serial.begin(9600);
-  Wire.begin();       // start wire for nunchuck
-  initialiseScreen(); // init the screen
+  Wire.begin();
+  init_timer0(); // starten van de timer voor freq
+  sei();         // global interupts aan
 
-  // communication setup
-  cli();
-  setupPins();
-  setupTimers();
-  SetupInterrupts();
-  sei();
-
-  // snake.start(); // start snake on middle of the screen
-
-  // // TODO: deze test voor scherm testen moet later weg
-  screen.setCursor(60, TFT_WIDTH / 2);
-  screen.setTextColor(RED);
-  screen.setTextSize(3);
-  screen.println("X: " + snake.snakeX[0]);
-  screen.println("Y: " + snake.snakeY[0]);
-
-  //Serial.println("ja hoor");
+  // Zet PD2 als input
+  DDRD &= ~(1 << IR_RECEIVER_PIN);
 
   while (1) {
-if(getNunchuckZButton()){
-  startTimer2();
-}else{
-  stopTimer2();
-}
+    //checken of nunchuck z is ingedrukt
+    if(nunchuck.getState(NUNCHUCK_ADDRESS)){
+      zPressed = nunchuck.state.z_button;
+    }
+    if (zPressed)
+    {
+      startTimer0(); //start timer0 interupts als knop is ingedrukt
+    }else{
+      stopTimer0(); //stop timer0 ints z is los
+    }
 
-if(PORTD | (1 << PD6)){
-  screen.fillRect(100, 100, 100, 100, BLACK);
-  screen.fillRect(100, 100, 100, 100, MAGENTA);
-}else{
-  screen.fillRect(100, 100, 100, 100, BLACK);
-  
-  screen.fillRect(100, 100, 100, 100, YELLOW);
-}
+    // Controleer de status van IR_RECEIVER_PIN (PD2)
+    if (PIND & (1 << IR_RECEIVER_PIN)) {
+      sendToSegmentDisplay(0); // Stuur 0 naar display
+    } else {
+      sendToSegmentDisplay(1); // Stuur 1 naar display
+    }
+
+    _delay_ms(10);
   }
 
   return 0;
-}
-
-ISR(TIMER1_COMPA_vect) {
-  if (status == WRITING) {
-    if (outBusBit_index == 0) {
-      TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
-    } else if (outBusBit_index > 0 && outBusBit_index <= DATABITCOUNT) {
-      bool bit = (outBus >> (DATABITCOUNT - outBusBit_index)) & 0x01;
-      if (bit) {
-        TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
-      } else {
-        TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
-        PORTD &= ~(1 << PD6); // Set PD6 LOW
-      }
-    } else if (outBusBit_index == FRAME_BITS - 1) {
-      TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
-    }
-    outBusBit_index++;
-    if (outBusBit_index >= FRAME_BITS) {
-      outBusBit_index = 0;
-      status = IDLE; // Status naar idle
-    }
-  } else if (status == READING) {
-    if (inBusBit_index <= DATABITCOUNT) {
-      if (!(PIND & (1 << IR_RECEIVER_PIN))) {
-        inBus = (inBus << 1) | 1; // Bit = 1
-      } else {
-        inBus = (inBus << 1); // Bit = 0
-      }
-      inBusBit_index++;
-    } else if (inBusBit_index == FRAME_BITS - 1) { // laatse bit/stop bit
-      status = IDLE;
-      inBusBit_index = 0;         // bus index resetten
-      TIMSK1 &= ~(1 << OCIE1A); // Timer1 interrupts uit
-    }
-  }
-}
-
-ISR(TIMER2_COMPA_vect){
-  PORTD ^= (1 << PD6);
-}
-
-ISR(INT0_vect) {
-  if (inBusBit_index == 0) {
-    inBus = 0;        // inbus clearen
-    inBusBit_index = 1; // eerste bit lezen
-    TCNT1 = 0;        // Reset Timer1
-    status = READING;
-    // Timer 1 aan ingeval van eerste keer sturen
-    TIMSK1 |= (1 << OCIE1A);
-  }
 }
