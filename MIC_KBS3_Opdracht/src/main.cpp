@@ -42,7 +42,7 @@ Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_HEIGHT / GRID_SIZE, screen);
 // TODO: VANAF HIER COMMUNICATIE VAR AND FUNCS VOOR IN EEN CLASS ZO
 #define IR_LED_PIN PD6      // Pin 6 voor IR LED (OC0A)
 #define IR_RECEIVER_PIN PD2 // Pin 2 voor IR Receiver (INT0)
-#define BIT_DURATION 1099 // Updated Bit duration for Timer1 (0.550 ms at 16 MHz / 8)
+#define BIT_DURATION 1099   // Bit duration for Timer1 (0.550 ms at 16 MHz / 8)
 #define FRAME_BITS 34       // 1 start bit + 32 data bits + 1 stop bit
 #define DATABITCOUNT 32
 
@@ -84,12 +84,11 @@ void setupPins() {
 }
 
 void setupTimers() {
-  TCCR0A |= (1 << WGM01) | (1 << COM0A0); // CTC mode, toggle OC0A
-  TCCR0B |= (1 << CS01);                  // Prescaler 8
-  OCR0A = 25; // Timer Compare interrupt tijd voor 58 kHz // 0x22 = 34
+  TCCR1A = 0;
+  TCCR1B = 0;
 
   TCCR1B |= (1 << WGM12) | (1 << CS11) | (1 << CS10); // CTC mode, prescaler 64
-  OCR1A = BIT_DURATION; // Timer Compare interrupt tijd voor lezen iedere bit
+  OCR1A = 0x00FF; // Timer Compare interrupt tijd voor lezen iedere bit
 
   // Set Timer 2 to CTC mode (WGM22:0 = 010)
   TCCR2A = (1 << WGM21);
@@ -101,7 +100,6 @@ void setupTimers() {
   // Set OCR2A to 209 for 38 kHz
   OCR2A = 209;
 }
-
 
 void SetupInterrupts() {
   EICRA |= (1 << ISC00); // Trigger bij iedere verrandering
@@ -209,8 +207,6 @@ int main() {
       break;
     }
 
-
-
     // if (!isNunchukController) {
     //   screen.println(String(inBus));
 
@@ -225,7 +221,6 @@ int main() {
     // }
 
     //Serial.println(String(inBus));
-
 
     // snake afhandeling
     // if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
@@ -279,15 +274,18 @@ ISR(TIMER1_COMPA_vect) {
         TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
       } else {
         TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
-        PORTD &= ~(1 << PD6); // Set PD6 LOW
+        PORTD &= ~(1 << PD6);     // Ensure PD6 is LOW
       }
     } else if (outBusBit_index == FRAME_BITS - 1) {
       TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
+      PORTD |= (1 << PD6); // Set PD6 HIGH
     }
     outBusBit_index++;
     if (outBusBit_index >= FRAME_BITS) {
       outBusBit_index = 0;
+
       status = IDLE; // Status naar idle
+      TIMSK1 &= ~(1 << OCIE1A); // Timer1 interrupts uit
     }
   } else if (status == READING) {
     if (inBusBit_index <= DATABITCOUNT) {
