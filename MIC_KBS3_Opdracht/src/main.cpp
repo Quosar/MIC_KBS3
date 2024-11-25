@@ -62,7 +62,7 @@ volatile uint32_t inBus = 0;           // Binnenkomende data bus
 volatile uint8_t inBusBit_index = 0;     // huidige bit index inBus
 volatile uint8_t outBusBit_index = 0;     // huidige bit index outBus
 
-volatile bool isSender = true; // player1 begint met senden en zetten timer
+volatile bool isSender = false; // player1 begint met senden en zetten timer
 
 volatile bool ledOn = false;
 
@@ -120,7 +120,8 @@ void start_writing(uint32_t data) {
 void start_reading() {
   inBusBit_index = 0;
   inBus = 0;
-  EIMSK |= (1 << INT0);  // INT0 interrupt enable
+  TCNT1 = 0;
+  EIMSK |= (1 << INT0);  // INT0 interrupt disable
   status = READING;
 }
 
