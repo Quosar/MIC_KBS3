@@ -66,6 +66,9 @@ volatile bool isSender = true; // player1 begint met senden en zetten timer
 
 volatile bool ledOn = false;
 
+volatile bool IRSendWaiting = false;
+volatile bool IRRecieveWaiting = false;
+
 // settings
 volatile bool isPlayer1 = true;
 volatile bool isSmallField = true;
@@ -266,6 +269,7 @@ int main() {
 
 ISR(TIMER1_COMPA_vect) {
   if (status == WRITING) {
+    if(IRSendWaiting == false){
     if (outBusBit_index == 0) {
       TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
     } else if (outBusBit_index > 0 && outBusBit_index <= DATABITCOUNT) {
@@ -287,7 +291,14 @@ ISR(TIMER1_COMPA_vect) {
       status = IDLE; // Status naar idle
       TIMSK1 &= ~(1 << OCIE1A); // Timer1 interrupts uit
     }
+    IRSendWaiting = true;
+    } else {
+      TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
+      PORTD |= (1 << PD6); // Set PD6 HIGH
+      IRSendWaiting = false;
+    }
   } else if (status == READING) {
+    if(IRRecieveWaiting == false){
     if (inBusBit_index <= DATABITCOUNT) {
       if (!(PIND & (1 << IR_RECEIVER_PIN))) {
         inBus = (inBus << 1) | 1; // Bit = 1
@@ -300,6 +311,10 @@ ISR(TIMER1_COMPA_vect) {
       inBusBit_index = 0;         // bus index resetten
       TIMSK1 &= ~(1 << OCIE1A); // Timer1 interrupts uit
     }
+    IRRecieveWaiting = true;
+  } else {
+    IRRecieveWaiting = false;
+  }
   }
 }
 
