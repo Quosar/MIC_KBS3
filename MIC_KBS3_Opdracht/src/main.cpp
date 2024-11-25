@@ -88,7 +88,7 @@ void setupTimers() {
   TCCR1B = 0;
 
   TCCR1B |= (1 << WGM12) | (1 << CS11) | (1 << CS10); // CTC mode, prescaler 64
-  OCR1A = 0x00FF; // Timer Compare interrupt tijd voor lezen iedere bit
+  OCR1A = 75; // Timer Compare interrupt tijd voor lezen iedere bit
 
   // Set Timer 2 to CTC mode (WGM22:0 = 010)
   TCCR2A = (1 << WGM21);
