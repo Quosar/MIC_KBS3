@@ -57,12 +57,12 @@ volatile bool isNunchukController = true;
 
 // communication
 volatile Status status = IDLE; // Naar IDLE om te beginnen met communicatie
-volatile uint32_t outBus = 0x55555555; // Uitgaande data bus
+volatile uint32_t outBus = 0xFFFFFFFF; // Uitgaande data bus
 volatile uint32_t inBus = 0;           // Binnenkomende data bus
 volatile uint8_t inBusBit_index = 0;     // huidige bit index inBus
 volatile uint8_t outBusBit_index = 0;     // huidige bit index outBus
 
-volatile bool isSender = false; // player1 begint met senden en zetten timer
+volatile bool isSender = true; // player1 begint met senden en zetten timer
 
 volatile bool ledOn = false;
 
@@ -121,7 +121,7 @@ void start_reading() {
   inBusBit_index = 0;
   inBus = 0;
   TCNT1 = 0;
-  EIMSK |= (1 << INT0);  // INT0 interrupt disable
+  EIMSK |= (1 << INT0);  // INT0 interrupt enable
   status = READING;
 }
 
