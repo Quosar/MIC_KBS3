@@ -42,7 +42,6 @@ Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_HEIGHT / GRID_SIZE, screen);
 // TODO: VANAF HIER COMMUNICATIE VAR AND FUNCS VOOR IN EEN CLASS ZO
 #define IR_LED_PIN PD6      // Pin 6 voor IR LED (OC0A)
 #define IR_RECEIVER_PIN PD2 // Pin 2 voor IR Receiver (INT0)
-#define BIT_DURATION 1099   // Bit duration for Timer1 (0.550 ms at 16 MHz / 8)
 #define FRAME_BITS 34       // 1 start bit + 32 data bits + 1 stop bit
 #define DATABITCOUNT 32
 
@@ -57,12 +56,12 @@ volatile bool isNunchukController = true;
 
 // communication
 volatile Status status = IDLE; // Naar IDLE om te beginnen met communicatie
-volatile uint32_t outBus = 0x55555555; // Uitgaande data bus
+volatile uint32_t outBus = 6969420; // Uitgaande data bus
 volatile uint32_t inBus = 0;           // Binnenkomende data bus
 volatile uint8_t inBusBit_index = 0;     // huidige bit index inBus
 volatile uint8_t outBusBit_index = 0;     // huidige bit index outBus
 
-volatile bool isSender = false; // player1 begint met senden en zetten timer
+volatile bool isSender = true; // player1 begint met senden en zetten timer
 
 volatile bool ledOn = false;
 
@@ -279,20 +278,20 @@ ISR(TIMER1_COMPA_vect) {
     if(IRSendWaiting == false){
     if (outBusBit_index == 0) {
       TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
-    } else if (outBusBit_index > 0 && outBusBit_index <= DATABITCOUNT) {
-      bool bit = (outBus >> (DATABITCOUNT - outBusBit_index)) & 0x01;
+    } else if (outBusBit_index > 0 && outBusBit_index < DATABITCOUNT + 1) {
+      bool bit = (outBus >> (DATABITCOUNT - outBusBit_index - 1)) & 0x01;
       if (bit) {
         TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
       } else {
         TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
         PORTD &= ~(1 << PD6);     // Ensure PD6 is LOW
       }
-    } else if (outBusBit_index == FRAME_BITS - 1) {
+    } else if (outBusBit_index > DATABITCOUNT) {
       TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
       PORTD |= (1 << PD6); // Set PD6 HIGH
     }
     outBusBit_index++;
-    if (outBusBit_index >= FRAME_BITS) {
+    if (outBusBit_index > DATABITCOUNT) {
       outBusBit_index = 0;
 
       status = IDLE; // Status naar idle
@@ -305,20 +304,18 @@ ISR(TIMER1_COMPA_vect) {
       IRSendWaiting = false;
     }
   } else if (status == READING) {
-    if(IRRecieveWaiting == false){
-    if (inBusBit_index <= DATABITCOUNT) {
-      if (!(PIND & (1 << IR_RECEIVER_PIN))) {
-        inBus = (inBus << 1) | 1; // Bit = 1
-      } else {
-        inBus = (inBus << 1); // Bit = 0
-      }
-      inBusBit_index++;
-    } else if (inBusBit_index == FRAME_BITS - 1) { // laatse bit/stop bit
+    if(IRRecieveWaiting == false) {
+      if (inBusBit_index > 1 && inBusBit_index < DATABITCOUNT + 1) {
+        if (!(PIND & (1 << IR_RECEIVER_PIN))) {
+    inBus |= (1UL << (DATABITCOUNT - inBusBit_index)); // Bit = 1 zet de bit in de omgekeerde positie. Bit = 0 gebeurd automatisch
+  }
+    } else if (inBusBit_index > DATABITCOUNT) { // laatse bit/stop bit
       status = IDLE;
       inBusBit_index = 0;         // bus index resetten
       printBus = true;
       TIMSK1 &= ~(1 << OCIE1A); // Timer1 interrupts uit
     }
+    inBusBit_index++;
     IRRecieveWaiting = true;
   } else {
     IRRecieveWaiting = false;
