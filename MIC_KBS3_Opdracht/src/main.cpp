@@ -57,17 +57,19 @@ volatile bool isNunchukController = true;
 
 // communication
 volatile Status status = IDLE; // Naar IDLE om te beginnen met communicatie
-volatile uint32_t outBus = 0xFFFFFFFF; // Uitgaande data bus
+volatile uint32_t outBus = 0x55555555; // Uitgaande data bus
 volatile uint32_t inBus = 0;           // Binnenkomende data bus
 volatile uint8_t inBusBit_index = 0;     // huidige bit index inBus
 volatile uint8_t outBusBit_index = 0;     // huidige bit index outBus
 
-volatile bool isSender = true; // player1 begint met senden en zetten timer
+volatile bool isSender = false; // player1 begint met senden en zetten timer
 
 volatile bool ledOn = false;
 
 volatile bool IRSendWaiting = false;
 volatile bool IRRecieveWaiting = false;
+
+volatile bool printBus = false;
 
 // settings
 volatile bool isPlayer1 = true;
@@ -168,7 +170,7 @@ void initialiseScreen() {
 
 int main() {
   init();
-  //Serial.begin(9600);
+  Serial.begin(9600);
   //Wire.begin();       // start wire for nunchuck
   //initialiseScreen(); // init the screen
 
@@ -209,6 +211,10 @@ int main() {
     case WRITING: // wordt gedaan via interrupts
     case READING: // wordt gedaan via interrupts
       break;
+    }
+    if (printBus){
+      Serial.println(inBus);
+      printBus = false;
     }
 
     // if (!isNunchukController) {
@@ -310,6 +316,7 @@ ISR(TIMER1_COMPA_vect) {
     } else if (inBusBit_index == FRAME_BITS - 1) { // laatse bit/stop bit
       status = IDLE;
       inBusBit_index = 0;         // bus index resetten
+      printBus = true;
       TIMSK1 &= ~(1 << OCIE1A); // Timer1 interrupts uit
     }
     IRRecieveWaiting = true;
