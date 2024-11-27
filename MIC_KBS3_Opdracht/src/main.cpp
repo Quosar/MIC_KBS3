@@ -61,7 +61,7 @@ volatile uint32_t inBus = 0;           // Binnenkomende data bus
 volatile uint8_t inBusBit_index = 0;     // huidige bit index inBus
 volatile uint8_t outBusBit_index = 0;     // huidige bit index outBus
 
-volatile bool isSender = false; // player1 begint met senden en zetten timer
+volatile bool isSender = true; // player1 begint met senden en zetten timer
 
 volatile bool ledOn = false;
 
@@ -307,8 +307,8 @@ ISR(TIMER1_COMPA_vect) {
       IRSendWaiting = false;
     }
   } else if (status == READING) {
+    PORTD |= (1 << PD7); // PD6 HIGH
     if(IRRecieveWaiting == false) {
-      PORTD ^= (1 << PD7); // PD6 begint LOW
 if (inBusBit_index > 1 && inBusBit_index < DATABITCOUNT + 1) {
     if (!(PIND & (1 << IR_RECEIVER_PIN))) { // Check if pin is LOW
         inBus |= (1UL << (DATABITCOUNT - inBusBit_index));
@@ -322,6 +322,7 @@ if (inBusBit_index > 1 && inBusBit_index < DATABITCOUNT + 1) {
     inBusBit_index++;
     IRRecieveWaiting = true;
   } else {
+    PORTD &= ~(1 << PD7); // PD6 begint LOW
     IRRecieveWaiting = false;
   }
   }
