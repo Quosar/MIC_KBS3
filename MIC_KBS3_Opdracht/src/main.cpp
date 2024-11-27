@@ -45,7 +45,8 @@ Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_HEIGHT / GRID_SIZE, screen);
 #define FRAME_BITS 34       // 1 start bit + 32 data bits + 1 stop bit
 #define DATABITCOUNT 32
 
-enum Status { // enum om tatus te wisselen
+enum Status
+{ // enum om tatus te wisselen
   IDLE,
   WRITING,
   READING,
@@ -55,11 +56,11 @@ enum Status { // enum om tatus te wisselen
 volatile bool isNunchukController = true;
 
 // communication
-volatile Status status = IDLE; // Naar IDLE om te beginnen met communicatie
-volatile uint32_t outBus = 1; // Uitgaande data bus
-volatile uint32_t inBus = 0;           // Binnenkomende data bus
-volatile uint8_t inBusBit_index = 0;     // huidige bit index inBus
-volatile uint8_t outBusBit_index = 0;     // huidige bit index outBus
+volatile Status status = IDLE;        // Naar IDLE om te beginnen met communicatie
+volatile uint32_t outBus = 1;         // Uitgaande data bus
+volatile uint32_t inBus = 0;          // Binnenkomende data bus
+volatile uint8_t inBusBit_index = 0;  // huidige bit index inBus
+volatile uint8_t outBusBit_index = 0; // huidige bit index outBus
 
 volatile bool isSender = true; // player1 begint met senden en zetten timer
 
@@ -81,7 +82,8 @@ volatile bool isAlive = true;
 volatile uint8_t checksum;
 uint16_t counter = 0;
 
-void setupPins() {
+void setupPins()
+{
   DDRD |= (1 << PD6);   // PD6 Ouptut
   PORTD &= ~(1 << PD6); // PD6 begint LOW
 
@@ -92,12 +94,13 @@ void setupPins() {
   PORTD &= ~(1 << PD7); // PD6 begint LOW
 }
 
-void setupTimers() {
+void setupTimers()
+{
   TCCR1A = 0;
   TCCR1B = 0;
 
   TCCR1B |= (1 << WGM12) | (1 << CS11) | (1 << CS10); // CTC mode, prescaler 64
-  OCR1A = 75; // Timer Compare interrupt tijd voor lezen iedere bit
+  OCR1A = 75;                                         // Timer Compare interrupt tijd voor lezen iedere bit
 
   // Set Timer 2 to CTC mode (WGM22:0 = 010)
   TCCR2A = (1 << WGM21);
@@ -110,36 +113,42 @@ void setupTimers() {
   OCR2A = 209;
 }
 
-void SetupInterrupts() {
+void SetupInterrupts()
+{
   EICRA |= (1 << ISC00); // Trigger bij iedere verrandering
   EIMSK |= (1 << INT0);  // INT0 interrupt enable
 }
 
-void start_writing(uint32_t data) {
+void start_writing(uint32_t data)
+{
   outBus = data;
   outBusBit_index = 0;
   status = WRITING;
   TIMSK1 |= (1 << OCIE1A); // Enable Timer1 Compare Match interrupt
-  EIMSK &= ~(1 << INT0);  // INT0 interrupt disable
+  EIMSK &= ~(1 << INT0);   // INT0 interrupt disable
 }
 
-void start_reading() {
+void start_reading()
+{
   inBusBit_index = 0;
   inBus = 0;
   TCNT1 = 0;
-  EIMSK |= (1 << INT0);  // INT0 interrupt enable
+  EIMSK |= (1 << INT0); // INT0 interrupt enable
   status = READING;
 }
 
-uint8_t constructChecksum(uint32_t value) {
+uint8_t constructChecksum(uint32_t value)
+{
   uint8_t checksum = 0;
-  for (uint8_t i = 3; i < 32; i++) { // Start bij bit 3
+  for (uint8_t i = 3; i < 32; i++)
+  { // Start bij bit 3
     checksum ^= (value >> i) & 0x01;
   }
   return checksum & 0x07; // Return 3-bit checksum
 }
 
-uint32_t constructBus() {
+uint32_t constructBus()
+{
   uint32_t out = 0;
   uint8_t posSnake;
   // posSnake = ((snake.snakeX[0] << 4) || snake.snakeY[0]);
@@ -148,9 +157,9 @@ uint32_t constructBus() {
       ((0x01 << 4) |
        0x06); // sending dummy data as pos to check if we can receive this
 
-  out |= ((uint32_t)posSnake) << 24;          // Bit 31–24: posSnake
+  out |= ((uint32_t)posSnake) << 24;                 // Bit 31–24: posSnake
   out |= ((uint32_t)snake.snakeLength & 0xFF) << 16; // Bit 23–16: lengthSnake
-  out |= ((uint32_t)1 & 0xFF) << 8; // Bit 15–8: posApple //TODO: make pos apple
+  out |= ((uint32_t)1 & 0xFF) << 8;                  // Bit 15–8: posApple //TODO: make pos apple
   out |=
       ((isPlayer1 & 0x01) << 7) |              // Bit 7: isPlayer1
       ((isSmallField & 0x01) << 6) |           // Bit 6: isSmallField
@@ -167,16 +176,18 @@ uint32_t constructBus() {
 
 // TODO: TOT HIER COMMUNICATIE VAR AND FUNCS VOOR IN EEN CLASS ZO
 
-void initialiseScreen() {
+void initialiseScreen()
+{
   screen.begin();
   screen.fillScreen(BLACK);
 }
 
-int main() {
+int main()
+{
   init();
   Serial.begin(9600);
-  //Wire.begin();       // start wire for nunchuck
-  //initialiseScreen(); // init the screen
+  // Wire.begin();       // start wire for nunchuck
+  // initialiseScreen(); // init the screen
 
   // communication setup
   cli();
@@ -194,17 +205,22 @@ int main() {
   // screen.println("X: " + snake.snakeX[0]);
   // screen.println("Y: " + snake.snakeY[0]);
 
-  //Serial.println("ja hoor");
+  // Serial.println("ja hoor");
 
-  while (1) {
+  while (1)
+  {
 
     // communication afhandeling
-    switch (status) {
+    switch (status)
+    {
     case IDLE:
-      if (isSender) {
-        //uint32_t bus = constructBus();
+      if (isSender)
+      {
+        // uint32_t bus = constructBus();
         start_writing(outBus); // Start writing
-      } else {
+      }
+      else
+      {
         start_reading(); // Start reading
       }
       //_delay_ms(1);
@@ -216,13 +232,17 @@ int main() {
     case READING: // wordt gedaan via interrupts
       break;
     }
-    if (printBus){
+    if (printBus)
+    {
       Serial.println(inBus);
       printBus = false;
-      if (outBusCounter > 9){
+      if (outBusCounter > 9)
+      {
         outBusCounter = 0;
         outBus = outBus + 1;
-      } else {
+      }
+      else
+      {
         outBusCounter++;
       }
     }
@@ -237,10 +257,10 @@ int main() {
     //   screen.fillScreen(BLACK);
     //   screen.setCursor(60, TFT_WIDTH / 2);
     //   screen.println("X: " + String(snakeX));
-    //   screen.println("Y: " + String(snakeY)); 
+    //   screen.println("Y: " + String(snakeY));
     // }
 
-    //Serial.println(String(inBus));
+    // Serial.println(String(inBus));
 
     // snake afhandeling
     // if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
@@ -284,64 +304,90 @@ int main() {
   return 0;
 }
 
-ISR(TIMER1_COMPA_vect) {
-  if (status == WRITING) {
-    if(IRSendWaiting == false){
-    if (outBusBit_index == 0) {
-      TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
-    } else if (outBusBit_index > 0 && outBusBit_index <= DATABITCOUNT) {
-      bool bit = (outBus >> (DATABITCOUNT - outBusBit_index)) & 0x01;
-      if (bit) {
+ISR(TIMER1_COMPA_vect)
+{
+  if (status == WRITING)
+  {
+    if (IRSendWaiting == false)
+    {
+      if (outBusBit_index == 0)
+      {
         TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
-      } else {
-        TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
-        PORTD &= ~(1 << PD6);     // Ensure PD6 is LOW
       }
-    } else if (outBusBit_index == 33) {
-      TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
-      PORTD |= (1 << PD6); // Set PD6 HIGH
-    }
-    outBusBit_index++;
-    if (outBusBit_index > DATABITCOUNT + 1) {
-      outBusBit_index = 0;
+      else if (outBusBit_index > 0 && outBusBit_index <= DATABITCOUNT)
+      {
+        bool bit = (outBus >> (DATABITCOUNT - outBusBit_index)) & 0x01;
+        if (bit)
+        {
+          TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
+        }
+        else
+        {
+          TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
+          PORTD &= ~(1 << PD6);     // Ensure PD6 is LOW
+        }
+      }
+      else if (outBusBit_index == 33)
+      {
+        TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
+        PORTD |= (1 << PD6);      // Set PD6 HIGH
+      }
+      outBusBit_index++;
+      if (outBusBit_index > DATABITCOUNT + 1)
+      {
+        outBusBit_index = 0;
 
-      status = IDLE; // Status naar idle
-      TIMSK1 &= ~(1 << OCIE1A); // Timer1 interrupts uit
+        status = IDLE;            // Status naar idle
+        TIMSK1 &= ~(1 << OCIE1A); // Timer1 interrupts uit
+      }
+      IRSendWaiting = true;
     }
-    IRSendWaiting = true;
-    } else {
-      TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt  
-      PORTD |= (1 << PD6); // Set PD6 HIGH
+    else
+    {
+      TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
+      PORTD |= (1 << PD6);      // Set PD6 HIGH
       IRSendWaiting = false;
     }
-  } else if (status == READING) {
-    PORTD |= (1 << PD7); // PD6 HIGH
-    if(IRRecieveWaiting == false) {
-if (inBusBit_index > 1 && inBusBit_index < DATABITCOUNT + 1) {
-    if (!(PIND & (1 << IR_RECEIVER_PIN))) { // Check if pin is LOW
-        inBus |= (1UL << (DATABITCOUNT - inBusBit_index));
-    }
-    } else if (inBusBit_index > DATABITCOUNT) { // laatse bit/stop bit
-      status = IDLE;
-      inBusBit_index = 0;         // bus index resetten
-      printBus = true;
-      TIMSK1 &= ~(1 << OCIE1A); // Timer1 interrupts uit
-    }
-    inBusBit_index++;
-    IRRecieveWaiting = true;
-  } else {
-    PORTD &= ~(1 << PD7); // PD6 begint LOW
-    IRRecieveWaiting = false;
   }
+  else if (status == READING)
+  {
+    PORTD |= (1 << PD7); // PD6 HIGH
+    if (IRRecieveWaiting == false)
+    {
+      if (inBusBit_index > 1 && inBusBit_index < DATABITCOUNT + 1)
+      {
+        if (!(PIND & (1 << IR_RECEIVER_PIN)))
+        { // Check if pin is LOW
+          inBus |= (1UL << (DATABITCOUNT - inBusBit_index));
+        }
+      }
+      else if (inBusBit_index > DATABITCOUNT)
+      { // laatse bit/stop bit
+        status = IDLE;
+        inBusBit_index = 0; // bus index resetten
+        printBus = true;
+        TIMSK1 &= ~(1 << OCIE1A); // Timer1 interrupts uit
+      }
+      inBusBit_index++;
+      IRRecieveWaiting = true;
+    }
+    else
+    {
+      PORTD &= ~(1 << PD7); // PD6 begint LOW
+      IRRecieveWaiting = false;
+    }
   }
 }
 
-ISR(TIMER2_COMPA_vect){
+ISR(TIMER2_COMPA_vect)
+{
   PORTD ^= (1 << PD6);
 }
 
-ISR(INT0_vect) {
-    if (inBusBit_index == 0) {  // Start bit detected
-        TIMSK1 |= (1 << OCIE1A); // Enable Timer1 Compare Match interrupt
-    }
+ISR(INT0_vect)
+{
+  if (inBusBit_index == 0)
+  {                          // Start bit detected
+    TIMSK1 |= (1 << OCIE1A); // Enable Timer1 Compare Match interrupt
+  }
 }
