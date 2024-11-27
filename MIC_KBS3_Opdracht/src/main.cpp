@@ -61,7 +61,7 @@ volatile uint32_t inBus = 0;           // Binnenkomende data bus
 volatile uint8_t inBusBit_index = 0;     // huidige bit index inBus
 volatile uint8_t outBusBit_index = 0;     // huidige bit index outBus
 
-volatile bool isSender = true; // player1 begint met senden en zetten timer
+volatile bool isSender = false; // player1 begint met senden en zetten timer
 
 volatile bool ledOn = false;
 
@@ -305,10 +305,10 @@ ISR(TIMER1_COMPA_vect) {
     }
   } else if (status == READING) {
     if(IRRecieveWaiting == false) {
-      if (inBusBit_index > 1 && inBusBit_index < DATABITCOUNT + 1) {
-        if (!(PIND & (1 << IR_RECEIVER_PIN))) {
-    inBus |= (1UL << (DATABITCOUNT - inBusBit_index)); // Bit = 1 zet de bit in de omgekeerde positie. Bit = 0 gebeurd automatisch
-  }
+if (inBusBit_index > 1 && inBusBit_index < DATABITCOUNT + 1) {
+    if (!(PIND & (1 << IR_RECEIVER_PIN))) { // Check if pin is LOW
+        inBus |= (1UL << (DATABITCOUNT - inBusBit_index));
+    }
     } else if (inBusBit_index > DATABITCOUNT) { // laatse bit/stop bit
       status = IDLE;
       inBusBit_index = 0;         // bus index resetten
@@ -328,12 +328,11 @@ ISR(TIMER2_COMPA_vect){
 }
 
 ISR(INT0_vect) {
-  if (inBusBit_index == 0) {
-    inBus = 0;        // inbus clearen
-    inBusBit_index = 1; // eerste bit lezen
-    TCNT1 = 0;        // Reset Timer1
-    status = READING;
-    // Timer 1 aan ingeval van eerste keer sturen
-    TIMSK1 |= (1 << OCIE1A);
-  }
+    if (inBusBit_index == 0) {  // Start bit detected
+        inBus = 0;              // Clear the bus
+        inBusBit_index = 0;     // Prepare to read the first data bit
+        TCNT1 = 0;              // Reset Timer1
+        status = READING;
+        TIMSK1 |= (1 << OCIE1A); // Enable Timer1 Compare Match interrupt
+    }
 }
