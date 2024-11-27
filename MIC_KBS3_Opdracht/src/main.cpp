@@ -85,6 +85,9 @@ void setupPins() {
 
   DDRD &= ~(1 << PD2);  // PD2 Input
   PORTD &= ~(1 << PD2); // pull-up resistor uit
+
+  DDRD |= (1 << PD7);   // PD6 Ouptut
+  PORTD &= ~(1 << PD7); // PD6 begint LOW
 }
 
 void setupTimers() {
@@ -299,12 +302,13 @@ ISR(TIMER1_COMPA_vect) {
     }
     IRSendWaiting = true;
     } else {
-      TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
+      TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt  
       PORTD |= (1 << PD6); // Set PD6 HIGH
       IRSendWaiting = false;
     }
   } else if (status == READING) {
     if(IRRecieveWaiting == false) {
+      PORTD ^= (1 << PD7); // PD6 begint LOW
 if (inBusBit_index > 1 && inBusBit_index < DATABITCOUNT + 1) {
     if (!(PIND & (1 << IR_RECEIVER_PIN))) { // Check if pin is LOW
         inBus |= (1UL << (DATABITCOUNT - inBusBit_index));
@@ -329,10 +333,6 @@ ISR(TIMER2_COMPA_vect){
 
 ISR(INT0_vect) {
     if (inBusBit_index == 0) {  // Start bit detected
-        inBus = 0;              // Clear the bus
-        inBusBit_index = 0;     // Prepare to read the first data bit
-        TCNT1 = 0;              // Reset Timer1
-        status = READING;
         TIMSK1 |= (1 << OCIE1A); // Enable Timer1 Compare Match interrupt
     }
 }
