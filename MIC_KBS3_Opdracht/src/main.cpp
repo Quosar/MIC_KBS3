@@ -56,7 +56,7 @@ volatile bool isNunchukController = true;
 
 // communication
 volatile Status status = IDLE; // Naar IDLE om te beginnen met communicatie
-volatile uint32_t outBus = 6969420; // Uitgaande data bus
+volatile uint32_t outBus = 3652945; // Uitgaande data bus
 volatile uint32_t inBus = 0;           // Binnenkomende data bus
 volatile uint8_t inBusBit_index = 0;     // huidige bit index inBus
 volatile uint8_t outBusBit_index = 0;     // huidige bit index outBus
@@ -291,7 +291,7 @@ ISR(TIMER1_COMPA_vect) {
       PORTD |= (1 << PD6); // Set PD6 HIGH
     }
     outBusBit_index++;
-    if (outBusBit_index > DATABITCOUNT) {
+    if (outBusBit_index > DATABITCOUNT + 1) {
       outBusBit_index = 0;
 
       status = IDLE; // Status naar idle
