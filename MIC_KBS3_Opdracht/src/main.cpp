@@ -56,7 +56,7 @@ volatile bool isNunchukController = true;
 
 // communication
 volatile Status status = IDLE; // Naar IDLE om te beginnen met communicatie
-volatile uint32_t outBus = 3652945; // Uitgaande data bus
+volatile uint32_t outBus = 1; // Uitgaande data bus
 volatile uint32_t inBus = 0;           // Binnenkomende data bus
 volatile uint8_t inBusBit_index = 0;     // huidige bit index inBus
 volatile uint8_t outBusBit_index = 0;     // huidige bit index outBus
@@ -64,6 +64,8 @@ volatile uint8_t outBusBit_index = 0;     // huidige bit index outBus
 volatile bool isSender = true; // player1 begint met senden en zetten timer
 
 volatile bool ledOn = false;
+
+volatile uint32_t outBusCounter = 0;
 
 volatile bool IRSendWaiting = false;
 volatile bool IRRecieveWaiting = false;
@@ -217,6 +219,12 @@ int main() {
     if (printBus){
       Serial.println(inBus);
       printBus = false;
+      if (outBusCounter > 9){
+        outBusCounter = 0;
+        outBus = outBus + 1;
+      } else {
+        outBusCounter++;
+      }
     }
 
     // if (!isNunchukController) {
@@ -281,15 +289,15 @@ ISR(TIMER1_COMPA_vect) {
     if(IRSendWaiting == false){
     if (outBusBit_index == 0) {
       TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
-    } else if (outBusBit_index > 0 && outBusBit_index < DATABITCOUNT + 1) {
-      bool bit = (outBus >> (DATABITCOUNT - outBusBit_index - 1)) & 0x01;
+    } else if (outBusBit_index > 0 && outBusBit_index <= DATABITCOUNT) {
+      bool bit = (outBus >> (DATABITCOUNT - outBusBit_index)) & 0x01;
       if (bit) {
         TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
       } else {
         TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
         PORTD &= ~(1 << PD6);     // Ensure PD6 is LOW
       }
-    } else if (outBusBit_index > DATABITCOUNT) {
+    } else if (outBusBit_index == 33) {
       TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
       PORTD |= (1 << PD6); // Set PD6 HIGH
     }
