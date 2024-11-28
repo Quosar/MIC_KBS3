@@ -56,12 +56,11 @@ enum Status
 volatile bool isNunchukController = true;
 
 // communication
-volatile Status status = IDLE;         // Naar IDLE om te beginnen met communicatie
 volatile uint32_t outBus = 0xAAAAAAAA; // Uitgaande data bus
 volatile uint32_t inBus = 0;           // Binnenkomende data bus
 volatile uint8_t busBitIndex = 0;      // huidige bit index inBus
 
-volatile bool isSender = false; // player1 begint met senden en zetten timer
+volatile bool isSender = true; // player1 begint met senden en zetten timer
 
 volatile bool ledOn = false;
 
@@ -90,8 +89,8 @@ void setupPins()
   DDRD &= ~(1 << PD2);  // PD2 Input
   PORTD &= ~(1 << PD2); // pull-up resistor uit
 
-  DDRD |= (1 << PD7);   // PD6 Ouptut
-  PORTD &= ~(1 << PD7); // PD6 begint LOW
+  DDRD |= (1 << PD7);   // PD7 Ouptut
+  PORTD &= ~(1 << PD7); // PD7 begint LOW
 }
 
 void setupTimers()
@@ -119,29 +118,12 @@ void SetupInterrupts()
   EIMSK |= (1 << INT0);  // INT0 interrupt enable
 }
 
-void start_writing(uint32_t data)
-{
-  outBus = data;
-  busBitIndex = 0;
-  TIMSK1 |= (1 << OCIE1A); // Enable Timer1 Compare Match interrupt
-  EIMSK &= ~(1 << INT0);   // INT0 interrupt disable
-}
-
-void start_reading()
-{
-  busBitIndex = 0;
-  inBus = 0;
-  TCNT1 = 0;
-  EIMSK |= (1 << INT0); // INT0 interrupt enable
-}
-
 void initializeCommunication()
 {
   busBitIndex = 0;
   inBus = 0;
   TCNT1 = 0;
   TIMSK1 |= (1 << OCIE1A); // Enable Timer1 Compare Match interrupt
-  EIMSK &= ~(1 << INT0);   // INT0 interrupt disable
   communicationInitialized = true;
 }
 
@@ -202,6 +184,7 @@ int main()
   setupPins();
   setupTimers();
   SetupInterrupts();
+  initializeCommunication();
   sei();
 
   // snake.start(); // start snake on middle of the screen
@@ -240,20 +223,19 @@ int main()
     // case READING: // wordt gedaan via interrupts
     //   break;
     // }
-    if (isSender)
-    {
-      EIMSK &= !(1 << INT0); // INT0 interrupt disable
-    }
-    else
-    {
-      EIMSK |= (1 << INT0); // INT0 interrupt enable
-      initializeCommunication();
-    }
-
-    if (!communicationInitialized && !isSender)
-    {
-      initializeCommunication();
-    }
+    // if (isSender)
+    // {
+    //   EIMSK &= !(1 << INT0); // INT0 interrupt disable
+    //   initializeCommunication();
+    // }
+    // else
+    // {
+    //   EIMSK |= (1 << INT0); // INT0 interrupt enable
+    // }
+    // if (!communicationInitialized && !isSender)
+    // {
+    //   initializeCommunication();
+    // }
     if (printBus)
     {
       Serial.println(inBus);
@@ -330,6 +312,7 @@ ISR(TIMER1_COMPA_vect)
 {
   if (IRWaiting == false)
   {
+    EIMSK &= ~(1 << INT0);   // INT0 interrupt disable
     if (busBitIndex == 0)
     {
       TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
@@ -347,13 +330,14 @@ ISR(TIMER1_COMPA_vect)
         PORTD &= ~(1 << PD6);     // Ensure PD6 is LOW
       }
     }
-    if (busBitIndex > 1 && busBitIndex <= DATABITCOUNT + 1)
-    {
-      if (!(PIND & (1 << IR_RECEIVER_PIN)))
-      { // Check if pin is LOW
-        inBus |= (1UL << (DATABITCOUNT - busBitIndex));
-      }
-    }
+    // if (busBitIndex > 1 && busBitIndex <= DATABITCOUNT + 1)
+    // {
+    //PORTD ^= (1 << PD7);
+    //   if (!(PIND & (1 << IR_RECEIVER_PIN)))
+    //   { // Check if pin is LOW
+    //     inBus |= (1UL << (DATABITCOUNT - busBitIndex));
+    //   }
+    // }
     if (busBitIndex == 33)
     {
       TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
@@ -379,8 +363,7 @@ ISR(TIMER2_COMPA_vect)
 
 ISR(INT0_vect)
 {
-  if (busBitIndex == 0)
-  { // Start bit detected
-    communicationInitialized = false;
-  }
+  // if (!communicationInitialized && !isSender){
+  //   communicationInitialized = false;
+  // }
 }
