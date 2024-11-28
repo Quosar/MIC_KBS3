@@ -56,7 +56,7 @@ enum Status
 volatile bool isNunchukController = true;
 
 // communication
-volatile uint32_t outBus = 0xAAAAAAAA; // Uitgaande data bus
+volatile uint32_t outBus = 3827391077; // Uitgaande data bus
 volatile uint32_t inBus = 0;           // Binnenkomende data bus
 volatile uint8_t busBitIndex = 0;      // huidige bit index inBus
 
@@ -71,6 +71,7 @@ volatile bool IRWaiting = false;
 volatile bool printBus = false;
 
 volatile bool communicationInitialized = true;
+volatile bool communicationSynced = false;
 
 // settings
 volatile bool isPlayer1 = true;
@@ -108,14 +109,16 @@ void setupTimers()
   // Toggle OC2A on compare match (COM2A0 = 1)
   TCCR2A |= (1 << COM2A0);
 
-  // Set OCR2A to 209 for 38 kHz
-  OCR2A = 209;
+  if(isSender){
+    OCR2A = 209;
+  } else {
+    OCR2A = 200;
+  }
 }
 
 void SetupInterrupts()
 {
-  EICRA |= (1 << ISC00); // Trigger bij iedere verrandering
-  EIMSK |= (1 << INT0);  // INT0 interrupt enable
+
 }
 
 void initializeCommunication()
@@ -200,13 +203,6 @@ int main()
 
   while (1)
   {
-
-    if (!communicationInitialized && !isSender)
-    {
-      initializeCommunication();
-    }
-
-
     if (printBus)
     {
       Serial.println(inBus);
@@ -303,7 +299,6 @@ ISR(TIMER1_COMPA_vect)
     }
      if (busBitIndex >= 1 && busBitIndex <= DATABITCOUNT + 1)
      {
-      PORTD ^= (1 << PD7);
       if (!(PIND & (1 << IR_RECEIVER_PIN)))
       { // Check if pin is LOW
         inBus |= (1UL << (DATABITCOUNT - busBitIndex));
@@ -312,6 +307,10 @@ ISR(TIMER1_COMPA_vect)
     busBitIndex++;
     if (busBitIndex == 34)
     {
+      if(inBus == 3827391077 && !communicationSynced){
+        OCR2A = 209;
+        communicationSynced = true;
+      }
       TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
       PORTD |= (1 << PD6);      // Set PD6 HIGH
       busBitIndex = 0;
@@ -330,11 +329,4 @@ ISR(TIMER1_COMPA_vect)
 ISR(TIMER2_COMPA_vect)
 {
   PORTD ^= (1 << PD6);
-}
-
-ISR(INT0_vect)
-{
-  if (!communicationInitialized && !isSender){
-    communicationInitialized = false;
-  }
 }
