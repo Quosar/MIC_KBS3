@@ -60,7 +60,7 @@ volatile uint32_t outBus = 3827391077; // Uitgaande data bus
 volatile uint32_t inBus = 0;           // Binnenkomende data bus
 volatile uint8_t busBitIndex = 0;      // huidige bit index inBus
 
-volatile bool isSender = true; // player1 begint met senden en zetten timer
+volatile bool isSender = false; // player1 begint met senden en zetten timer
 
 volatile bool ledOn = false;
 
@@ -87,8 +87,9 @@ void setupPins()
   DDRD |= (1 << PD6);   // PD6 Ouptut
   PORTD &= ~(1 << PD6); // PD6 begint LOW
 
-  DDRD &= ~(1 << PD2);  // PD2 Input
-  PORTD &= ~(1 << PD2); // pull-up resistor uit
+DDRD &= ~(1 << IR_RECEIVER_PIN);  // Set PD2 as input
+PORTD |= (1 << IR_RECEIVER_PIN); // Enable pull-up resistor
+
 
   DDRD |= (1 << PD7);   // PD7 Ouptut
   PORTD &= ~(1 << PD7); // PD7 begint LOW
@@ -100,7 +101,15 @@ void setupTimers()
   TCCR1B = 0;
 
   TCCR1B |= (1 << WGM12) | (1 << CS11) | (1 << CS10); // CTC mode, prescaler 64
-  OCR1A = 75;                                         // Timer Compare interrupt tijd voor lezen iedere bit
+
+  if (isSender)
+  { // Timer Compare interrupt tijd voor lezen iedere bit 75
+    OCR1A = 120;
+  }
+  else
+  {
+    OCR1A = 121;
+  }
 
   // Set Timer 2 to CTC mode (WGM22:0 = 010)
   TCCR2A = (1 << WGM21);
@@ -109,22 +118,16 @@ void setupTimers()
   // Toggle OC2A on compare match (COM2A0 = 1)
   TCCR2A |= (1 << COM2A0);
 
-  if(isSender){
-    OCR2A = 209;
-  } else {
-    OCR2A = 200;
-  }
+  OCR2A = 209;
 }
 
 void SetupInterrupts()
 {
-
 }
 
 void initializeCommunication()
 {
   busBitIndex = 0;
-  inBus = 0;
   TCNT1 = 0;
   TIMSK1 |= (1 << OCIE1A); // Enable Timer1 Compare Match interrupt
   communicationInitialized = true;
@@ -277,54 +280,61 @@ int main()
 
 ISR(TIMER1_COMPA_vect)
 {
-  if (IRWaiting == false)
-  {
-    EIMSK &= ~(1 << INT0);   // INT0 interrupt disable
-    if (busBitIndex == 0)
+    if (!IRWaiting)
     {
-      TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
+        EIMSK &= ~(1 << INT0); // Disable INT0 interrupt
+        if (busBitIndex == 0)
+        {
+            TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
+        }
+        else if (busBitIndex > 0 && busBitIndex <= DATABITCOUNT)
+        {
+            // Read the state of the IR receiver pin
+            PORTD ^= (1 << PD7);
+            bool bit = (PIND & (1 << IR_RECEIVER_PIN)) == 0; // LOW is logic 1 in IR communication
+            if (bit)
+            {
+                inBus |= (1UL << (DATABITCOUNT - busBitIndex));
+            }
+            PORTD ^= (1 << PD7);
+
+            // Transmit current bit
+            bool outBit = (outBus >> (DATABITCOUNT - busBitIndex)) & 0x01;
+            if (outBit)
+            {
+                TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
+            }
+            else
+            {
+                TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
+                PORTD &= ~(1 << PD6);     // Ensure PD6 is LOW
+            }
+        }
+
+        busBitIndex++;
+        if (busBitIndex == FRAME_BITS)
+        {
+            // Check if synchronization is required
+            if (inBus == 3827391077 && !communicationSynced)
+            {
+                OCR1A = 120; // Adjust timing for synchronization
+                communicationSynced = true;
+            }
+            TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
+            PORTD |= (1 << PD6);      // Set PD6 HIGH
+            busBitIndex = 0;
+            printBus = true;
+        }
+        IRWaiting = true;
     }
-    if (busBitIndex > 0 && busBitIndex <= DATABITCOUNT)
+    else
     {
-      bool bit = (outBus >> (DATABITCOUNT - busBitIndex)) & 0x01;
-      if (bit)
-      {
-        TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
-      }
-      else
-      {
         TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
-        PORTD &= ~(1 << PD6);     // Ensure PD6 is LOW
-      }
+        PORTD |= (1 << PD6);      // Set PD6 HIGH
+        IRWaiting = false;
     }
-     if (busBitIndex >= 1 && busBitIndex <= DATABITCOUNT + 1)
-     {
-      if (!(PIND & (1 << IR_RECEIVER_PIN)))
-      { // Check if pin is LOW
-        inBus |= (1UL << (DATABITCOUNT - busBitIndex));
-      }
-    }
-    busBitIndex++;
-    if (busBitIndex == 34)
-    {
-      if(inBus == 3827391077 && !communicationSynced){
-        OCR2A = 209;
-        communicationSynced = true;
-      }
-      TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
-      PORTD |= (1 << PD6);      // Set PD6 HIGH
-      busBitIndex = 0;
-      printBus = true;
-    }
-    IRWaiting = true;
-  }
-  else
-  {
-    TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
-    PORTD |= (1 << PD6);      // Set PD6 HIGH
-    IRWaiting = false;
-  }
 }
+
 
 ISR(TIMER2_COMPA_vect)
 {
