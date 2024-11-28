@@ -68,8 +68,7 @@ volatile bool ledOn = false;
 
 volatile uint32_t outBusCounter = 0;
 
-volatile bool IRSendWaiting = false;
-volatile bool IRRecieveWaiting = false;
+volatile bool IRWaiting = false;
 
 volatile bool printBus = false;
 
@@ -304,7 +303,7 @@ int main()
 
 ISR(TIMER1_COMPA_vect)
 {
-  if (IRSendWaiting == false)
+  if (IRWaiting == false)
   {
     if (outBusBit_index == 0)
     {
@@ -327,25 +326,11 @@ ISR(TIMER1_COMPA_vect)
     {
       TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
       PORTD |= (1 << PD6);      // Set PD6 HIGH
+      outBusBit_index = 0;
     }
     outBusBit_index++;
-    if (outBusBit_index > DATABITCOUNT + 1)
-    {
-      outBusBit_index = 0;
-      TIMSK1 &= ~(1 << OCIE1A); // Timer1 interrupts uit
-    }
-    IRSendWaiting = true;
-  }
-  else
-  {
-    TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
-    PORTD |= (1 << PD6);      // Set PD6 HIGH
-    IRSendWaiting = false;
-  }
-  PORTD |= (1 << PD7); // PD6 HIGH
-  if (IRRecieveWaiting == false)
-  {
-    if (inBusBit_index > 1 && inBusBit_index < DATABITCOUNT + 1)
+
+    if (inBusBit_index > 1 && inBusBit_index <= DATABITCOUNT)
     {
       if (!(PIND & (1 << IR_RECEIVER_PIN)))
       { // Check if pin is LOW
@@ -359,14 +344,17 @@ ISR(TIMER1_COMPA_vect)
       TIMSK1 &= ~(1 << OCIE1A); // Timer1 interrupts uit
     }
     inBusBit_index++;
-    IRRecieveWaiting = true;
+
+    IRWaiting = true;
   }
   else
   {
-    PORTD &= ~(1 << PD7); // PD6 begint LOW
-    IRRecieveWaiting = false;
+    TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
+    PORTD |= (1 << PD6);      // Set PD6 HIGH
+    IRWaiting = false;
   }
 }
+
 
 ISR(TIMER2_COMPA_vect)
 {
