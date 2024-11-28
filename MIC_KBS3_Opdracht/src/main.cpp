@@ -201,41 +201,12 @@ int main()
   while (1)
   {
 
-    // communication afhandeling
-    // switch (status)
-    // {
-    // case IDLE:
-    //   if (isSender)
-    //   {
-    //     // uint32_t bus = constructBus();
-    //     start_writing(outBus); // Start writing
-    //   }
-    //   else
-    //   {
-    //     start_reading(); // Start reading
-    //   }
-    //   //_delay_ms(1);
-    //   isSender = !isSender; // switch tussen readen en writen na ieder frame
-    //                         // voor full-duplex
-    //   break;
+    if (!communicationInitialized && !isSender)
+    {
+      initializeCommunication();
+    }
 
-    // case WRITING: // wordt gedaan via interrupts
-    // case READING: // wordt gedaan via interrupts
-    //   break;
-    // }
-    // if (isSender)
-    // {
-    //   EIMSK &= !(1 << INT0); // INT0 interrupt disable
-    //   initializeCommunication();
-    // }
-    // else
-    // {
-    //   EIMSK |= (1 << INT0); // INT0 interrupt enable
-    // }
-    // if (!communicationInitialized && !isSender)
-    // {
-    //   initializeCommunication();
-    // }
+
     if (printBus)
     {
       Serial.println(inBus);
@@ -330,22 +301,22 @@ ISR(TIMER1_COMPA_vect)
         PORTD &= ~(1 << PD6);     // Ensure PD6 is LOW
       }
     }
-    // if (busBitIndex > 1 && busBitIndex <= DATABITCOUNT + 1)
-    // {
-    //PORTD ^= (1 << PD7);
-    //   if (!(PIND & (1 << IR_RECEIVER_PIN)))
-    //   { // Check if pin is LOW
-    //     inBus |= (1UL << (DATABITCOUNT - busBitIndex));
-    //   }
-    // }
-    if (busBitIndex == 33)
+     if (busBitIndex >= 1 && busBitIndex <= DATABITCOUNT + 1)
+     {
+      PORTD ^= (1 << PD7);
+      if (!(PIND & (1 << IR_RECEIVER_PIN)))
+      { // Check if pin is LOW
+        inBus |= (1UL << (DATABITCOUNT - busBitIndex));
+      }
+    }
+    busBitIndex++;
+    if (busBitIndex == 34)
     {
       TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
       PORTD |= (1 << PD6);      // Set PD6 HIGH
       busBitIndex = 0;
       printBus = true;
     }
-    busBitIndex++;
     IRWaiting = true;
   }
   else
@@ -363,7 +334,7 @@ ISR(TIMER2_COMPA_vect)
 
 ISR(INT0_vect)
 {
-  // if (!communicationInitialized && !isSender){
-  //   communicationInitialized = false;
-  // }
+  if (!communicationInitialized && !isSender){
+    communicationInitialized = false;
+  }
 }
