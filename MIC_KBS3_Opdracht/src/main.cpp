@@ -123,7 +123,6 @@ void start_writing(uint32_t data)
 {
   outBus = data;
   outBusBit_index = 0;
-  status = WRITING;
   TIMSK1 |= (1 << OCIE1A); // Enable Timer1 Compare Match interrupt
   EIMSK &= ~(1 << INT0);   // INT0 interrupt disable
 }
@@ -134,7 +133,6 @@ void start_reading()
   inBus = 0;
   TCNT1 = 0;
   EIMSK |= (1 << INT0); // INT0 interrupt enable
-  status = READING;
 }
 
 uint8_t constructChecksum(uint32_t value)
@@ -211,27 +209,27 @@ int main()
   {
 
     // communication afhandeling
-    switch (status)
-    {
-    case IDLE:
-      if (isSender)
-      {
-        // uint32_t bus = constructBus();
-        start_writing(outBus); // Start writing
-      }
-      else
-      {
-        start_reading(); // Start reading
-      }
-      //_delay_ms(1);
-      isSender = !isSender; // switch tussen readen en writen na ieder frame
-                            // voor full-duplex
-      break;
+    // switch (status)
+    // {
+    // case IDLE:
+    //   if (isSender)
+    //   {
+    //     // uint32_t bus = constructBus();
+    //     start_writing(outBus); // Start writing
+    //   }
+    //   else
+    //   {
+    //     start_reading(); // Start reading
+    //   }
+    //   //_delay_ms(1);
+    //   isSender = !isSender; // switch tussen readen en writen na ieder frame
+    //                         // voor full-duplex
+    //   break;
 
-    case WRITING: // wordt gedaan via interrupts
-    case READING: // wordt gedaan via interrupts
-      break;
-    }
+    // case WRITING: // wordt gedaan via interrupts
+    // case READING: // wordt gedaan via interrupts
+    //   break;
+    // }
     if (printBus)
     {
       Serial.println(inBus);
@@ -306,76 +304,67 @@ int main()
 
 ISR(TIMER1_COMPA_vect)
 {
-  if (status == WRITING)
+  if (IRSendWaiting == false)
   {
-    if (IRSendWaiting == false)
+    if (outBusBit_index == 0)
     {
-      if (outBusBit_index == 0)
+      TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
+    }
+    else if (outBusBit_index > 0 && outBusBit_index <= DATABITCOUNT)
+    {
+      bool bit = (outBus >> (DATABITCOUNT - outBusBit_index)) & 0x01;
+      if (bit)
       {
         TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
       }
-      else if (outBusBit_index > 0 && outBusBit_index <= DATABITCOUNT)
-      {
-        bool bit = (outBus >> (DATABITCOUNT - outBusBit_index)) & 0x01;
-        if (bit)
-        {
-          TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
-        }
-        else
-        {
-          TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
-          PORTD &= ~(1 << PD6);     // Ensure PD6 is LOW
-        }
-      }
-      else if (outBusBit_index == 33)
+      else
       {
         TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
-        PORTD |= (1 << PD6);      // Set PD6 HIGH
+        PORTD &= ~(1 << PD6);     // Ensure PD6 is LOW
       }
-      outBusBit_index++;
-      if (outBusBit_index > DATABITCOUNT + 1)
-      {
-        outBusBit_index = 0;
-
-        status = IDLE;            // Status naar idle
-        TIMSK1 &= ~(1 << OCIE1A); // Timer1 interrupts uit
-      }
-      IRSendWaiting = true;
     }
-    else
+    else if (outBusBit_index == 33)
     {
       TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
       PORTD |= (1 << PD6);      // Set PD6 HIGH
-      IRSendWaiting = false;
     }
+    outBusBit_index++;
+    if (outBusBit_index > DATABITCOUNT + 1)
+    {
+      outBusBit_index = 0;
+      TIMSK1 &= ~(1 << OCIE1A); // Timer1 interrupts uit
+    }
+    IRSendWaiting = true;
   }
-  else if (status == READING)
+  else
   {
-    PORTD |= (1 << PD7); // PD6 HIGH
-    if (IRRecieveWaiting == false)
+    TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
+    PORTD |= (1 << PD6);      // Set PD6 HIGH
+    IRSendWaiting = false;
+  }
+  PORTD |= (1 << PD7); // PD6 HIGH
+  if (IRRecieveWaiting == false)
+  {
+    if (inBusBit_index > 1 && inBusBit_index < DATABITCOUNT + 1)
     {
-      if (inBusBit_index > 1 && inBusBit_index < DATABITCOUNT + 1)
-      {
-        if (!(PIND & (1 << IR_RECEIVER_PIN)))
-        { // Check if pin is LOW
-          inBus |= (1UL << (DATABITCOUNT - inBusBit_index));
-        }
+      if (!(PIND & (1 << IR_RECEIVER_PIN)))
+      { // Check if pin is LOW
+        inBus |= (1UL << (DATABITCOUNT - inBusBit_index));
       }
-      else if (inBusBit_index > DATABITCOUNT)
-      { // laatse bit/stop bit
-        status = IDLE;
-        inBusBit_index = 0; // bus index resetten
-        printBus = true;
-        TIMSK1 &= ~(1 << OCIE1A); // Timer1 interrupts uit
-      }
-      inBusBit_index++;
-      IRRecieveWaiting = true;
     }
-    else
-    {
-      PORTD &= ~(1 << PD7); // PD6 begint LOW
-      IRRecieveWaiting = false;
+    else if (inBusBit_index > DATABITCOUNT)
+    {                     // laatse bit/stop bit
+      inBusBit_index = 0; // bus index resetten
+      printBus = true;
+      TIMSK1 &= ~(1 << OCIE1A); // Timer1 interrupts uit
     }
+    inBusBit_index++;
+    IRRecieveWaiting = true;
+  }
+  else
+  {
+    PORTD &= ~(1 << PD7); // PD6 begint LOW
+    IRRecieveWaiting = false;
   }
 }
 
