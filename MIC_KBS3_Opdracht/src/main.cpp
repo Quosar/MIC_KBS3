@@ -88,7 +88,7 @@ void setupPins()
   PORTD &= ~(1 << PD6); // PD6 begint LOW
 
 DDRD &= ~(1 << IR_RECEIVER_PIN);  // Set PD2 as input
-PORTD |= (1 << IR_RECEIVER_PIN); // Enable pull-up resistor
+PORTD &= ~(1 << IR_RECEIVER_PIN); // Enable pull-up resistor
 
 
   DDRD |= (1 << PD7);   // PD7 Ouptut
@@ -104,11 +104,11 @@ void setupTimers()
 
   if (isSender)
   { // Timer Compare interrupt tijd voor lezen iedere bit 75
-    OCR1A = 120;
+    OCR1A = 750;
   }
   else
   {
-    OCR1A = 121;
+    OCR1A = 749;
   }
 
   // Set Timer 2 to CTC mode (WGM22:0 = 010)
@@ -282,7 +282,6 @@ ISR(TIMER1_COMPA_vect)
 {
     if (!IRWaiting)
     {
-        EIMSK &= ~(1 << INT0); // Disable INT0 interrupt
         if (busBitIndex == 0)
         {
             TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
@@ -294,7 +293,9 @@ ISR(TIMER1_COMPA_vect)
             bool bit = (PIND & (1 << IR_RECEIVER_PIN)) == 0; // LOW is logic 1 in IR communication
             if (bit)
             {
-                inBus |= (1UL << (DATABITCOUNT - busBitIndex));
+              inBus |= (1UL << (DATABITCOUNT - busBitIndex));
+            } else {
+              inBus &= ~(1UL << (DATABITCOUNT - busBitIndex));
             }
             PORTD ^= (1 << PD7);
 
@@ -315,9 +316,9 @@ ISR(TIMER1_COMPA_vect)
         if (busBitIndex == FRAME_BITS)
         {
             // Check if synchronization is required
-            if (inBus == 3827391077 && !communicationSynced)
+            if (inBus == 3827391077 && !communicationSynced && !isSender)
             {
-                OCR1A = 120; // Adjust timing for synchronization
+                OCR1A = 75; // Adjust timing for synchronization
                 communicationSynced = true;
             }
             TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
