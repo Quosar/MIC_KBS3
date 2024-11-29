@@ -42,7 +42,6 @@ Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_HEIGHT / GRID_SIZE, screen);
 // TODO: VANAF HIER COMMUNICATIE VAR AND FUNCS VOOR IN EEN CLASS ZO
 #define IR_LED_PIN PD6      // Pin 6 voor IR LED (OC0A)
 #define IR_RECEIVER_PIN PD2 // Pin 2 voor IR Receiver (INT0)
-#define FRAME_BITS 34       // 1 start bit + 32 data bits + 1 stop bit
 #define DATABITCOUNT 32
 
 enum Status
@@ -97,20 +96,13 @@ PORTD &= ~(1 << IR_RECEIVER_PIN); // Enable pull-up resistor
 
 void setupTimers()
 {
-  TCCR1A = 0;
-  TCCR1B = 0;
+  TCCR0A = 0;
+  TCCR0B = 0;
+  OCR0A = 0;  
 
-  TCCR1B |= (1 << WGM12) | (1 << CS11) | (1 << CS10); // CTC mode, prescaler 64
+  TCCR0B |= (1 << WGM12) | (1 << CS11) | (1 << CS10); // CTC mode, prescaler 64
 
-  if (isSender)
-  { // Timer Compare interrupt tijd voor lezen iedere bit 75
-    OCR1A = 750;
-  }
-  else
-  {
-    OCR1A = 749;
-  }
-
+  OCR0A = 75;
   // Set Timer 2 to CTC mode (WGM22:0 = 010)
   TCCR2A = (1 << WGM21);
   TCCR2B = (1 << CS20); // No prescaler
@@ -128,8 +120,8 @@ void SetupInterrupts()
 void initializeCommunication()
 {
   busBitIndex = 0;
-  TCNT1 = 0;
-  TIMSK1 |= (1 << OCIE1A); // Enable Timer1 Compare Match interrupt
+  TCNT0 = 0;
+  TIMSK0 |= (1 << OCIE1A); // Enable Timer1 Compare Match interrupt
   communicationInitialized = true;
 }
 
@@ -221,6 +213,10 @@ int main()
       // }
     }
 
+    if (communicationSynced){
+      OCR0A = 75;
+    }
+
     // if (!isNunchukController) {
     //   screen.println(String(inBus));
 
@@ -278,29 +274,29 @@ int main()
   return 0;
 }
 
-ISR(TIMER1_COMPA_vect)
+ISR(TIMER0_COMPA_vect)
 {
     if (!IRWaiting)
     {
-        if (busBitIndex == 0)
-        {
-            TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
-        }
-        else if (busBitIndex > 0 && busBitIndex <= DATABITCOUNT)
+      if (busBitIndex == 0){
+        inBus = 0x00000000;
+        PORTD |= (1 << PD7);
+      }
+      if (busBitIndex < DATABITCOUNT)
         {
             // Read the state of the IR receiver pin
-            PORTD ^= (1 << PD7);
+            //PORTD ^= (1 << PD7);
             bool bit = (PIND & (1 << IR_RECEIVER_PIN)) == 0; // LOW is logic 1 in IR communication
             if (bit)
             {
-              inBus |= (1UL << (DATABITCOUNT - busBitIndex));
+              inBus |= (1UL << (busBitIndex));
             } else {
-              inBus &= ~(1UL << (DATABITCOUNT - busBitIndex));
+              inBus &= ~(1UL << (busBitIndex));
             }
-            PORTD ^= (1 << PD7);
+            //PORTD ^= (1 << PD7);
 
             // Transmit current bit
-            bool outBit = (outBus >> (DATABITCOUNT - busBitIndex)) & 0x01;
+            bool outBit = (outBus >> (busBitIndex)) & 0x01;
             if (outBit)
             {
                 TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
@@ -313,16 +309,17 @@ ISR(TIMER1_COMPA_vect)
         }
 
         busBitIndex++;
-        if (busBitIndex == FRAME_BITS)
+        if (busBitIndex == DATABITCOUNT + 1)
         {
             // Check if synchronization is required
             if (inBus == 3827391077 && !communicationSynced && !isSender)
             {
-                OCR1A = 75; // Adjust timing for synchronization
-                communicationSynced = true;
+              communicationSynced = true;
+
             }
             TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
             PORTD |= (1 << PD6);      // Set PD6 HIGH
+            PORTD &= ~(1 << PD7);
             busBitIndex = 0;
             printBus = true;
         }
