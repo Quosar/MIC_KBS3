@@ -43,6 +43,8 @@ Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_HEIGHT / GRID_SIZE, screen);
 #define IR_LED_PIN PD6      // Pin 6 voor IR LED (OC0A)
 #define IR_RECEIVER_PIN PD2 // Pin 2 voor IR Receiver (INT0)
 #define DATABITCOUNT 32
+#define SYNCVALUE 65
+#define SYNCEDVALUE 75
 
 enum Status
 { // enum om tatus te wisselen
@@ -59,7 +61,7 @@ volatile uint32_t outBus = 3827391077; // Uitgaande data bus
 volatile uint32_t inBus = 0;           // Binnenkomende data bus
 volatile uint8_t busBitIndex = 0;      // huidige bit index inBus
 
-volatile bool isSender = false; // player1 begint met senden en zetten timer
+volatile bool isSender = false; // player1 begint met zenden en zetten timer
 
 volatile bool ledOn = false;
 
@@ -101,8 +103,11 @@ void setupTimers()
   OCR0A = 0;  
 
   TCCR0B |= (1 << WGM12) | (1 << CS11) | (1 << CS10); // CTC mode, prescaler 64
-
-  OCR0A = 75;
+  if(isSender){
+    OCR0A = SYNCEDVALUE;
+  } else {
+    OCR0A = SYNCVALUE;
+  }
   // Set Timer 2 to CTC mode (WGM22:0 = 010)
   TCCR2A = (1 << WGM21);
   TCCR2B = (1 << CS20); // No prescaler
@@ -115,6 +120,8 @@ void setupTimers()
 
 void SetupInterrupts()
 {
+  EICRA |= (1 << ISC00); // Trigger bij iedere verrandering
+  EIMSK &= ~(1 << INT0);   // INT0 interrupt disable
 }
 
 void initializeCommunication()
@@ -122,7 +129,6 @@ void initializeCommunication()
   busBitIndex = 0;
   TCNT0 = 0;
   TIMSK0 |= (1 << OCIE1A); // Enable Timer1 Compare Match interrupt
-  communicationInitialized = true;
 }
 
 uint8_t constructChecksum(uint32_t value)
@@ -213,8 +219,10 @@ int main()
       // }
     }
 
-    if (communicationSynced){
-      OCR0A = 75;
+    if (communicationSynced && !isSender){
+      OCR0A = SYNCEDVALUE;
+    } else if(!communicationSynced && !isSender){
+      OCR0A = SYNCVALUE;
     }
 
     // if (!isNunchukController) {
@@ -315,13 +323,16 @@ ISR(TIMER0_COMPA_vect)
             if (inBus == 3827391077 && !communicationSynced && !isSender)
             {
               communicationSynced = true;
-
             }
             TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
             PORTD |= (1 << PD6);      // Set PD6 HIGH
             PORTD &= ~(1 << PD7);
             busBitIndex = 0;
             printBus = true;
+            if(!isSender){
+              EIMSK |= (1 << INT0);   // INT0 interrupt disable
+              TIMSK0 &= ~(1 << OCIE1A); // Enable Timer1 Compare Match interrupt
+            }
         }
         IRWaiting = true;
     }
@@ -333,8 +344,12 @@ ISR(TIMER0_COMPA_vect)
     }
 }
 
-
 ISR(TIMER2_COMPA_vect)
 {
   PORTD ^= (1 << PD6);
+}
+
+ISR(INT0_vect) {
+  TIMSK0 |= (1 << OCIE1A); // Enable Timer1 Compare Match interrupt
+  TCNT0 = 0;
 }
