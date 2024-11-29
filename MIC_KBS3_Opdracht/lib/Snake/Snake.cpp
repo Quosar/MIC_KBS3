@@ -14,19 +14,21 @@ Snake::Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
              Adafruit_ILI9341 screen)
     : gridSize(gridSize), cellWidth(cellWidth), cellHeight(cellHeight),
       screen(screen) {
-  snakeLength = 6;                           // starting length of the snake
-  snakeX = new uint8_t[gridSize * gridSize]; // maxsize of the snake as size
-  snakeY = new uint8_t[gridSize * gridSize]; // maxsize of the snake as size
-  direction = RIGHT;                         // start moving to the right
+  snakeLength = 3;                           // start lengte van de snake
+  snakeX = new uint8_t[gridSize * gridSize]; // max grootte van de snake
+  snakeY = new uint8_t[gridSize * gridSize]; // max grootte van de snake
+  direction = RIGHT;                         // beginrichting is rechts
+  appleX = rand() % gridSize;                // random appel spawn in het veld
+  appleY = rand() % gridSize;                // random appel spawn in het veld
 }
 
 void Snake::start() {
-  // start the snake at the center of the screen
+  // snake starten in center scherm
   snakeX[0] = gridSize / 2;
   snakeY[0] = gridSize / 2;
 }
 
-// update direction with joystick readings
+// joystick met richting updaten
 void Snake::updateDirection(
     uint8_t joyX,
     uint8_t joyY) { // TODO: remove magic numbers from the joystick angles
@@ -41,17 +43,17 @@ void Snake::updateDirection(
 }
 
 void Snake::move() {
-  // store position off tail
+  // positie van de eindstaart opslaan
   uint8_t tailX = snakeX[snakeLength - 1];
   uint8_t tailY = snakeY[snakeLength - 1];
 
-  // shifting the body
+  // het lichaam bewegen
   for (int i = snakeLength - 1; i > 0; i--) {
     snakeX[i] = snakeX[i - 1];
     snakeY[i] = snakeY[i - 1];
   }
 
-  // move the head
+  // hoofd bewegen
   switch (direction) {
   case UP:
     snakeY[0]--;
@@ -67,42 +69,53 @@ void Snake::move() {
     break;
   }
 
-  // clear old tail before drawing new
+  // oude staart clearen voor het tekenen van de nieuwe
   clearTail(tailX, tailY);
 }
 
 void Snake::draw() {
-  for (uint8_t i = 0; i < snakeLength; i++) { // for leght
-    drawCell(snakeX[i], snakeY[i], MAGENTA);  // draw snake cell
+  // snake tekenen
+  for (uint8_t i = 0; i < snakeLength; i++) {
+    drawCell(snakeX[i], snakeY[i], MAGENTA);
   }
+
+  // appel tekenen
+  drawCell(appleX, appleY, RED);
 }
 
-// check colision with itself orr the border
+// collision checken met zichzelf en de borders
 bool Snake::checkCollision() {
   // check for border collision
   if (snakeX[0] < 0 || snakeX[0] >= gridSize || snakeY[0] < 0 ||
       snakeY[0] >= gridSize) {
     return true;
   }
-
   // Check collision with itslef
   for (uint8_t i = 1; i < snakeLength; i++) {
     if (snakeX[0] == snakeX[i] && snakeY[0] == snakeY[i]) {
       return true;
     }
   }
-  return false; // if no collision, return false
+  return false; // als geen collision, return false
 }
 
-// grow size/length of snake
+// lengte groeien van de slang
 void Snake::grow() { snakeLength++; }
 
-// clearint the tail instead of clearing the whole screen
+bool Snake::eatApple(uint8_t appleX, uint8_t appleY) {
+  if (snakeX[0] == appleX && snakeY[0] == appleY) { //als hoofd van de snake is op pos van appel
+    grow();      // snakelengte groeien
+    return true; // appel is gegeten
+  }
+  return false; //niet gegeten
+}
+
+// alleen staart clearen ipv hele scherm
 void Snake::clearTail(uint8_t tailX, uint8_t tailY) {
   drawCell(tailX, tailY, BLACK);
 }
 
-// draw snake cell
+// teken snake cell
 void Snake::drawCell(uint16_t x, uint16_t y, uint16_t colour) {
   screen.fillRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight, colour);
 }

@@ -15,13 +15,16 @@ public:
   void draw();
   bool checkCollision();
   void grow();
+  bool eatApple(uint8_t appleX, uint8_t appleY);
+
+  uint8_t appleX; //appel coords public voor communicatie
+  uint8_t appleY;
 
 private:
   uint8_t gridSize;
   uint16_t cellWidth, cellHeight;
   uint8_t snakeLength;
-  uint8_t *snakeX; // pointer for dynamic memory, because we dont always use the
-                   // hole array
+  uint8_t *snakeX; // pointer voor dynamische array
   uint8_t *snakeY;
   Adafruit_ILI9341 screen;
   enum Direction { UP, DOWN, LEFT, RIGHT };

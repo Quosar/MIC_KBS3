@@ -70,8 +70,9 @@ int main() {
     }
     if(!gameOver){
       snake.move();
-
-      if (snake.checkCollision()) {
+      snake.eatApple(snake.appleX, snake.appleY);
+      if (snake.checkCollision())
+      {
         gameOver = true;
         screen.fillScreen(BLACK);
         screen.setCursor(60, TFT_HEIGHT / 2);
