@@ -37,6 +37,13 @@ NunChuk nunchuck;
 
 // Create Snake object
 Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_HEIGHT / GRID_SIZE, screen);
+bool gameOver = false;
+
+void restartGame() {
+  gameOver = false;
+  screen.fillScreen(BLACK);
+  snake.start();
+}
 
 void initialiseScreen() {
   screen.begin();
@@ -52,33 +59,30 @@ int main() {
 
   while (1) {
     if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-      snake.updateDirection(nunchuck.state.joy_x_axis,
-                            nunchuck.state.joy_y_axis);
-    }
-
-    snake.move();
-
-    if (snake.checkCollision()) {
-      screen.fillScreen(BLACK);
-      screen.setCursor(60, TFT_HEIGHT / 2);
-      screen.setTextColor(RED);
-      screen.setTextSize(2);
-      screen.println("Game Over!");
-      screen.println("PRESS Z TO CONTINUE");
-
-      while (1) { // TODO: REMOVE WHILE
-        if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-          if (nunchuck.state.z_button) { // press z to reset game
-            snake.start(); // TODO: reset previouse snake positions. It now
-                           // restarts with half the tail on old pos
-            break;
-          }
-        }
+      if(gameOver && nunchuck.state.z_button){
+        restartGame();
+      }
+      else if (!gameOver)
+      {
+        snake.updateDirection(nunchuck.state.joy_x_axis,
+                              nunchuck.state.joy_y_axis);
       }
     }
+    if(!gameOver){
+      snake.move();
 
-    snake.draw();
+      if (snake.checkCollision()) {
+        gameOver = true;
+        screen.fillScreen(BLACK);
+        screen.setCursor(60, TFT_HEIGHT / 2);
+        screen.setTextColor(RED);
+        screen.setTextSize(2);
+        screen.println("Game Over!");
+        screen.println("PRESS Z TO CONTINUE");
+      }
 
+      snake.draw();
+    }
     _delay_ms(200); // game speed
   }
 
