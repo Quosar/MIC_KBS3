@@ -129,3 +129,27 @@ void Snake::clearTail(uint8_t tailX, uint8_t tailY) {
 void Snake::drawCell(uint16_t x, uint16_t y, uint16_t colour) {
   screen.fillRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight, colour);
 }
+
+void Snake::reset() {
+  // snakelengte resetten
+  snakeLength = STARTSIZE;
+
+  // snake position resetten naar het midden
+  snakeX[0] = gridSize / 2;
+  snakeY[0] = gridSize / 2;
+
+  // alles wat niet de snake is clearen
+  for (int i = 1; i < gridSize * gridSize; i++) {
+    snakeX[i] = 0;
+    snakeY[i] = 0;
+  }
+
+  // start richting zetten
+  direction = RIGHT;
+
+  // nieuwe appel spawnen
+  spawnRandApple();
+
+  // screen resetten van oude snakes en appels
+  screen.fillScreen(BLACK);
+}

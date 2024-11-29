@@ -17,12 +17,12 @@ public:
   void grow();
   bool eatApple(uint8_t appleX, uint8_t appleY);
   void spawnRandApple();
-
+  void reset();
   uint8_t appleX; // appel coords public voor communicatie
   uint8_t appleY;
 
 private:
-  uint8_t STARTSIZE;
+  uint8_t STARTSIZE = 3; // start lenget snake
   uint8_t gridSize;
   uint16_t cellWidth, cellHeight;
   uint8_t snakeLength;

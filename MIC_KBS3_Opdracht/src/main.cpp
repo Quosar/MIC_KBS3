@@ -39,15 +39,14 @@ NunChuk nunchuck;
 Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_HEIGHT / GRID_SIZE, screen);
 bool gameOver = false;
 
-void restartGame() {
-  gameOver = false;
-  screen.fillScreen(BLACK);
-  snake.start();
-}
-
 void initialiseScreen() {
   screen.begin();
   screen.fillScreen(BLACK);
+}
+
+void restartGame() {
+  gameOver = false;
+  snake.reset();
 }
 
 int main() {
@@ -59,20 +58,17 @@ int main() {
 
   while (1) {
     if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-      if(gameOver && nunchuck.state.z_button){
+      if (gameOver && nunchuck.state.z_button) {
         restartGame();
-      }
-      else if (!gameOver)
-      {
+      } else if (!gameOver) {
         snake.updateDirection(nunchuck.state.joy_x_axis,
                               nunchuck.state.joy_y_axis);
       }
     }
-    if(!gameOver){
+    if (!gameOver) {
       snake.move();
       snake.eatApple(snake.appleX, snake.appleY);
-      if (snake.checkCollision())
-      {
+      if (snake.checkCollision()) {
         gameOver = true;
         screen.fillScreen(BLACK);
         screen.setCursor(60, TFT_HEIGHT / 2);
@@ -80,9 +76,9 @@ int main() {
         screen.setTextSize(2);
         screen.println("Game Over!");
         screen.println("PRESS Z TO CONTINUE");
+      } else {
+        snake.draw();
       }
-
-      snake.draw();
     }
     _delay_ms(200); // game speed
   }
