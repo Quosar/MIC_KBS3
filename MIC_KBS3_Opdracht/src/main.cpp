@@ -66,21 +66,19 @@ int main() {
       }
     }
     if (!gameOver) {
+      snake.drawScore();
       snake.move();
       snake.eatApple(snake.appleX, snake.appleY);
       if (snake.checkCollision()) {
         gameOver = true;
-        screen.fillScreen(BLACK);
-        screen.setCursor(60, TFT_HEIGHT / 2);
-        screen.setTextColor(RED);
-        screen.setTextSize(2);
-        screen.println("Game Over!");
-        screen.println("PRESS Z TO CONTINUE");
-      } else {
+        snake.drawDeathScreen();
+      }
+      else
+      {
         snake.draw();
       }
     }
-    _delay_ms(200); // game speed
+    _delay_ms(150); // game speed
   }
 
   return 0;

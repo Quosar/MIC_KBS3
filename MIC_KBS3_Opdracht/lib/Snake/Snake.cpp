@@ -10,12 +10,13 @@
 #define YELLOW 0xFFE0
 #define WHITE 0xFFFF
 
+const uint8_t SNAKE_START_LENGHT = 3;
 
 Snake::Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
              Adafruit_ILI9341 screen)
     : gridSize(gridSize), cellWidth(cellWidth), cellHeight(cellHeight),
       screen(screen) {
-  snakeLength = 3;                           // start lengte van de snake
+  snakeLength = SNAKE_START_LENGHT;          // start lengte van de snake
   snakeX = new uint8_t[gridSize * gridSize]; // max grootte van de snake
   snakeY = new uint8_t[gridSize * gridSize]; // max grootte van de snake
   direction = RIGHT;                         // beginrichting is rechts
@@ -33,13 +34,13 @@ void Snake::start() {
 void Snake::updateDirection(
     uint8_t joyX,
     uint8_t joyY) { // TODO: remove magic numbers from the joystick angles
-  if (joyX < 100 && direction != RIGHT)
+  if (joyX < 105 && direction != RIGHT)
     direction = LEFT;
-  else if (joyX > 150 && direction != LEFT)
+  else if (joyX > 145 && direction != LEFT)
     direction = RIGHT;
-  else if (joyY < 100 && direction != UP)
+  else if (joyY < 105 && direction != UP)
     direction = DOWN;
-  else if (joyY > 150 && direction != DOWN)
+  else if (joyY > 145 && direction != DOWN)
     direction = UP;
 }
 
@@ -132,7 +133,8 @@ void Snake::drawCell(uint16_t x, uint16_t y, uint16_t colour) {
 
 void Snake::reset() {
   // snakelengte resetten
-  snakeLength = STARTSIZE;
+  snakeLength = SNAKE_START_LENGHT; // start lenget snake
+  ;
 
   // snake position resetten naar het midden
   snakeX[0] = gridSize / 2;
@@ -152,4 +154,21 @@ void Snake::reset() {
 
   // screen resetten van oude snakes en appels
   screen.fillScreen(BLACK);
+}
+
+void Snake::drawScore() {
+    screen.setCursor(5, 5);
+    screen.setTextColor(WHITE, BLACK); //oude overschrijven met zwart
+    screen.setTextSize(1);
+    screen.print("Score: ");
+    screen.print(snakeLength - SNAKE_START_LENGHT);
+}
+
+void Snake::drawDeathScreen() {
+  screen.fillScreen(BLACK);
+  screen.setCursor(60, 160);
+  screen.setTextColor(RED);
+  screen.setTextSize(2);
+  screen.println("Game Over!");
+  screen.println("PRESS Z TO CONTINUE");
 }
