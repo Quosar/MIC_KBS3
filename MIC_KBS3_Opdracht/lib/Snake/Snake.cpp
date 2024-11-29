@@ -10,6 +10,7 @@
 #define YELLOW 0xFFE0
 #define WHITE 0xFFFF
 
+
 Snake::Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
              Adafruit_ILI9341 screen)
     : gridSize(gridSize), cellWidth(cellWidth), cellHeight(cellHeight),
@@ -18,14 +19,14 @@ Snake::Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
   snakeX = new uint8_t[gridSize * gridSize]; // max grootte van de snake
   snakeY = new uint8_t[gridSize * gridSize]; // max grootte van de snake
   direction = RIGHT;                         // beginrichting is rechts
-  appleX = rand() % gridSize;                // random appel spawn in het veld
-  appleY = rand() % gridSize;                // random appel spawn in het veld
+  spawnRandApple();
 }
 
 void Snake::start() {
   // snake starten in center scherm
   snakeX[0] = gridSize / 2;
   snakeY[0] = gridSize / 2;
+
 }
 
 // joystick met richting updaten
@@ -103,11 +104,20 @@ bool Snake::checkCollision() {
 void Snake::grow() { snakeLength++; }
 
 bool Snake::eatApple(uint8_t appleX, uint8_t appleY) {
-  if (snakeX[0] == appleX && snakeY[0] == appleY) { //als hoofd van de snake is op pos van appel
-    grow();      // snakelengte groeien
+  if (snakeX[0] == appleX &&
+      snakeY[0] == appleY) { // als hoofd van de snake is op pos van appel
+    grow();                  // snakelengte groeien
+    drawCell(appleX, appleY, BLACK);
+    spawnRandApple();
     return true; // appel is gegeten
   }
-  return false; //niet gegeten
+  return false; // niet gegeten
+}
+
+void Snake::spawnRandApple() {
+  srand(TCNT0);              // rand seed
+  appleX = rand() % gridSize; // random appel spawn in het veld
+  appleY = rand() % gridSize; // random appel spawn in het veld
 }
 
 // alleen staart clearen ipv hele scherm
