@@ -338,7 +338,7 @@ ISR(TIMER2_COMPA_vect)
 }
 
 ISR(INT0_vect){
-  TCNT0 = 74;
+  TCNT0 = 55;
   busBitIndex = 0;
   EIMSK &= ~(1 << INT0);                  // INT0 interrupt disable
 }
