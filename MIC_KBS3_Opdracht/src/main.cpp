@@ -310,9 +310,12 @@ ISR(TIMER0_COMPA_vect)
     if (busBitIndex > DATABITCOUNT + 1)
     {
       // Check if synchronization is required
-      if (inBus == 3827391077 && !communicationSynced && !isSender)
+      if (inBus == 3827391077 && !communicationSynced)
       {
         communicationSynced = true;
+      }
+      if(communicationSynced && !isSender){
+        EIMSK |= (1 << INT0);                  // INT0 interrupt enable
       }
       TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
       PORTD |= (1 << PD6);      // Set PD6 HIGH
@@ -332,5 +335,11 @@ ISR(TIMER0_COMPA_vect)
 ISR(TIMER2_COMPA_vect)
 {
   PORTD ^= (1 << PD6);
+}
+
+ISR(INT0_vect){
+  TCNT0 = 74;
+  busBitIndex = 0;
+  EIMSK &= ~(1 << INT0);                  // INT0 interrupt disable
 }
 
