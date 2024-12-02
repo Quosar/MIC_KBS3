@@ -56,17 +56,15 @@ enum Status
 volatile bool isNunchukController = true;
 
 // communication
-volatile uint32_t outBus = 3827391077; // Uitgaande data bus
-volatile uint32_t inBus = 0;           // Binnenkomende data bus
-volatile uint8_t busBitIndex = 0;      // huidige bit index inBus
+volatile uint32_t firstSyncCheck = 0xE4215A65;  // 3827391077 // unieke bit volgorde die niet eerder gedetecteerd kan worden zoals bijvoorbeeld 0x33333333
+volatile uint32_t secondSyncCheck = 0xAAAAAAAA; // 2863311530
+volatile uint32_t outBus = firstSyncCheck;      // Uitgaande data bus begint als firstSyncCheck om communicatie te synchroniseren
+volatile uint32_t inBus = 0;                    // Binnenkomende data bus
+volatile uint8_t busBitIndex = 0;               // huidige bit index inBus
 
-volatile bool isSender = true; // player1 begint met zenden en zetten timer
-
-volatile bool ledOn = false;
+volatile bool isSender = false; // player1 begint met zenden en zetten timer
 
 volatile uint8_t senderOffset = 0;
-
-volatile uint32_t outBusCounter = 0;
 
 volatile bool IRWaiting = false;
 
@@ -74,7 +72,8 @@ volatile bool printBus = false;
 
 volatile bool communicationInitialized = false;
 volatile bool communicationSynced = false;
-volatile uint8_t syncCount = 0;
+volatile uint8_t syncCounter = 0;
+volatile uint8_t syncCount = 50; // 50 keer dezelfde inBus binnen krijgen om te bepalen of de communicatie gesynchroniseerd is
 
 // settings
 volatile bool isPlayer1 = true;
@@ -203,15 +202,6 @@ int main()
     {
       Serial.println(inBus);
       printBus = false;
-      // if (outBusCounter > 9)
-      // {
-      //   outBusCounter = 0;
-      //   outBus = outBus + 1;
-      // }
-      // else
-      // {
-      //   outBusCounter++;
-      // }
     }
 
     // if (!isNunchukController) {
@@ -313,11 +303,12 @@ ISR(TIMER0_COMPA_vect)
     if (busBitIndex > DATABITCOUNT + 2)
     {
       // Check if synchronization is required
-      if (inBus == 3827391077 && !communicationSynced)
+      if (inBus == firstSyncCheck && !communicationSynced)
       {
         communicationSynced = true;
-        if(isSender){
-          senderOffset = 1;  
+        if (isSender)
+        {
+          senderOffset = 1;
         }
       }
       if (communicationSynced && !isSender)
@@ -328,19 +319,19 @@ ISR(TIMER0_COMPA_vect)
       {
         if (isSender)
         {
-          if (syncCount == 50)
+          if (syncCounter == syncCount)
           {
-            outBus = 0xAAAAAAAA;
+            outBus = secondSyncCheck;
             communicationInitialized = true;
           }
           else
           {
-            syncCount++;
+            syncCounter++;
           }
         }
-        else if (inBus == 2863311530 && !isSender)
+        else if (inBus == secondSyncCheck && !isSender)
         {
-          outBus = 0xAAAAAAAA;
+          outBus = secondSyncCheck;
           communicationInitialized = true;
         }
       }
