@@ -60,9 +60,11 @@ volatile uint32_t outBus = 3827391077; // Uitgaande data bus
 volatile uint32_t inBus = 0;           // Binnenkomende data bus
 volatile uint8_t busBitIndex = 0;      // huidige bit index inBus
 
-volatile bool isSender = false; // player1 begint met zenden en zetten timer
+volatile bool isSender = true; // player1 begint met zenden en zetten timer
 
 volatile bool ledOn = false;
+
+volatile uint8_t senderOffset = 0;
 
 volatile uint32_t outBusCounter = 0;
 
@@ -70,8 +72,9 @@ volatile bool IRWaiting = false;
 
 volatile bool printBus = false;
 
-volatile bool communicationInitialized = true;
+volatile bool communicationInitialized = false;
 volatile bool communicationSynced = false;
+volatile uint8_t syncCount = 0;
 
 // settings
 volatile bool isPlayer1 = true;
@@ -276,20 +279,19 @@ ISR(TIMER0_COMPA_vect)
     {
       inBus = 0x00000000;
       TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
-      // PORTD |= (1 << PD7);
     }
-    if (busBitIndex >= 1 && busBitIndex <= DATABITCOUNT)
+    if (busBitIndex >= 1 && busBitIndex <= DATABITCOUNT + 1)
     {
       // Read the state of the IR receiver pin
       PORTD ^= (1 << PD7);
       bool bit = (PIND & (1 << IR_RECEIVER_PIN)) == 0; // LOW is logic 1 in IR communication
       if (bit)
       {
-        inBus |= (1UL << (DATABITCOUNT - (busBitIndex)));
+        inBus |= (1UL << (DATABITCOUNT - (busBitIndex - senderOffset)));
       }
       else
       {
-        inBus &= ~(1UL << (DATABITCOUNT - (busBitIndex)));
+        inBus &= ~(1UL << (DATABITCOUNT - (busBitIndex - senderOffset)));
       }
       PORTD ^= (1 << PD7);
 
@@ -307,15 +309,40 @@ ISR(TIMER0_COMPA_vect)
     }
 
     busBitIndex++;
-    if (busBitIndex > DATABITCOUNT + 1)
+
+    if (busBitIndex > DATABITCOUNT + 2)
     {
       // Check if synchronization is required
       if (inBus == 3827391077 && !communicationSynced)
       {
         communicationSynced = true;
+        if(isSender){
+          senderOffset = 1;  
+        }
       }
-      if(communicationSynced && !isSender){
-        EIMSK |= (1 << INT0);                  // INT0 interrupt enable
+      if (communicationSynced && !isSender)
+      {
+        EIMSK |= (1 << INT0); // INT0 interrupt enable
+      }
+      if (communicationSynced && !communicationInitialized)
+      {
+        if (isSender)
+        {
+          if (syncCount == 50)
+          {
+            outBus = 0xAAAAAAAA;
+            communicationInitialized = true;
+          }
+          else
+          {
+            syncCount++;
+          }
+        }
+        else if (inBus == 2863311530 && !isSender)
+        {
+          outBus = 0xAAAAAAAA;
+          communicationInitialized = true;
+        }
       }
       TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
       PORTD |= (1 << PD6);      // Set PD6 HIGH
@@ -337,9 +364,9 @@ ISR(TIMER2_COMPA_vect)
   PORTD ^= (1 << PD6);
 }
 
-ISR(INT0_vect){
-  TCNT0 = 55;
+ISR(INT0_vect)
+{
+  TCNT0 = 62; // 62 past perfect
   busBitIndex = 0;
-  EIMSK &= ~(1 << INT0);                  // INT0 interrupt disable
+  EIMSK &= ~(1 << INT0); // INT0 interrupt disable
 }
-
