@@ -360,7 +360,7 @@ ISR(TIMER2_COMPA_vect)
 
 ISR(INT0_vect)
 {
-  TCNT0 = COMMUNICATIONOFFSETMAX - (communicationOffset * 7); // wisselende tijd tussen de 1 timers
+  TCNT0 = COMMUNICATIONOFFSETMAX - (communicationOffset * 6); // wisselende tijd tussen de 1 timers
   busBitIndex = 0;
   EIMSK &= ~(1 << INT0); // INT0 interrupt disable
   // if (!communicationOffsetDetermined)
