@@ -40,12 +40,13 @@ Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_HEIGHT / GRID_SIZE, screen);
 #define WHITE 0xFFFF
 
 // TODO: VANAF HIER COMMUNICATIE VAR AND FUNCS VOOR IN EEN CLASS ZO
-#define IR_LED_PIN PD6      // Pin 6 voor IR LED (OC0A)
-#define IR_RECEIVER_PIN PD2 // Pin 2 voor IR Receiver (INT0)
-#define DATABITCOUNT 32  // bits in een databus
+#define IR_LED_PIN PD6        // Pin 6 voor IR LED (OC0A)
+#define IR_RECEIVER_PIN PD2   // Pin 2 voor IR Receiver (INT0)
+#define DATABITCOUNT 32       // bits in een databus
 #define COMMUNICATIONSPEED 75 // snelheid van timer 0 interrupts
-#define OCSILLATIONSPEED 209 //38kHz oscilleer snelheid led pin
-#define COMMUNICATIONOFFSET 40
+#define OCSILLATIONSPEED 209  // 38kHz oscilleer snelheid led pin
+#define COMMUNICATIONOFFSETMIN 30
+#define COMMUNICATIONOFFSETMAX 65
 
 // TODO: Test bool voor nunchuk transmissie
 volatile bool isNunchukController = true;
@@ -53,11 +54,12 @@ volatile bool isNunchukController = true;
 // communication
 volatile uint32_t firstSyncCheck = 0xE4215A65;  // 3827391077 // unieke bit volgorde die niet eerder gedetecteerd kan worden zoals bijvoorbeeld 0x33333333
 volatile uint32_t secondSyncCheck = 0xAAAAAAAA; // 2863311530
+volatile uint32_t thirdSyncCheck = 0xE22333BA; // 3793957818 // unieke bit volgorde die niet eerde gedetecteerd kan worden
 volatile uint32_t outBus = firstSyncCheck;      // Uitgaande data bus begint als firstSyncCheck om communicatie te synchroniseren
 volatile uint32_t inBus = 0;                    // Binnenkomende data bus
 volatile uint8_t busBitIndex = 0;               // huidige bit index inBus
 
-volatile bool isSender = true; // player1 begint met zenden en zetten timer
+volatile bool isSender = false; // player1 begint met zenden en zetten timer
 
 volatile uint8_t senderOffset = 0; // offset voor het lezen van de sender arduino (kijkt over de start bit heen)
 
@@ -65,10 +67,17 @@ volatile bool IRWaiting = false; // boolean die on/off getriggered word om de IR
 
 volatile bool printBus = false; // boolean die bepaalt of de inBus klaar is om te printen naar de serial monitor
 
+volatile uint8_t communicationOffset = COMMUNICATIONOFFSETMIN;
+volatile bool communicationOffsetDetermined = false;
+volatile uint32_t previousInBus = 0x00000000;
+volatile uint8_t syncCheckCounter = 0;
+volatile uint8_t syncCheckCount = 10;
+// volatile uint32_t communicationOffsetDererminer =
+
 volatile bool communicationInitialized = false; // boolean die checkt of de communicatie aan beide kanten is geinitialiseerd na het synchroniseren
-volatile bool communicationSynced = false; // boolean die bepaalt of de communicatie synchroon loopt na het opstarten
-volatile uint8_t syncCounter = 0; // counter die optelt tot 50 om te zorgen dat de communicatie aan beide kanten goed loopt
-volatile uint8_t syncCount = 50; // 50 keer dezelfde inBus binnen krijgen om te bepalen of de communicatie gesynchroniseerd is
+volatile bool communicationSynced = false;      // boolean die bepaalt of de communicatie synchroon loopt na het opstarten
+volatile uint8_t syncCounter = 0;               // counter die optelt tot 50 om te zorgen dat de communicatie aan beide kanten goed loopt
+volatile uint8_t syncCount = 50;                // 50 keer dezelfde inBus binnen krijgen om te bepalen of de communicatie gesynchroniseerd is
 
 // settings
 volatile bool isPlayer1 = true;
@@ -294,7 +303,7 @@ ISR(TIMER0_COMPA_vect)
 
     busBitIndex++; // verhoogt de index
 
-    if (busBitIndex > DATABITCOUNT + 2) //checkt of de laatste bit is geweest en checkt of hij alles nu mag resetten
+    if (busBitIndex > DATABITCOUNT + 2) // checkt of de laatste bit is geweest en checkt of hij alles nu mag resetten
     {
       if (inBus == firstSyncCheck && !communicationSynced) // checkt of de communicatie synchroon loopt of nog synchroon moet gaan lopen
       {
@@ -312,14 +321,14 @@ ISR(TIMER0_COMPA_vect)
       {
         if (isSender)
         {
-          if (syncCounter == syncCount)// telt tot 50 om te zorgen dat de andere kant ook de synchronisatie detecteert
+          if (syncCounter == syncCount) // telt tot 50 om te zorgen dat de andere kant ook de synchronisatie detecteert
           {
             outBus = secondSyncCheck; //  veranderd de outbus om aan te geven dat deze kant is geïnitializeerd
             communicationInitialized = true;
           }
           else
           {
-            syncCounter++;//verhoogt de counter als hij nog geen 50 is
+            syncCounter++; // verhoogt de counter als hij nog geen 50 is
           }
         }
         else if (inBus == secondSyncCheck && !isSender) //  geedt aan de andere kant aan dat de communicatie is geïnitializeerd
@@ -331,9 +340,10 @@ ISR(TIMER0_COMPA_vect)
       TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
       PORTD |= (1 << PD6);      // Set PD6 HIGH
       busBitIndex = 0;
+      previousInBus = inBus;
       printBus = true;
     }
-    IRWaiting = true; //zorgt ervoor dat de IR-reciever een pauze krijgt
+    IRWaiting = true; // zorgt ervoor dat de IR-reciever een pauze krijgt
   }
   else
   {
@@ -350,7 +360,32 @@ ISR(TIMER2_COMPA_vect)
 
 ISR(INT0_vect)
 {
-  TCNT0 = COMMUNICATIONOFFSET; // 62 past perfect
+  TCNT0 = communicationOffset; // wisselende tijd tussen de 1 timers
   busBitIndex = 0;
   EIMSK &= ~(1 << INT0); // INT0 interrupt disable
+  if (!communicationOffsetDetermined)
+  {
+    if (previousInBus == firstSyncCheck || previousInBus == secondSyncCheck)
+    {
+      if (syncCheckCounter < syncCheckCount)
+      {
+        syncCheckCounter = syncCheckCounter + 1;
+      }
+      else
+      {
+        communicationOffsetDetermined = true;
+        communicationOffset = communicationOffset - 3;
+      }
+    }
+    else
+    {
+      if (communicationOffset <= COMMUNICATIONOFFSETMAX)
+      {
+        communicationOffset = communicationOffset + 1;
+      } else {
+        communicationOffset = COMMUNICATIONOFFSETMIN;
+      }
+      syncCheckCounter = 0;
+    }
+  }
 }
