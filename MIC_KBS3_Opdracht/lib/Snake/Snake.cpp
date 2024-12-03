@@ -27,7 +27,6 @@ void Snake::start() {
   // snake starten in center scherm
   snakeX[0] = gridSize / 2;
   snakeY[0] = gridSize / 2;
-
 }
 
 // joystick met richting updaten
@@ -78,9 +77,10 @@ void Snake::move() {
 void Snake::draw() {
   // snake tekenen
   for (uint8_t i = 0; i < snakeLength; i++) {
-    drawCell(snakeX[i], snakeY[i], MAGENTA);
+    if (i == 0 || i == snakeLength - 1) { // alleen kop en staart tekenen
+      drawCell(snakeX[i], snakeY[i], MAGENTA);
+    }
   }
-
   // appel tekenen
   drawCell(appleX, appleY, RED);
 }
@@ -116,7 +116,7 @@ bool Snake::eatApple(uint8_t appleX, uint8_t appleY) {
 }
 
 void Snake::spawnRandApple() {
-  srand(TCNT0);              // rand seed
+  srand(TCNT0);               // rand seed
   appleX = rand() % gridSize; // random appel spawn in het veld
   appleY = rand() % gridSize; // random appel spawn in het veld
 }
@@ -128,13 +128,12 @@ void Snake::clearTail(uint8_t tailX, uint8_t tailY) {
 
 // teken snake cell
 void Snake::drawCell(uint16_t x, uint16_t y, uint16_t colour) {
-  screen.fillRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight, colour);
+  screen.drawRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight, colour);
 }
 
 void Snake::reset() {
   // snakelengte resetten
   snakeLength = SNAKE_START_LENGHT; // start lenget snake
-  ;
 
   // snake position resetten naar het midden
   snakeX[0] = gridSize / 2;
@@ -157,11 +156,11 @@ void Snake::reset() {
 }
 
 void Snake::drawScore() {
-    screen.setCursor(5, 5);
-    screen.setTextColor(WHITE, BLACK); //oude overschrijven met zwart
-    screen.setTextSize(1);
-    screen.print("Score: ");
-    screen.print(snakeLength - SNAKE_START_LENGHT);
+  screen.setCursor(5, 5);
+  screen.setTextColor(WHITE, BLACK); // oude overschrijven met zwart
+  screen.setTextSize(1);
+  screen.print("Score: ");
+  screen.print(snakeLength - SNAKE_START_LENGHT);
 }
 
 void Snake::drawDeathScreen() {
