@@ -56,7 +56,7 @@ void Snake::move() {
     snakeX[i] = snakeX[i - 1];
     snakeY[i] = snakeY[i - 1];
   }
-
+  
   // hoofd bewegen
   switch (direction) {
   case UP:
@@ -128,10 +128,9 @@ bool Snake::eatApple(uint8_t appleX, uint8_t appleY) {
 
 void Snake::spawnRandApple() {
   static uint8_t seed = 1;
-  srand(seed);                // rand seed //TODO: seed vervangen voor clock waarde
+  srand(millis());                // rand seed //TODO: seed vervangen voor clock waarde
   appleX = rand() % gridSize; // random appel spawn in het veld
   appleY = rand() % gridSize; // random appel spawn in het veld
-  seed += 69;                 // random seed
 }
 
 // alleen staart clearen ipv hele scherm
@@ -183,4 +182,14 @@ void Snake::drawDeathScreen() {
   screen.setTextSize(2);
   screen.println("Game Over!");
   screen.println("PRESS Z TO CONTINUE");
+}
+
+void Snake::drawStartMenu() {
+  screen.fillScreen(BLACK);
+  screen.setCursor(30, 120);
+  screen.setTextColor(WHITE);
+  screen.setTextSize(2);
+  screen.println("Snake Game");
+  screen.setCursor(30, 160);
+  screen.println("Press Z to Start");
 }

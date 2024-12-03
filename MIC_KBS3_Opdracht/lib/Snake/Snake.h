@@ -20,6 +20,7 @@ public:
   void reset();
   void drawScore();
   void drawDeathScreen();
+  void drawStartMenu();
   uint8_t appleX; // appel coords public voor communicatie
   uint8_t appleY;
 

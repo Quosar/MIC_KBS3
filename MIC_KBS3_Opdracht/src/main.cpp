@@ -34,45 +34,25 @@ const uint16_t TFT_HEIGHT = 320;
 #define IR_TRANSMITTER_PIN PD6
 #define IR_RECEIVER_PIN PD2
 
-// I2C adres voor 7-segment display
-uint8_t SEVEN_SEGMENT_ADDRESS = 0x21;
-
 // LCD object
 Adafruit_ILI9341 screen(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
 
 NunChuk nunchuck;
-bool zPressed;
 const uint8_t NUNCHUCK_ADDRESS = 0x52;
 
 // Create Snake object
-Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_WIDTH / GRID_SIZE, screen, BLUE);
-bool gameOver = false;
+Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_WIDTH / GRID_SIZE, screen,
+            BLUE);
 
-enum gameState
-{
-  MENU,
-  START,
-  INGAME,
-  DEATH
-};
+// game state tracken
+enum gameState { MENU, START, INGAME, DEATH };
+gameState currentState = MENU;
+gameState previousState = DEATH;
 
-// Verstuur een cijfer naar het 7-segment display via I2C
-void sendToSegmentDisplay(uint8_t value) {
-  Wire.beginTransmission(SEVEN_SEGMENT_ADDRESS);
-  if (value == 0) {
-    Wire.write(0b11000000); // 0 displayen
-  } else if (value == 1) {
-    Wire.write(0b11111001); // 1 displayen
-  }
-  Wire.endTransmission();
-}
 
-void restartGame() {
-  gameOver = false;
-  snake.reset();
-}
 
 int main() {
+  init();
   Wire.begin();
   sei(); // Globale interrupts aan
 
@@ -84,34 +64,63 @@ int main() {
   screen.fillScreen(BLACK);
   screen.setTextSize(2);
 
-  snake.start(GRID_SIZE / 2, GRID_SIZE / 2); //start de snake in het midden van het scherm
-
   while (1) {
-    // Checken of nunchuck Z-knop is ingedrukt
-    if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-      if (gameOver && nunchuck.state.z_button) {
-        restartGame();
-      } else if (!gameOver) {
+
+    // game logic die alleen gedaan moet worden wanneer je net in deze gamestate
+    // komt
+    if (currentState != previousState) {
+      switch (currentState) {
+      case MENU:
+        snake.drawStartMenu();
+        break;
+
+      case START:
+        screen.fillScreen(BLACK);
+        snake.start(GRID_SIZE / 2, GRID_SIZE / 2);
+        currentState = INGAME;
+        break;
+
+      case DEATH:
+        snake.reset();
+        snake.drawDeathScreen();
+        break;
+      }
+      previousState = currentState;
+    }
+
+    // game logic die geloopt moet worden
+    switch (currentState) {
+    case MENU:
+      if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
+        if (nunchuck.state.z_button) {
+          currentState = START;
+        }
+      }
+      break;
+
+    case INGAME:
+      if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
         snake.updateDirection(nunchuck.state.joy_x_axis,
                               nunchuck.state.joy_y_axis);
       }
-    }
-    
-    if (!gameOver) {
-      snake.drawScore();
-
-      if(snake.eatApple(snake.appleX, snake.appleY)){
-        snake.grow(); // snakelengte groeien
+      snake.move();      // snake pos updaten
+      snake.draw();      // snake en appel tekenen
+      snake.drawScore(); // score updaten
+      if (snake.eatApple(snake.appleX, snake.appleY)) {
+        snake.grow(); // snake groeien als appel gegeten is
       }
-
-      snake.move();
-
       if (snake.checkCollision()) {
-        gameOver = true;
-        snake.drawDeathScreen();
-      } else {
-        snake.draw();
+        currentState = DEATH;
       }
+      break;
+
+    case DEATH:
+      if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
+        if (nunchuck.state.z_button) {
+          currentState = START;
+        }
+      }
+      break;
     }
 
     _delay_ms(150); // game speed
