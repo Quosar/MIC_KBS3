@@ -10,12 +10,15 @@
 #define YELLOW 0xFFE0
 #define WHITE 0xFFFF
 
+const uint16_t TFT_WIDTH = 240;
+const uint16_t TFT_HEIGHT = 320;
+
 const uint8_t SNAKE_START_LENGHT = 3;
 
 Snake::Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
-             Adafruit_ILI9341 screen)
+             Adafruit_ILI9341 screen, uint16_t colour)
     : gridSize(gridSize), cellWidth(cellWidth), cellHeight(cellHeight),
-      screen(screen) {
+      screen(screen), colour(colour) {
   snakeLength = SNAKE_START_LENGHT;          // start lengte van de snake
   snakeX = new uint8_t[gridSize * gridSize]; // max grootte van de snake
   snakeY = new uint8_t[gridSize * gridSize]; // max grootte van de snake
@@ -78,11 +81,20 @@ void Snake::draw() {
   // snake tekenen
   for (uint8_t i = 0; i < snakeLength; i++) {
     if (i == 0 || i == snakeLength - 1) { // alleen kop en staart tekenen
-      drawCell(snakeX[i], snakeY[i], MAGENTA);
+      drawCell(snakeX[i], snakeY[i], colour);
     }
   }
-  // appel tekenen
-  drawCell(appleX, appleY, RED);
+
+  // appel tekenen als hij niet gegeten wordt
+  if(!(appleX == snakeX[0] && appleY == snakeY[0])){
+    drawCell(appleX, appleY, RED);
+  }
+
+  // draw border
+  screen.drawLine(0, TFT_WIDTH, TFT_WIDTH, TFT_WIDTH, WHITE);
+
+  // draw score
+  drawScore();
 }
 
 // collision checken met zichzelf en de borders
@@ -107,7 +119,7 @@ void Snake::grow() { snakeLength++; }
 bool Snake::eatApple(uint8_t appleX, uint8_t appleY) {
   if (snakeX[0] == appleX &&
       snakeY[0] == appleY) { // als hoofd van de snake is op pos van appel
-    drawCell(appleX, appleY, BLACK);
+    drawCell(appleX, appleY, colour);
     spawnRandApple();
     return true; // appel is gegeten
   }
@@ -157,7 +169,7 @@ void Snake::reset() {
 }
 
 void Snake::drawScore() {
-  screen.setCursor(5, 5);
+  screen.setCursor(5 , TFT_WIDTH + 5);
   screen.setTextColor(WHITE, BLACK); // oude overschrijven met zwart
   screen.setTextSize(1);
   screen.print("Score: ");

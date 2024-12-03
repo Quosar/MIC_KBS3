@@ -7,7 +7,7 @@
 class Snake {
 public:
   Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
-        Adafruit_ILI9341 screen);
+        Adafruit_ILI9341 screen, uint16_t colour);
 
   void start();
   void updateDirection(uint8_t joyX, uint8_t joyY);
@@ -30,6 +30,8 @@ private:
   uint8_t *snakeX; // pointer voor dynamische array
   uint8_t *snakeY;
   Adafruit_ILI9341 screen;
+  uint16_t colour;
+
   enum Direction { UP, DOWN, LEFT, RIGHT };
   Direction direction;
 

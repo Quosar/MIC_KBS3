@@ -45,7 +45,7 @@ bool zPressed;
 const uint8_t NUNCHUCK_ADDRESS = 0x52;
 
 // Create Snake object
-Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_HEIGHT / GRID_SIZE, screen);
+Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_WIDTH / GRID_SIZE, screen, BLUE);
 bool gameOver = false;
 
 
