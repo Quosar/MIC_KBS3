@@ -15,10 +15,10 @@
 #define TFT_CS 10
 #define TFT_RST 8
 
-//TFT defines
-#define GRID_SIZE 16
-#define TFT_WIDTH 240
-#define TFT_HEIGHT 320
+// TFT defines
+const uint8_t GRID_SIZE = 16;
+const uint8_t TFT_WIDTH = 240;
+const uint16_t TFT_HEIGHT = 320;
 
 // Color defines
 #define BLACK 0x0000
@@ -34,8 +34,8 @@
 #define IR_TRANSMITTER_PIN PD6
 #define IR_RECEIVER_PIN PD2
 
-// I2C address for 7-segment display
-uint8_t address = 0x21;
+// I2C adres voor 7-segment display
+uint8_t SEVEN_SEGMENT_ADDRESS = 0x21;
 
 // LCD object
 Adafruit_ILI9341 screen(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
@@ -46,37 +46,19 @@ const uint8_t NUNCHUCK_ADDRESS = 0x52;
 
 // Create Snake object
 Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_HEIGHT / GRID_SIZE, screen);
-bool gameOver = false;
+bool gameOver = true;
 
-void startTimer0() { TIMSK0 |= (1 << OCIE0A); }
 
-void stopTimer0() { TIMSK0 &= ~(1 << OCIE0A); }
-
-// Init timer0 voor 38 kHz
-void init_timer0() {
-  DDRD |= (1 << IR_TRANSMITTER_PIN); // PD6 OUTPUT
-  TCCR0A = (1 << WGM01);             // CTC modus
-  TCCR0B = (1 << CS00);              // Geen prescaler
-  OCR0A = 209;                       // (16 MHz / (2 * 38 kHz)) - 1
-  TIMSK0 = (1 << OCIE0A);            // Compare match interrupt aan
-}
 
 // Verstuur een cijfer naar het 7-segment display via I2C
 void sendToSegmentDisplay(uint8_t value) {
-  Wire.beginTransmission(address);
+  Wire.beginTransmission(SEVEN_SEGMENT_ADDRESS);
   if (value == 0) {
     Wire.write(0b11000000); // 0 displayen
   } else if (value == 1) {
     Wire.write(0b11111001); // 1 displayen
   }
   Wire.endTransmission();
-}
-
-// display updaten per stukje ipv fillscreen
-void updateLCD(const char *message, uint16_t color, int x, int y) {
-  screen.setCursor(x, y);
-  screen.setTextColor(color, BLACK); //tekstoverschrijven met zwart
-  screen.print(message);
 }
 
 void restartGame() {
@@ -86,7 +68,6 @@ void restartGame() {
 
 int main() {
   Wire.begin();
-  init_timer0();
   sei(); // Globale interrupts aan
 
   // Zet PD2 als input
@@ -97,9 +78,7 @@ int main() {
   screen.fillScreen(BLACK);
   screen.setTextSize(2);
 
-  // Geinitialiseerde staat van de  LCD
-  updateLCD("IR Status: OFF", WHITE, 10, 10);
-  updateLCD("7-Seg: ", WHITE, 10, 40);
+  snake.start(); //start de snake in het midden van het scherm
 
   while (1) {
     // Checken of nunchuck Z-knop is ingedrukt
@@ -118,9 +97,7 @@ int main() {
       if (snake.checkCollision()) {
         gameOver = true;
         snake.drawDeathScreen();
-      }
-      else
-      {
+      } else {
         snake.draw();
       }
     }

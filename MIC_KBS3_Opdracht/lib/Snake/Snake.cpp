@@ -116,9 +116,11 @@ bool Snake::eatApple(uint8_t appleX, uint8_t appleY) {
 }
 
 void Snake::spawnRandApple() {
-  srand(TCNT0);               // rand seed
+  static uint8_t seed = 1;
+  srand(seed);                // rand seed //TODO: seed vervangen voor clock waarde
   appleX = rand() % gridSize; // random appel spawn in het veld
   appleY = rand() % gridSize; // random appel spawn in het veld
+  seed += 69;                 // random seed
 }
 
 // alleen staart clearen ipv hele scherm
