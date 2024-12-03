@@ -46,7 +46,7 @@ const uint8_t NUNCHUCK_ADDRESS = 0x52;
 
 // Create Snake object
 Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_HEIGHT / GRID_SIZE, screen);
-bool gameOver = true;
+bool gameOver = false;
 
 
 
@@ -90,10 +90,16 @@ int main() {
                               nunchuck.state.joy_y_axis);
       }
     }
+    
     if (!gameOver) {
       snake.drawScore();
+
+      if(snake.eatApple(snake.appleX, snake.appleY)){
+        snake.grow(); // snakelengte groeien
+      }
+
       snake.move();
-      snake.eatApple(snake.appleX, snake.appleY);
+
       if (snake.checkCollision()) {
         gameOver = true;
         snake.drawDeathScreen();
@@ -101,6 +107,7 @@ int main() {
         snake.draw();
       }
     }
+
     _delay_ms(150); // game speed
   }
 

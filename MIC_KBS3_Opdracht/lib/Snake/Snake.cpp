@@ -107,7 +107,6 @@ void Snake::grow() { snakeLength++; }
 bool Snake::eatApple(uint8_t appleX, uint8_t appleY) {
   if (snakeX[0] == appleX &&
       snakeY[0] == appleY) { // als hoofd van de snake is op pos van appel
-    grow();                  // snakelengte groeien
     drawCell(appleX, appleY, BLACK);
     spawnRandApple();
     return true; // appel is gegeten
