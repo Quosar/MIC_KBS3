@@ -45,8 +45,8 @@ Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_HEIGHT / GRID_SIZE, screen);
 #define DATABITCOUNT 32       // bits in een databus
 #define COMMUNICATIONSPEED 75 // snelheid van timer 0 interrupts
 #define OCSILLATIONSPEED 209  // 38kHz oscilleer snelheid led pin
-#define COMMUNICATIONOFFSETMIN 30
-#define COMMUNICATIONOFFSETMAX 65
+#define COMMUNICATIONOFFSETMIN 0
+#define COMMUNICATIONOFFSETMAX 75
 
 // TODO: Test bool voor nunchuk transmissie
 volatile bool isNunchukController = true;
@@ -54,7 +54,6 @@ volatile bool isNunchukController = true;
 // communication
 volatile uint32_t firstSyncCheck = 0xE4215A65;  // 3827391077 // unieke bit volgorde die niet eerder gedetecteerd kan worden zoals bijvoorbeeld 0x33333333
 volatile uint32_t secondSyncCheck = 0xAAAAAAAA; // 2863311530
-volatile uint32_t thirdSyncCheck = 0xE22333BA; // 3793957818 // unieke bit volgorde die niet eerde gedetecteerd kan worden
 volatile uint32_t outBus = firstSyncCheck;      // Uitgaande data bus begint als firstSyncCheck om communicatie te synchroniseren
 volatile uint32_t inBus = 0;                    // Binnenkomende data bus
 volatile uint8_t busBitIndex = 0;               // huidige bit index inBus
@@ -344,6 +343,7 @@ ISR(TIMER0_COMPA_vect)
       printBus = true;
     }
     IRWaiting = true; // zorgt ervoor dat de IR-reciever een pauze krijgt
+    communicationOffset = TCNT0;
   }
   else
   {
@@ -360,32 +360,32 @@ ISR(TIMER2_COMPA_vect)
 
 ISR(INT0_vect)
 {
-  TCNT0 = communicationOffset; // wisselende tijd tussen de 1 timers
+  TCNT0 = COMMUNICATIONOFFSETMAX - (communicationOffset * 7); // wisselende tijd tussen de 1 timers
   busBitIndex = 0;
   EIMSK &= ~(1 << INT0); // INT0 interrupt disable
-  if (!communicationOffsetDetermined)
-  {
-    if (previousInBus == firstSyncCheck || previousInBus == secondSyncCheck)
-    {
-      if (syncCheckCounter < syncCheckCount)
-      {
-        syncCheckCounter = syncCheckCounter + 1;
-      }
-      else
-      {
-        communicationOffsetDetermined = true;
-        communicationOffset = communicationOffset - 3;
-      }
-    }
-    else
-    {
-      if (communicationOffset <= COMMUNICATIONOFFSETMAX)
-      {
-        communicationOffset = communicationOffset + 1;
-      } else {
-        communicationOffset = COMMUNICATIONOFFSETMIN;
-      }
-      syncCheckCounter = 0;
-    }
-  }
+  // if (!communicationOffsetDetermined)
+  // {
+  //   if (previousInBus == firstSyncCheck || previousInBus == secondSyncCheck)
+  //   {
+  //     if (syncCheckCounter < syncCheckCount)
+  //     {
+  //       syncCheckCounter = syncCheckCounter + 1;
+  //     }
+  //     else
+  //     {
+  //       communicationOffsetDetermined = true;
+  //       communicationOffset = communicationOffset - 3;
+  //     }
+  //   }
+  //   else
+  //   {
+  //     if (communicationOffset <= COMMUNICATIONOFFSETMAX)
+  //     {
+  //       communicationOffset = communicationOffset + 1;
+  //     } else {
+  //       communicationOffset = COMMUNICATIONOFFSETMIN;
+  //     }
+  //     syncCheckCounter = 0;
+  //   }
+  // }
 }
