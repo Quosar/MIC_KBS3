@@ -26,10 +26,10 @@ Snake::Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
   spawnRandApple();
 }
 
-void Snake::start() {
+void Snake::start(uint8_t x, uint8_t y) {
   // snake starten in center scherm
-  snakeX[0] = gridSize / 2;
-  snakeY[0] = gridSize / 2;
+  snakeX[0] = x;
+  snakeY[0] = y;
 }
 
 // joystick met richting updaten
@@ -149,11 +149,11 @@ void Snake::reset() {
   snakeLength = SNAKE_START_LENGHT; // start lenget snake
 
   // snake position resetten naar het midden
-  snakeX[0] = gridSize / 2;
-  snakeY[0] = gridSize / 2;
+  start(gridSize / 2, gridSize / 2);
 
   // alles wat niet de snake is clearen
-  for (int i = 1; i < gridSize * gridSize; i++) {
+  for (int i = 1; i < gridSize * gridSize; i++)
+  {
     snakeX[i] = 0;
     snakeY[i] = 0;
   }

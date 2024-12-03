@@ -9,7 +9,7 @@ public:
   Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
         Adafruit_ILI9341 screen, uint16_t colour);
 
-  void start();
+  void start(uint8_t x, uint8_t y);
   void updateDirection(uint8_t joyX, uint8_t joyY);
   void move();
   void draw();

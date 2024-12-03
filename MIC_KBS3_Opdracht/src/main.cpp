@@ -48,7 +48,13 @@ const uint8_t NUNCHUCK_ADDRESS = 0x52;
 Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_WIDTH / GRID_SIZE, screen, BLUE);
 bool gameOver = false;
 
-
+enum gameState
+{
+  MENU,
+  START,
+  INGAME,
+  DEATH
+};
 
 // Verstuur een cijfer naar het 7-segment display via I2C
 void sendToSegmentDisplay(uint8_t value) {
@@ -78,7 +84,7 @@ int main() {
   screen.fillScreen(BLACK);
   screen.setTextSize(2);
 
-  snake.start(); //start de snake in het midden van het scherm
+  snake.start(GRID_SIZE / 2, GRID_SIZE / 2); //start de snake in het midden van het scherm
 
   while (1) {
     // Checken of nunchuck Z-knop is ingedrukt
