@@ -1,11 +1,11 @@
 #include "Adafruit_GFX.h"
 #include "Adafruit_ILI9341.h"
 #include "Nunchuk.h"
-#include "Snake.h"
 #include <Arduino.h>
-#include <SPI.h>
+#include <Snake.h>
 #include <Wire.h>
 #include <avr/interrupt.h>
+#include <avr/io.h>
 
 // LCD Pin Defines
 #define TFT_CLK 13
@@ -15,19 +15,10 @@
 #define TFT_CS 10
 #define TFT_RST 8
 
-const int8_t NUNCHUCK_ADDRESS = 0x52;
-
-// Screen dimensions
-const uint16_t TFT_WIDTH = 240;
-const uint16_t TFT_HEIGHT = 320;
+// TFT defines
 const uint8_t GRID_SIZE = 16;
-
-// Create TFT and Nunchuk objects
-Adafruit_ILI9341 screen(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
-NunChuk nunchuck;
-
-// Create Snake object
-Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_HEIGHT / GRID_SIZE, screen);
+const uint8_t TFT_WIDTH = 240;
+const uint16_t TFT_HEIGHT = 320;
 
 // Color defines
 #define BLACK 0x0000
@@ -48,8 +39,20 @@ Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_HEIGHT / GRID_SIZE, screen);
 #define COMMUNICATIONOFFSETMIN 0
 #define COMMUNICATIONOFFSETMAX 100
 
-// TODO: Test bool voor nunchuk transmissie
-volatile bool isNunchukController = true;
+// LCD object
+Adafruit_ILI9341 screen(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
+
+NunChuk nunchuck;
+const uint8_t NUNCHUCK_ADDRESS = 0x52;
+
+// Create Snake object
+Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_WIDTH / GRID_SIZE, screen,
+            BLUE);
+
+// game state tracken
+enum gameState { MENU, START, INGAME, DEATH };
+gameState currentState = MENU;
+gameState previousState = DEATH;
 
 // communication
 volatile uint32_t firstSyncCheck = 0xE4215A65;  // 3827391077 // unieke bit volgorde die niet eerder gedetecteerd kan worden zoals bijvoorbeeld 0x33333333
@@ -186,8 +189,7 @@ int main()
 {
   init();
   Serial.begin(9600);
-  // Wire.begin();       // start wire for nunchuck
-  // initialiseScreen(); // init the screen
+  Wire.begin();       // start wire for nunchuck
 
   // communication setup
   cli();
@@ -195,79 +197,74 @@ int main()
   setupTimers();
   SetupInterrupts();
   initializeCommunication();
+
+  // LCD setup
+  screen.begin();
+  screen.fillScreen(BLACK);
+  screen.setTextSize(2);
   sei();
 
-  // snake.start(); // start snake on middle of the screen
 
-  // // TODO: deze test voor scherm testen moet later weg
-  // screen.setCursor(60, TFT_WIDTH / 2);
-  // screen.setTextColor(RED);
-  // screen.setTextSize(3);
-  // screen.println("X: " + snake.snakeX[0]);
-  // screen.println("Y: " + snake.snakeY[0]);
+  while (1) {
 
-  // Serial.println("ja hoor");
+    // game logic die alleen gedaan moet worden wanneer je net in deze gamestate
+    // komt
+    if (currentState != previousState) {
+      switch (currentState) {
+      case MENU:
+        snake.drawStartMenu();
+        break;
 
-  while (1)
-  {
-    if (printBus)
-    {
-      Serial.println(inBus);
-      printBus = false;
+      case START:
+        screen.fillScreen(BLACK);
+        snake.start(GRID_SIZE / 2, GRID_SIZE / 2);
+        currentState = INGAME;
+        break;
+
+      case DEATH:
+        snake.reset();
+        snake.drawDeathScreen();
+        break;
+      }
+      previousState = currentState;
     }
 
-    // if (!isNunchukController) {
-    //   screen.println(String(inBus));
+    // game logic die geloopt moet worden
+    switch (currentState) {
+    case MENU:
+      if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
+        if (nunchuck.state.z_button) {
+          currentState = START;
+        }
+      }
+      break;
 
-    //   uint32_t snakeX = inBus >> 28;
-    //   uint32_t snakeY = inBus << 4;
-    //   snakeY >> 28;
+    case INGAME:
+      if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
+        snake.updateDirection(nunchuck.state.joy_x_axis,
+                              nunchuck.state.joy_y_axis);
+      }
+      snake.move();      // snake pos updaten
+      snake.draw();      // snake en appel tekenen
+      snake.drawScore(); // score updaten
+      if (snake.eatApple(snake.appleX, snake.appleY)) {
+        snake.grow(); // snake groeien als appel gegeten is
+      }
+      if (snake.checkCollision()) {
+        currentState = DEATH;
+      }
+      break;
 
-    //   screen.fillScreen(BLACK);
-    //   screen.setCursor(60, TFT_WIDTH / 2);
-    //   screen.println("X: " + String(snakeX));
-    //   screen.println("Y: " + String(snakeY));
-    // }
+    case DEATH:
+      if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
+        if (nunchuck.state.z_button) {
+          currentState = START;
+        }
+      }
+      break;
+    }
 
-    // Serial.println(String(inBus));
-
-    // snake afhandeling
-    // if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-    //   snake.updateDirection(nunchuck.state.joy_x_axis,
-    //                         nunchuck.state.joy_y_axis);
-    // }
-    // if (counter >= 64000) { //TODO: magic number weg
-    //   counter = 0;
-    //   // snake afhandeling
-    //   if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-    //     snake.updateDirection(nunchuck.state.joy_x_axis,
-    //                           nunchuck.state.joy_y_axis);
-    //   }
-
-    //   snake.move();
-
-    //   if (snake.checkCollision()) {
-    //     screen.fillScreen(BLACK);
-    //     screen.setCursor(60, TFT_HEIGHT / 2);
-    //     screen.setTextColor(RED);
-    //     screen.setTextSize(2);
-    //     screen.println("Game Over!");
-    //     screen.println("PRESS Z TO CONTINUE");
-
-    //     while (1) { // TODO: REMOVE WHILE
-    //       if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-    //         if (nunchuck.state.z_button) { // press z to reset game
-    //           snake.start(); // TODO: reset previouse snake positions. It now
-    //                          // restarts with half the tail on old pos
-    //           break;
-    //         }
-    //       }
-    //     }
-    //   }
-
-    //   snake.draw();
-    // }
-    // counter++;
+    _delay_ms(150); // game speed
   }
 
   return 0;
@@ -372,29 +369,4 @@ ISR(INT0_vect)
   TCNT0 = (COMMUNICATIONOFFSETMAX - (communicationOffset * 5)); // wisselende tijd tussen de 1 timers
   busBitIndex = 0;
   EIMSK &= ~(1 << INT0); // INT0 interrupt disable
-  // if (!communicationOffsetDetermined)
-  // {
-  //   if (previousInBus == firstSyncCheck || previousInBus == secondSyncCheck)
-  //   {
-  //     if (syncCheckCounter < syncCheckCount)
-  //     {
-  //       syncCheckCounter = syncCheckCounter + 1;
-  //     }
-  //     else
-  //     {
-  //       communicationOffsetDetermined = true;
-  //       communicationOffset = communicationOffset - 3;
-  //     }
-  //   }
-  //   else
-  //   {
-  //     if (communicationOffset <= COMMUNICATIONOFFSETMAX)
-  //     {
-  //       communicationOffset = communicationOffset + 1;
-  //     } else {
-  //       communicationOffset = COMMUNICATIONOFFSETMIN;
-  //     }
-  //     syncCheckCounter = 0;
-  //   }
-  // }
 }
