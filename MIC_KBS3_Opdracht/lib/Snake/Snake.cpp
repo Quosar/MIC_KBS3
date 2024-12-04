@@ -127,7 +127,6 @@ bool Snake::eatApple(uint8_t appleX, uint8_t appleY) {
 }
 
 void Snake::spawnRandApple() {
-  static uint8_t seed = 1;
   srand(millis());                // rand seed //TODO: seed vervangen voor clock waarde
   appleX = rand() % gridSize; // random appel spawn in het veld
   appleY = rand() % gridSize; // random appel spawn in het veld
