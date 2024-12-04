@@ -74,12 +74,15 @@ volatile bool communicationOffsetDetermined = false;
 volatile uint32_t previousInBus = 0x00000000;
 volatile uint8_t syncCheckCounter = 0;
 volatile uint8_t syncCheckCount = 10;
-// volatile uint32_t communicationOffsetDererminer =
 
 volatile bool communicationInitialized = false; // boolean die checkt of de communicatie aan beide kanten is geinitialiseerd na het synchroniseren
 volatile bool communicationSynced = false;      // boolean die bepaalt of de communicatie synchroon loopt na het opstarten
 volatile uint8_t syncCounter = 0;               // counter die optelt tot 50 om te zorgen dat de communicatie aan beide kanten goed loopt
 volatile uint8_t syncCount = 50;                // 50 keer dezelfde inBus binnen krijgen om te bepalen of de communicatie gesynchroniseerd is
+
+volatile uint8_t communicationFrameCounter = 0;
+volatile uint8_t communicationFrameCount = 3;
+volatile bool runFrame = true;
 
 // settings
 volatile uint8_t posSnake = 0;
@@ -90,6 +93,7 @@ volatile bool appleGatheredByPlayer2 = false;
 volatile bool gamePaused = false;
 volatile bool isAlive = true;
 volatile uint8_t checksum;
+
 void setupPins()
 {
   DDRD |= (1 << PD6);   // PD6 Ouptut
@@ -128,7 +132,7 @@ void initializeCommunication()
 {
   busBitIndex = 0;
   TCNT0 = 0;
-  TIMSK0 |= (1 << OCIE0A); // Enable Timer0 Compare Match A interrupt
+  TIMSK0 &= ~(1 << OCIE0A); // Enable Timer0 Compare Match A interrupt
 }
 
 uint8_t constructChecksum(uint32_t value)
@@ -177,12 +181,6 @@ void deconstructBus(uint32_t bus) {
     gamePaused = (bus >> 4) & 0x01;            // Bit 4: gamePaused
     isAlive = (bus >> 3) & 0x01;               // Bit 3: isAlive
     }
-}
-
-void initialiseScreen()
-{
-  screen.begin();
-  screen.fillScreen(BLACK);
 }
 
 void updateGame() {
@@ -258,7 +256,6 @@ int main()
   Wire.begin();       // start wire for nunchuck
 
   // communication setup
-  cli();
   setupPins();
   setupTimers();
   SetupInterrupts();
@@ -271,10 +268,13 @@ int main()
 
 
   while (1) {
+    TIMSK0 &= ~(1 << OCIE0A); // Enable Timer0 Compare Match A interrupt
+    // if(runFrame){ // runt iedere 167ms
     handleStateChange();
     handleState();
-
-    _delay_ms(150); // game speed
+    _delay_ms(150);
+    // runFrame = false;
+    // }
   }
 
   return 0;
@@ -351,6 +351,13 @@ ISR(TIMER0_COMPA_vect)
           outBus = secondSyncCheck;
           communicationInitialized = true;
         }
+      }
+      if(communicationFrameCounter >= communicationFrameCount){
+        runFrame = true;
+        communicationFrameCounter = 0;
+      } else {
+        communicationFrameCounter = communicationFrameCounter + 1;
+        runFrame = false;
       }
       TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
       PORTD |= (1 << PD6);      // Set PD6 HIGH
