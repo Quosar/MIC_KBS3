@@ -96,7 +96,7 @@ volatile uint8_t syncCount =
         // communicatie gesynchroniseerd is
 
 volatile uint8_t communicationFrameCounter = 0;
-volatile uint8_t communicationFrameCount = 3;
+volatile uint8_t communicationFrameCount = 10;
 volatile bool runFrame = true;
 
 // settings
@@ -111,7 +111,6 @@ volatile uint8_t checksum;
 
 void setupPins() {
   DDRD |= (1 << PD6);   // PD6 Ouptut
-  PORTD &= ~(1 << PD6); // PD6 begint LOW
 
   DDRD &= ~(1 << IR_RECEIVER_PIN);  // Set PD2 as input
   PORTD &= ~(1 << IR_RECEIVER_PIN); // Enable pull-up resistor
@@ -121,18 +120,21 @@ void setupPins() {
 }
 
 void setupTimers() {
-  // Correct Timer 0 setup for CTC mode with prescaler 64
+  // Correct Timer 1 setup for CTC mode with prescaler 64
+TCCR1A = 0;
+TCCR1B = 0;
+TCCR1B |= (1 << WGM12);              // Correct: WGM12 is in TCCR1B
+TCCR1B |= (1 << CS11) | (1 << CS10); // Prescaler 64
+OCR1A = COMMUNICATIONSPEED;
+
+
+  // Correct Timer 0 setup
   TCCR0A = 0;
   TCCR0B = 0;
-  TCCR0A |= (1 << WGM01);              // CTC mode
-  TCCR0B |= (1 << CS01) | (1 << CS00); // Prescaler 64
-  OCR0A = COMMUNICATIONSPEED;
-
-  // Correct Timer 2 setup
-  TCCR2A = (1 << WGM21);   // CTC mode
-  TCCR2B = (1 << CS20);    // No prescaler
-  TCCR2A |= (1 << COM2A0); // Toggle OC2A on compare match
-  OCR2A = OCSILLATIONSPEED;
+  TCCR0A |= (1 << WGM01);   // CTC mode
+  TCCR0B |= (1 << CS00);    // No prescaler
+  TCCR0A |= (1 << COM0A0); // Zet oscillatie aan
+  OCR0A = OCSILLATIONSPEED;
 }
 
 void SetupInterrupts() {
@@ -142,8 +144,8 @@ void SetupInterrupts() {
 
 void initializeCommunication() {
   busBitIndex = 0;
-  TCNT0 = 0;
-  TIMSK0 &= ~(1 << OCIE0A); // Enable Timer0 Compare Match A interrupt
+  TCNT1 = 0;
+  TIMSK1 |= (1 << OCIE1A); // Enable Timer1 Compare Match A interrupt
 }
 
 uint8_t constructChecksum(uint32_t value) {
@@ -261,7 +263,6 @@ int main() {
   Serial.begin(9600);
   Wire.begin(); // start wire for nunchuck
 
-  // communication setup
   setupPins();
   setupTimers();
   SetupInterrupts();
@@ -270,16 +271,18 @@ int main() {
   // LCD setup
   screen.begin();
   screen.setTextSize(2);
-
   sei();
 
   while (1) {
+    if(printBus){
+      Serial.println(inBus);
+      printBus = false;
+    }
 
-    TIMSK0 &= ~(1 << OCIE0A); // Enable Timer0 Compare Match A interrupt
     // if(runFrame){ // runt iedere 167ms
-    handleStateChange();
-    handleState();
-    _delay_ms(150);
+    // handleStateChange();
+    // handleState();
+    // _delay_ms(150);
 
     // runFrame = false;
     // }
@@ -288,13 +291,13 @@ int main() {
   return 0;
 }
 
-ISR(TIMER0_COMPA_vect) {
+ISR(TIMER1_COMPA_vect) {
   if (!IRWaiting) // checkt of de IR-reciever een pauze nodig heeft
   {
     if (busBitIndex == 0) // checkt of de start bit gestuurd moet worden
     {
       inBus = 0x00000000;
-      TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
+      TCCR0A |= (1 << COM0A0); // Turn on oscillation
     }
     if (busBitIndex >= 1 &&
         busBitIndex <=
@@ -324,9 +327,9 @@ ISR(TIMER0_COMPA_vect) {
                     0x01; // bepaalt of de volgende bit in de outBus en 1 of 0
                           // moet transmitten
       if (outBit) {
-        TIMSK2 |= (1 << OCIE2A); // Enable Timer 2 Compare Match A interrupt
+        TCCR0A |= (1 << COM0A0); // Turn on oscillation
       } else {
-        TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
+        TCCR0A &= ~(1 << COM0A0);
         PORTD &= ~(1 << PD6);     // Ensure PD6 is LOW
       }
     }
@@ -385,27 +388,23 @@ ISR(TIMER0_COMPA_vect) {
         communicationFrameCounter = communicationFrameCounter + 1;
         runFrame = false;
       }
-      TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
-      PORTD |= (1 << PD6);      // Set PD6 HIGH
+      TCCR0A &= ~(1 << COM0A0);
+      PORTD |= (1 << PD6);     // Ensure PD6 is LOW
       busBitIndex = 0;
       previousInBus = inBus;
       printBus = true;
     }
     IRWaiting = true; // zorgt ervoor dat de IR-reciever een pauze krijgt
-    communicationOffset = TCNT0;
+    communicationOffset = TCNT1;
   } else {
-    TIMSK2 &= ~(1 << OCIE2A); // Disable Timer 2 Compare Match A interrupt
-    PORTD |= (1 << PD6);      // Set PD6 HIGH
+    TCCR0A &= ~(1 << COM0A0);
+    PORTD |= (1 << PD6);     // Ensure PD6 is LOW
     IRWaiting = false;
   }
 }
 
-ISR(TIMER2_COMPA_vect) {
-  PORTD ^= (1 << PD6); // oscilleer de IR-led met 38kHz
-}
-
 ISR(INT0_vect) {
-  TCNT0 = (COMMUNICATIONOFFSETMAX -
+  TCNT1= (COMMUNICATIONOFFSETMAX -
            (communicationOffset * 5)); // wisselende tijd tussen de 1 timers
   busBitIndex = 0;
   EIMSK &= ~(1 << INT0); // INT0 interrupt disable
