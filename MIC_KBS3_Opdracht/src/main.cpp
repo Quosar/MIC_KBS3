@@ -51,8 +51,8 @@ Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_WIDTH / GRID_SIZE, screen,
 
 // game state tracken
 enum gameState { MENU, START, INGAME, DEATH };
-gameState currentState = MENU;
-gameState previousState = DEATH;
+volatile gameState currentState = MENU;
+volatile gameState previousState = DEATH;
 
 // communication
 volatile uint32_t firstSyncCheck =
@@ -65,7 +65,7 @@ volatile uint32_t outBus =
 volatile uint32_t inBus = 0; // Binnenkomende data bus
 volatile uint8_t busBitIndex = 0; // huidige bit index inBus
 
-volatile bool isSender = true; // player1 begint met zenden en zetten timer
+volatile bool isSender = false; // player1 begint met zenden en zetten timer
 
 volatile uint8_t senderOffset = 0; // offset voor het lezen van de sender
                                    // arduino (kijkt over de start bit heen)
@@ -102,11 +102,11 @@ volatile bool runFrame = true;
 // settings
 volatile uint8_t posSnake = 0;
 volatile uint8_t posApple = 0;
-volatile bool isPlayer1 = true;
-volatile bool isSmallField = true;
+volatile bool isPlayer1 = false;
+volatile bool isSmallField = false;
 volatile bool appleGatheredByPlayer2 = false;
-volatile bool gamePaused = false;
-volatile bool isAlive = true;
+volatile bool gamePaused = true;
+volatile bool isAlive = false;
 volatile uint8_t checksum;
 
 void setupPins() {
@@ -205,7 +205,12 @@ void updateGame() {
     currentState = DEATH;
   }
 }
-
+void stickHandler(){
+   if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
+      snake.updateDirection(nunchuck.state.joy_x_axis,
+                            nunchuck.state.joy_y_axis);
+    }
+}
 // game logic die geloopt moet worden
 void handleState() {
   switch (currentState) {
@@ -218,10 +223,7 @@ void handleState() {
     break;
 
   case INGAME:
-    if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-      snake.updateDirection(nunchuck.state.joy_x_axis,
-                            nunchuck.state.joy_y_axis);
-    }
+    stickHandler();
     updateGame();
     break;
 
@@ -259,6 +261,8 @@ void handleStateChange() {
   }
 }
 
+
+
 int main() {
   Serial.begin(9600);
   Wire.begin(); // start wire for nunchuck
@@ -274,18 +278,22 @@ int main() {
   sei();
 
   while (1) {
+    if (printBus && communicationInitialized && !isSender){
+      outBus = constructBus();
+    }
+    if(printBus && communicationInitialized && isSender){
+      deconstructBus(inBus);
+    }
     if(printBus){
       Serial.println(inBus);
       printBus = false;
     }
-
-    // if(runFrame){ // runt iedere 167ms
-    // handleStateChange();
-    // handleState();
-    // _delay_ms(150);
-
-    // runFrame = false;
-    // }
+   
+    if(runFrame){ // runt iedere 167ms
+    handleStateChange();
+    handleState();
+    runFrame = false;
+    }
   }
 
   return 0;
@@ -340,6 +348,7 @@ ISR(TIMER1_COMPA_vect) {
         DATABITCOUNT + 2) // checkt of de laatste bit is geweest en checkt of
                           // hij alles nu mag resetten
     {
+      if(!communicationInitialized){
       if (inBus == firstSyncCheck &&
           !communicationSynced) // checkt of de communicatie synchroon loopt of
                                 // nog synchroon moet gaan lopen
@@ -381,12 +390,12 @@ ISR(TIMER1_COMPA_vect) {
           communicationInitialized = true;
         }
       }
+      }
       if (communicationFrameCounter >= communicationFrameCount) {
         runFrame = true;
         communicationFrameCounter = 0;
       } else {
         communicationFrameCounter = communicationFrameCounter + 1;
-        runFrame = false;
       }
       TCCR0A &= ~(1 << COM0A0);
       PORTD |= (1 << PD6);     // Ensure PD6 is LOW
