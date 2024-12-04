@@ -43,10 +43,10 @@ Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_HEIGHT / GRID_SIZE, screen);
 #define IR_LED_PIN PD6        // Pin 6 voor IR LED (OC0A)
 #define IR_RECEIVER_PIN PD2   // Pin 2 voor IR Receiver (INT0)
 #define DATABITCOUNT 32       // bits in een databus
-#define COMMUNICATIONSPEED 75 // snelheid van timer 0 interrupts
+#define COMMUNICATIONSPEED 100 // snelheid van timer 0 interrupts
 #define OCSILLATIONSPEED 209  // 38kHz oscilleer snelheid led pin
 #define COMMUNICATIONOFFSETMIN 0
-#define COMMUNICATIONOFFSETMAX 75
+#define COMMUNICATIONOFFSETMAX 100
 
 // TODO: Test bool voor nunchuk transmissie
 volatile bool isNunchukController = true;
@@ -79,14 +79,14 @@ volatile uint8_t syncCounter = 0;               // counter die optelt tot 50 om 
 volatile uint8_t syncCount = 50;                // 50 keer dezelfde inBus binnen krijgen om te bepalen of de communicatie gesynchroniseerd is
 
 // settings
+volatile uint8_t posSnake = 0;
+volatile uint8_t posApple = 0;
 volatile bool isPlayer1 = true;
 volatile bool isSmallField = true;
 volatile bool appleGatheredByPlayer2 = false;
 volatile bool gamePaused = false;
 volatile bool isAlive = true;
 volatile uint8_t checksum;
-uint16_t counter = 0;
-
 void setupPins()
 {
   DDRD |= (1 << PD6);   // PD6 Ouptut
@@ -141,16 +141,10 @@ uint8_t constructChecksum(uint32_t value)
 uint32_t constructBus()
 {
   uint32_t out = 0;
-  uint8_t posSnake;
-  // posSnake = ((snake.snakeX[0] << 4) || snake.snakeY[0]);
-
-  posSnake =
-      ((0x01 << 4) |
-       0x06); // sending dummy data as pos to check if we can receive this
 
   out |= ((uint32_t)posSnake) << 24;                 // Bit 31–24: posSnake
   out |= ((uint32_t)snake.snakeLength & 0xFF) << 16; // Bit 23–16: lengthSnake
-  out |= ((uint32_t)1 & 0xFF) << 8;                  // Bit 15–8: posApple //TODO: make pos apple
+  out |= ((uint32_t)posApple & 0xFF) << 8;           // Bit 15–8: posApple
   out |=
       ((isPlayer1 & 0x01) << 7) |              // Bit 7: isPlayer1
       ((isSmallField & 0x01) << 6) |           // Bit 6: isSmallField
@@ -165,7 +159,22 @@ uint32_t constructBus()
   return out;
 }
 
-// TODO: TOT HIER COMMUNICATIE VAR AND FUNCS VOOR IN EEN CLASS ZO
+void deconstructBus(uint32_t bus) {
+    uint8_t checksum = (uint8_t)(bus & 0x07); //checksum pakken uit de bus
+    uint8_t calculatedChecksum = constructChecksum(bus & 0xFFFFFFF8); // checksum berekenen voor de bus
+    if (checksum == calculatedChecksum) { // check of checksum overeenkomt
+
+    posSnake = (uint8_t)((bus >> 24) & 0xFF); // Bit 31-24: posSnake
+    snake.snakeLength = (uint8_t)((bus >> 16) & 0xFF); // Bit 23–16: lengthSnake
+    posApple = (uint8_t)((bus >> 8) & 0xFF); // Bit 15–8: posApple
+
+    isPlayer1 = (bus >> 7) & 0x01;             // Bit 7: isPlayer1
+    isSmallField = (bus >> 6) & 0x01;          // Bit 6: isSmallField
+    appleGatheredByPlayer2 = (bus >> 5) & 0x01;// Bit 5: appleGatheredByPlayer2
+    gamePaused = (bus >> 4) & 0x01;            // Bit 4: gamePaused
+    isAlive = (bus >> 3) & 0x01;               // Bit 3: isAlive
+    }
+}
 
 void initialiseScreen()
 {
@@ -343,7 +352,6 @@ ISR(TIMER0_COMPA_vect)
       printBus = true;
     }
     IRWaiting = true; // zorgt ervoor dat de IR-reciever een pauze krijgt
-    communicationOffset = TCNT0;
   }
   else
   {
@@ -355,12 +363,13 @@ ISR(TIMER0_COMPA_vect)
 
 ISR(TIMER2_COMPA_vect)
 {
-  PORTD ^= (1 << PD6); // osciller de IR-led met 38kHz
+  PORTD ^= (1 << PD6); // oscilleer de IR-led met 38kHz
 }
 
 ISR(INT0_vect)
 {
-  TCNT0 = COMMUNICATIONOFFSETMAX - (communicationOffset * 6); // wisselende tijd tussen de 1 timers
+  communicationOffset = TCNT0;
+  TCNT0 = (COMMUNICATIONOFFSETMAX - communicationOffset); // wisselende tijd tussen de 1 timers
   busBitIndex = 0;
   EIMSK &= ~(1 << INT0); // INT0 interrupt disable
   // if (!communicationOffsetDetermined)
