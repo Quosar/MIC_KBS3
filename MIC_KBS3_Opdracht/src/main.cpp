@@ -47,7 +47,7 @@ const uint8_t NUNCHUCK_ADDRESS = 0x52;
 
 // Create Snake object
 Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_WIDTH / GRID_SIZE, screen,
-            BLUE);
+            MAGENTA);
 
 // game state tracken
 enum gameState { MENU, START, INGAME, DEATH };
@@ -185,6 +185,72 @@ void initialiseScreen()
   screen.fillScreen(BLACK);
 }
 
+void updateGame() {
+  snake.move();      // snake pos updaten
+  snake.draw();      // snake en appel tekenen
+  snake.drawScore(); // score updaten
+  if (snake.eatApple(snake.appleX, snake.appleY)) {
+    snake.grow(); // snake groeien als appel gegeten is
+  }
+  if (snake.checkCollision()) {
+    currentState = DEATH;
+  }
+}
+
+// game logic die geloopt moet worden
+void handleState() {
+  switch (currentState) {
+  case MENU:
+    if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
+      if (nunchuck.state.z_button) {
+        currentState = START;
+      }
+    }
+    break;
+
+  case INGAME:
+    if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
+      snake.updateDirection(nunchuck.state.joy_x_axis,
+                            nunchuck.state.joy_y_axis);
+    }
+    updateGame();
+    break;
+
+  case DEATH:
+    if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
+      if (nunchuck.state.z_button) {
+        currentState = START;
+      }
+    }
+    break;
+  }
+}
+
+// game logic die alleen gedaan moet worden wanneer je net in deze gamestate
+// komt
+void handleStateChange() {
+  if (currentState != previousState) {
+    switch (currentState) {
+    case MENU:
+      snake.drawStartMenu();
+      break;
+
+    case START:
+      screen.fillScreen(BLACK);
+      snake.start(GRID_SIZE / 2, GRID_SIZE / 2);
+      currentState = INGAME;
+      break;
+
+    case DEATH:
+      snake.reset();
+      snake.drawDeathScreen();
+      break;
+    }
+    previousState = currentState;
+  }
+}
+
+
 int main()
 {
   init();
@@ -200,69 +266,13 @@ int main()
 
   // LCD setup
   screen.begin();
-  screen.fillScreen(BLACK);
   screen.setTextSize(2);
   sei();
 
 
   while (1) {
-
-    // game logic die alleen gedaan moet worden wanneer je net in deze gamestate
-    // komt
-    if (currentState != previousState) {
-      switch (currentState) {
-      case MENU:
-        snake.drawStartMenu();
-        break;
-
-      case START:
-        screen.fillScreen(BLACK);
-        snake.start(GRID_SIZE / 2, GRID_SIZE / 2);
-        currentState = INGAME;
-        break;
-
-      case DEATH:
-        snake.reset();
-        snake.drawDeathScreen();
-        break;
-      }
-      previousState = currentState;
-    }
-
-    // game logic die geloopt moet worden
-    switch (currentState) {
-    case MENU:
-      if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-        if (nunchuck.state.z_button) {
-          currentState = START;
-        }
-      }
-      break;
-
-    case INGAME:
-      if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-        snake.updateDirection(nunchuck.state.joy_x_axis,
-                              nunchuck.state.joy_y_axis);
-      }
-      snake.move();      // snake pos updaten
-      snake.draw();      // snake en appel tekenen
-      snake.drawScore(); // score updaten
-      if (snake.eatApple(snake.appleX, snake.appleY)) {
-        snake.grow(); // snake groeien als appel gegeten is
-      }
-      if (snake.checkCollision()) {
-        currentState = DEATH;
-      }
-      break;
-
-    case DEATH:
-      if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-        if (nunchuck.state.z_button) {
-          currentState = START;
-        }
-      }
-      break;
-    }
+    handleStateChange();
+    handleState();
 
     _delay_ms(150); // game speed
   }
