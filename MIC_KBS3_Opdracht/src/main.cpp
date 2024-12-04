@@ -58,7 +58,7 @@ volatile uint32_t outBus = firstSyncCheck;      // Uitgaande data bus begint als
 volatile uint32_t inBus = 0;                    // Binnenkomende data bus
 volatile uint8_t busBitIndex = 0;               // huidige bit index inBus
 
-volatile bool isSender = false; // player1 begint met zenden en zetten timer
+volatile bool isSender = true; // player1 begint met zenden en zetten timer
 
 volatile uint8_t senderOffset = 0; // offset voor het lezen van de sender arduino (kijkt over de start bit heen)
 
@@ -352,6 +352,7 @@ ISR(TIMER0_COMPA_vect)
       printBus = true;
     }
     IRWaiting = true; // zorgt ervoor dat de IR-reciever een pauze krijgt
+    communicationOffset = TCNT0;
   }
   else
   {
@@ -368,8 +369,7 @@ ISR(TIMER2_COMPA_vect)
 
 ISR(INT0_vect)
 {
-  communicationOffset = TCNT0;
-  TCNT0 = (COMMUNICATIONOFFSETMAX - communicationOffset); // wisselende tijd tussen de 1 timers
+  TCNT0 = (COMMUNICATIONOFFSETMAX - (communicationOffset * 5)); // wisselende tijd tussen de 1 timers
   busBitIndex = 0;
   EIMSK &= ~(1 << INT0); // INT0 interrupt disable
   // if (!communicationOffsetDetermined)
