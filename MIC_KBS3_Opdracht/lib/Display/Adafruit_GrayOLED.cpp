@@ -20,6 +20,8 @@
 
 #include "Adafruit_GrayOLED.h"
 #include <Adafruit_GFX.h>
+#include <util/delay.h>
+
 // SOME DEFINES AND STATIC VARIABLES USED INTERNALLY -----------------------
 
 #define grayoled_swap(a, b)                                                    \

@@ -56,7 +56,10 @@
 // #pragma message ("GFX DMA IS ENABLED. HIGHLY EXPERIMENTAL.")
 #include "wiring_private.h" // pinPeripheral() function
 #include <Adafruit_ZeroDMA.h>
-#include <malloc.h>          // memalign() function
+#include <util/delay.h>
+
+#include <malloc.h> // memalign() function
+
 #define tcNum 2              // Timer/Counter for parallel write strobe PWM
 #define wrPeripheral PIO_CCL // Use CCL to invert write strobe
 
