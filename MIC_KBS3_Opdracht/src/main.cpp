@@ -393,6 +393,7 @@ void communicate()
         DATABITCOUNT + 2) // checkt of de laatste bit is geweest en checkt of
                           // hij alles nu mag resetten
     {
+      busBitIndex = 0;
       if (!communicationInitialized)
       {
         if (inBus == firstSyncCheck &&
@@ -438,10 +439,6 @@ void communicate()
       TCCR0A &= ~(1 << COM0A0);
       PORTD |= (1 << PD6); // Ensure PD6 is LOW
       printBus = true;
-    }
-    if (busBitIndex > DATABITCOUNT + 4)
-    {
-      busBitIndex = 0;
     }
     IRWaiting = true; // zorgt ervoor dat de IR-reciever een pauze krijgt
   }
