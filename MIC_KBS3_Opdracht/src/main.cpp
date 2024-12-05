@@ -61,7 +61,7 @@ volatile gameState previousState = DEATH;
 
 // communication
 volatile uint32_t firstSyncCheck =
-    0x0000C000;                                 // 3827391077 // unieke bit volgorde die niet eerder 0xE4215A65
+    0x80000000;                                 // 3827391077 // unieke bit volgorde die niet eerder 0xE4215A65
                                                 // gedetecteerd kan worden zoals bijvoorbeeld 0x33333333
 volatile uint32_t secondSyncCheck = 0xAAAAAAAA; // 2863311530
 volatile uint32_t thirdSyncCheck = 0xAE6CB249;  // 2926359113
@@ -71,7 +71,7 @@ volatile uint32_t outBus =
 volatile uint32_t inBus = 0;      // Binnenkomende data bus
 volatile uint8_t busBitIndex = 0; // huidige bit index inBus
 
-volatile bool isSender = false; // player1 begint met zenden en zetten timer
+volatile bool isSender = true; // player1 begint met zenden en zetten timer
 
 volatile uint8_t senderOffset = 0; // offset voor het lezen van de sender
                                    // arduino (kijkt over de start bit heen)
@@ -147,7 +147,7 @@ void initializeCommunication()
   busBitIndex = 0;
   TCNT1 = 0;
   TIMSK1 |= (1 << OCIE1A); // Enable Timer1 Compare Match A interrupt
-  if (isSender)            // zorgt ervoor dat de sender 1tje later leest in de inBus
+  if (isSender)
   {
     senderOffset = 1;
   }
@@ -157,12 +157,19 @@ void synchronise(uint32_t bus)
 {
   if (bus != 0)
   {
-    for (uint8_t i = 0; i < DATABITCOUNT; i++)
+    for (uint8_t i = 0; i <= DATABITCOUNT; i++)
     {
       // Check each bit starting from the most significant bit (MSB)
       if ((bus >> (DATABITCOUNT - 1 - i)) & 1)
       {
-        SyncingIndex = DATABITCOUNT - i + 2;
+        if (i <= 30)
+        {
+          SyncingIndex = DATABITCOUNT - i + 2;
+        }
+        else
+        {
+          SyncingIndex = 0;
+        }
         SyncingIndexFound = true;
         break; // Exit the loop after finding the first '1' bit
       }
@@ -329,10 +336,6 @@ int main()
     if (printBus)
     {
       Serial.println(inBus);
-      if (!isSender)
-      {
-        Serial.println(SyncingIndex);
-      }
       printBus = false;
     }
 
@@ -406,17 +409,18 @@ void communicate()
         DATABITCOUNT + 2) // checkt of de laatste bit is geweest en checkt of
                           // hij alles nu mag resetten
     {
+
+      busBitIndex = 0;
+
       if (!communicationSynced && !isSender && !SyncingIndexFound) // Sneller de arduino's synchroniseren
       {
         synchronise(inBus);
         busBitIndex = SyncingIndex;
       }
-      else
+      else if (!communicationSynced && !isSender && SyncingIndexFound)
       {
         busBitIndex = 0;
-        if(!communicationSynced){
-          SyncingIndexFound = false;
-        }
+        SyncingIndexFound = false;
       }
       if (!communicationInitialized)
       {
@@ -505,7 +509,7 @@ ISR(TIMER1_COMPA_vect)
 
 ISR(INT0_vect)
 {
-  TCNT1 = 0;
+  TCNT1 = 5;
   busBitIndex = 0;
   EIMSK &= ~(1 << INT0); // INT0 interrupt disable
   TIMSK1 |= (1 << OCIE1A);
