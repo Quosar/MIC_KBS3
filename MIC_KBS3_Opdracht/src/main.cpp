@@ -61,7 +61,7 @@ volatile gameState previousState = DEATH;
 
 // communication
 volatile uint32_t firstSyncCheck =
-    0xE4215A65;                                 // 3827391077 // unieke bit volgorde die niet eerder
+    0x0000C000;                                 // 3827391077 // unieke bit volgorde die niet eerder 0xE4215A65
                                                 // gedetecteerd kan worden zoals bijvoorbeeld 0x33333333
 volatile uint32_t secondSyncCheck = 0xAAAAAAAA; // 2863311530
 volatile uint32_t thirdSyncCheck = 0xAE6CB249;  // 2926359113
@@ -81,14 +81,16 @@ volatile bool IRWaiting =
            // geven om niet overloaded te worden
 
 volatile bool printBus = true; // boolean die bepaalt of de inBus klaar is om
-                                // te printen naar de serial monitor
+                               // te printen naar de serial monitor
 
 volatile bool communicationInitialized =
     false; // boolean die checkt of de communicatie aan beide kanten is
            // geinitialiseerd na het synchroniseren
 volatile bool communicationSynced =
-    false;                        // boolean die bepaalt of de communicatie synchroon loopt na het
-                                  // opstarten
+    false; // boolean die bepaalt of de communicatie synchroon loopt na het
+           // opstarten
+volatile uint8_t SyncingIndex = 0;
+volatile bool SyncingIndexFound = false;
 
 volatile uint8_t communicationFrameCounter = 0;
 volatile uint8_t communicationFrameCount = 5;
@@ -151,17 +153,22 @@ void initializeCommunication()
   }
 }
 
-// void synchronise(){
-//   if(inBus != 0){
-//     for (uint8_t i = 1; i < DATABITCOUNT; i++)
-//     {
-//       if(inBus << i == firstSyncCheck << i){
-
-//       }
-//     }
-    
-//   }
-// }
+void synchronise(uint32_t bus)
+{
+  if (bus != 0)
+  {
+    for (uint8_t i = 0; i < DATABITCOUNT; i++)
+    {
+      // Check each bit starting from the most significant bit (MSB)
+      if ((bus >> (DATABITCOUNT - 1 - i)) & 1)
+      {
+        SyncingIndex = DATABITCOUNT - i + 2;
+        SyncingIndexFound = true;
+        break; // Exit the loop after finding the first '1' bit
+      }
+    }
+  }
+}
 
 uint8_t constructChecksum(uint32_t value)
 {
@@ -308,6 +315,7 @@ int main()
   // LCD setup
   screen.begin();
   screen.setTextSize(2);
+
   sei();
 
   while (1)
@@ -321,6 +329,10 @@ int main()
     if (printBus)
     {
       Serial.println(inBus);
+      if (!isSender)
+      {
+        Serial.println(SyncingIndex);
+      }
       printBus = false;
     }
 
@@ -348,28 +360,29 @@ void communicate()
         busBitIndex <=
             DATABITCOUNT + 1) // 1-33 voor het sturen en lezen van de bits
     {
-      if(!isSender){
-      PORTD ^= (1 << PD7);
-      bool bit = (PIND & (1 << IR_RECEIVER_PIN)) ==
-                 0; // LOW is logische 1 in IR communicatie
-      if (bit)
+      if (!isSender)
       {
-        inBus |= (1UL << (DATABITCOUNT -
-                          (busBitIndex -
-                           senderOffset))); // bepaalt welke index van de inBus
-                                            // de gelezen waarde in moet sender
-                                            // begint 1 later
-      }
-      else
-      {
-        inBus &= ~(
-            1UL
-            << (DATABITCOUNT -
-                (busBitIndex -
-                 senderOffset))); // bepaalt welke index van de inBus de gelezen
-                                  // waarde in moet sender begint 1 later
-      }
-      PORTD ^= (1 << PD7);
+        PORTD ^= (1 << PD7);
+        bool bit = (PIND & (1 << IR_RECEIVER_PIN)) ==
+                   0; // LOW is logische 1 in IR communicatie
+        if (bit)
+        {
+          inBus |= (1UL << (DATABITCOUNT -
+                            (busBitIndex -
+                             senderOffset))); // bepaalt welke index van de inBus
+                                              // de gelezen waarde in moet sender
+                                              // begint 1 later
+        }
+        else
+        {
+          inBus &= ~(
+              1UL
+              << (DATABITCOUNT -
+                  (busBitIndex -
+                   senderOffset))); // bepaalt welke index van de inBus de gelezen
+                                    // waarde in moet sender begint 1 later
+        }
+        PORTD ^= (1 << PD7);
       }
 
       // Transmit current bit
@@ -393,7 +406,18 @@ void communicate()
         DATABITCOUNT + 2) // checkt of de laatste bit is geweest en checkt of
                           // hij alles nu mag resetten
     {
-      busBitIndex = 0;
+      if (!communicationSynced && !isSender && !SyncingIndexFound) // Sneller de arduino's synchroniseren
+      {
+        synchronise(inBus);
+        busBitIndex = SyncingIndex;
+      }
+      else
+      {
+        busBitIndex = 0;
+        if(!communicationSynced){
+          SyncingIndexFound = false;
+        }
+      }
       if (!communicationInitialized)
       {
         if (inBus == firstSyncCheck &&
@@ -446,8 +470,9 @@ void communicate()
   {
     TCCR0A &= ~(1 << COM0A0);
     PORTD |= (1 << PD6); // Ensure PD6 is LOW
-    if(isSender && busBitIndex >= 2 && busBitIndex <= DATABITCOUNT + 2){
-            PORTD ^= (1 << PD7);
+    if (isSender && busBitIndex >= 2 && busBitIndex <= DATABITCOUNT + 2)
+    {
+      PORTD ^= (1 << PD7);
       bool bit = (PIND & (1 << IR_RECEIVER_PIN)) ==
                  0; // LOW is logische 1 in IR communicatie
       if (bit)
