@@ -23,6 +23,7 @@ Snake::Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
   snakeX = new uint8_t[gridSize * gridSize]; // max grootte van de snake
   snakeY = new uint8_t[gridSize * gridSize]; // max grootte van de snake
   direction = RIGHT;                         // beginrichting is rechts
+  bufferedDirection = RIGHT;                 // gebufferde richting dus ook
   spawnRandApple();
 }
 
@@ -37,16 +38,18 @@ void Snake::updateDirection(
     uint8_t joyX,
     uint8_t joyY) { // TODO: remove magic numbers from the joystick angles
   if (joyX < 105 && direction != RIGHT)
-    direction = LEFT;
+    bufferedDirection = LEFT;
   else if (joyX > 145 && direction != LEFT)
-    direction = RIGHT;
+    bufferedDirection = RIGHT;
   else if (joyY < 105 && direction != UP)
-    direction = DOWN;
+    bufferedDirection = DOWN;
   else if (joyY > 145 && direction != DOWN)
-    direction = UP;
+    bufferedDirection = UP;
 }
 
 void Snake::move() {
+  validateDirection();
+
   // positie van de eindstaart opslaan
   uint8_t tailX = snakeX[snakeLength - 1];
   uint8_t tailY = snakeY[snakeLength - 1];
@@ -56,7 +59,7 @@ void Snake::move() {
     snakeX[i] = snakeX[i - 1];
     snakeY[i] = snakeY[i - 1];
   }
-  
+
   // hoofd bewegen
   switch (direction) {
   case UP:
@@ -86,7 +89,7 @@ void Snake::draw() {
   }
 
   // appel tekenen als hij niet gegeten wordt
-  if(!(appleX == snakeX[0] && appleY == snakeY[0])){
+  if (!(appleX == snakeX[0] && appleY == snakeY[0])) {
     drawCell(appleX, appleY, RED);
   }
 
@@ -127,7 +130,7 @@ bool Snake::eatApple(uint8_t appleX, uint8_t appleY) {
 }
 
 void Snake::spawnRandApple() {
-  srand(millis());                // rand seed //TODO: seed vervangen voor clock waarde
+  srand(millis()); // rand seed //TODO: seed vervangen voor clock waarde
   appleX = rand() % gridSize; // random appel spawn in het veld
   appleY = rand() % gridSize; // random appel spawn in het veld
 }
@@ -142,6 +145,15 @@ void Snake::drawCell(uint16_t x, uint16_t y, uint16_t colour) {
   screen.drawRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight, colour);
 }
 
+void Snake::validateDirection() {
+  if ((direction == UP && bufferedDirection != DOWN) ||
+      (direction == DOWN && bufferedDirection != UP) ||
+      (direction == LEFT && bufferedDirection != RIGHT) ||
+      (direction == RIGHT && bufferedDirection != LEFT)) {
+    direction = bufferedDirection;
+  }
+}
+
 void Snake::reset() {
   // snakelengte resetten
   snakeLength = SNAKE_START_LENGHT; // start lenget snake
@@ -150,8 +162,7 @@ void Snake::reset() {
   start(gridSize / 2, gridSize / 2);
 
   // alles wat niet de snake is clearen
-  for (int i = 1; i < gridSize * gridSize; i++)
-  {
+  for (int i = 1; i < gridSize * gridSize; i++) {
     snakeX[i] = 0;
     snakeY[i] = 0;
   }
@@ -167,7 +178,7 @@ void Snake::reset() {
 }
 
 void Snake::drawScore() {
-  screen.setCursor(5 , TFT_WIDTH + 5);
+  screen.setCursor(5, TFT_WIDTH + 5);
   screen.setTextColor(WHITE, BLACK); // oude overschrijven met zwart
   screen.setTextSize(1);
   screen.print("Score: ");
