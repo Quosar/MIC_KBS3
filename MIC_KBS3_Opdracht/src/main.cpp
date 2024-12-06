@@ -221,6 +221,14 @@ void directionHandler() {
     snake.updateDirection(nunchuck.state.joy_x_axis, nunchuck.state.joy_y_axis);
   }
 }
+
+uint8_t calculateFrameCount(uint8_t snakeLength) {
+  // framecounter lager als snaker langer wordt
+  uint8_t frameCount = 10 - (snakeLength / 5);
+  // minimum 2 frames per update
+  return frameCount > 2 ? frameCount : 2;
+}
+
 // game logic die geloopt moet worden
 void handleState() {
   switch (currentState) {
@@ -233,6 +241,8 @@ void handleState() {
     break;
 
   case INGAME:
+    // snelheid aanpassen op lengte slang
+    communicationFrameCount = calculateFrameCount(snake.snakeLength);
     updateGame();
     break;
 
@@ -317,8 +327,8 @@ void communicate() {
           inBus |= (1UL << (DATABITCOUNT -
                             (busBitIndex -
                              senderOffset))); // bepaalt welke index van de
-                                              // inBus de gelezen waarde in moet
-                                              // sender begint 1 later
+                                              // inBus de gelezen waarde in
+                                              // moet sender begint 1 later
         } else {
           inBus &= ~(1UL << (DATABITCOUNT -
                              (busBitIndex -
@@ -382,9 +392,9 @@ void communicate() {
         }
       }
       if (communicationSynced &&
-          !isSender) // zet int 0 interrupt aan om te zorgen dat de !isSender de
-                     // startbit binnen krijgt om de timers synchroon te laten
-                     // lopen
+          !isSender) // zet int 0 interrupt aan om te zorgen dat de !isSender
+                     // de startbit binnen krijgt om de timers synchroon te
+                     // laten lopen
       {
         EIMSK |= (1 << INT0); // INT0 interrupt enable
         TIMSK1 &= ~(1 << OCIE1A);
@@ -410,16 +420,15 @@ void communicate() {
       if (bit) {
         inBus |= (1UL << (DATABITCOUNT -
                           (busBitIndex -
-                           senderOffset))); // bepaalt welke index van de inBus
-                                            // de gelezen waarde in moet sender
-                                            // begint 1 later
+                           senderOffset))); // bepaalt welke index van de
+                                            // inBus de gelezen waarde in moet
+                                            // sender begint 1 later
       } else {
-        inBus &= ~(
-            1UL
-            << (DATABITCOUNT -
-                (busBitIndex -
-                 senderOffset))); // bepaalt welke index van de inBus de gelezen
-                                  // waarde in moet sender begint 1 later
+        inBus &= ~(1UL << (DATABITCOUNT -
+                           (busBitIndex -
+                            senderOffset))); // bepaalt welke index van de
+                                             // inBus de gelezen waarde in
+                                             // moet sender begint 1 later
       }
       PORTD ^= (1 << PD7);
     }
