@@ -46,7 +46,7 @@ const uint8_t NUNCHUCK_ADDRESS = 0x52;
 
 // Create Snake object
 Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_WIDTH / GRID_SIZE, screen,
-            MAGENTA);
+            GREEN);
 
 // game state tracken
 enum gameState { MENU, START, INGAME, DEATH };
@@ -222,11 +222,17 @@ void directionHandler() {
   }
 }
 
-uint8_t calculateFrameCount(uint8_t snakeLength) {
-  // framecounter lager als snaker langer wordt
-  uint8_t frameCount = 10 - (snakeLength / 5);
-  // minimum 2 frames per update
-  return frameCount > 2 ? frameCount : 2;
+uint8_t
+calculateFrameCount(uint8_t snakeLength) { // TODO: magic numbers weghalen
+
+  int frameCount = 10 - (snakeLength / 5);
+
+  if (frameCount < 2)
+    frameCount = 2; // minimum snlheid
+  if (frameCount > 10)
+    frameCount = 10; // maximum snelheid
+
+  return (uint8_t)frameCount;
 }
 
 // game logic die geloopt moet worden
@@ -268,6 +274,8 @@ void handleStateChange() {
     case START:
       screen.fillScreen(BLACK);
       snake.start(GRID_SIZE / 2, GRID_SIZE / 2);
+      // teken border
+      screen.drawLine(0, TFT_WIDTH, TFT_WIDTH, TFT_WIDTH, WHITE);
       currentState = INGAME;
       break;
 

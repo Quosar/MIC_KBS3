@@ -81,20 +81,18 @@ void Snake::move() {
 }
 
 void Snake::draw() {
-  // snake tekenen
-  for (uint8_t i = 0; i < snakeLength; i++) {
-    if (i == 0 || i == snakeLength - 1) { // alleen kop en staart tekenen
-      drawCell(snakeX[i], snakeY[i], colour);
-    }
-  }
 
-  // appel tekenen als hij niet gegeten wordt
-  if (!(appleX == snakeX[0] && appleY == snakeY[0])) {
-    drawCell(appleX, appleY, RED);
-  }
+  // teken hoofd
+  drawHead(snakeX[0], snakeY[0]);
+  // alles na hoofd veranderd naar body
+  // eerst hoofd clearen
+  screen.fillRect(snakeX[1] * cellWidth, snakeY[1] * cellHeight, cellWidth,
+                  cellHeight, BLACK);
+  // teken body deel
+  drawCell(snakeX[1], snakeY[1], colour);
 
-  // draw border
-  screen.drawLine(0, TFT_WIDTH, TFT_WIDTH, TFT_WIDTH, WHITE);
+  // draw appel
+  drawCell(appleX, appleY, RED);
 
   // draw score
   drawScore();
@@ -124,6 +122,7 @@ bool Snake::eatApple(uint8_t appleX, uint8_t appleY) {
       snakeY[0] == appleY) { // als hoofd van de snake is op pos van appel
     drawCell(appleX, appleY, colour);
     spawnRandApple();
+
     return true; // appel is gegeten
   }
   return false; // niet gegeten
@@ -173,19 +172,25 @@ void Snake::reset() {
   // start richting zetten
   direction = RIGHT;
 
-  // nieuwe appel spawnen
-  spawnRandApple();
-
   // screen resetten van oude snakes en appels
   screen.fillScreen(BLACK);
+
+  // nieuwe appel spawnen
+  spawnRandApple();
 }
 
 void Snake::drawScore() {
-  screen.setCursor(5, TFT_WIDTH + 5);
-  screen.setTextColor(WHITE, BLACK); // oude overschrijven met zwart
-  screen.setTextSize(1);
-  screen.print("Score: ");
-  screen.print(snakeLength - SNAKE_START_LENGHT);
+  static uint8_t prevScore = -1;
+  int8_t currentScore = snakeLength - SNAKE_START_LENGHT;
+  // score alleen updaten/tekenen wanneer de score verhoogd
+  if (currentScore != prevScore) {
+    screen.setCursor(5, TFT_WIDTH + 5);
+    screen.setTextColor(WHITE, BLACK); // oude overschrijven met zwart
+    screen.setTextSize(1);
+    screen.print("Score: ");
+    screen.print(currentScore);
+    prevScore = currentScore;
+  }
 }
 
 void Snake::drawDeathScreen() {
@@ -205,4 +210,73 @@ void Snake::drawStartMenu() {
   screen.println("Snake Game");
   screen.setCursor(30, 160);
   screen.println("Press Z to Start");
+}
+
+void Snake::drawHead(uint16_t x, uint16_t y) {
+
+  // center van driehoek berekenen
+  uint16_t centerX = x * cellWidth + cellHeight / 2;
+  uint16_t centerY = y * cellHeight + cellWidth / 2;
+
+  // driehoek punten op basis van de richting van de snake
+  int16_t x1, y1, x2, y2, x3, y3;
+  switch (direction) {
+  case UP:
+    x1 = centerX - cellWidth / 2;
+    y1 = centerY + cellHeight / 2;
+    x2 = centerX + cellWidth / 2;
+    y2 = centerY + cellHeight / 2;
+    x3 = centerX;
+    y3 = centerY - cellHeight / 2;
+    break;
+  case DOWN:
+    x1 = centerX - cellWidth / 2;
+    y1 = centerY - cellHeight / 2;
+    x2 = centerX + cellWidth / 2;
+    y2 = centerY - cellHeight / 2;
+    x3 = centerX;
+    y3 = centerY + cellHeight / 2;
+    break;
+  case LEFT:
+    x1 = centerX + cellWidth / 2;
+    y1 = centerY - cellHeight / 2;
+    x2 = centerX + cellWidth / 2;
+    y2 = centerY + cellHeight / 2;
+    x3 = centerX - cellWidth / 2;
+    y3 = centerY;
+    break;
+  case RIGHT:
+    x1 = centerX - cellWidth / 2;
+    y1 = centerY - cellHeight / 2;
+    x2 = centerX - cellWidth / 2;
+    y2 = centerY + cellHeight / 2;
+    x3 = centerX + cellWidth / 2;
+    y3 = centerY;
+    break;
+  }
+
+  // driehoek tekenen binnen de berekende punten
+  screen.fillTriangle(x1, y1, x2, y2, x3, y3, colour);
+
+  // ogern van de snake tekkenen
+  // ogen komen op de eerste kwart van het hoofd, dus daarom /4 en hebben een
+  // kleine grootte dus straal van 1/8 cellwidth
+  switch (direction) {
+    // omhoog en omlaag linker en rechter oog tekenen
+  case UP:
+  case DOWN:
+    screen.fillCircle(centerX - cellWidth / 4, centerY, cellWidth / 8,
+                      BLACK); // linker ook
+    screen.fillCircle(centerX + cellWidth / 4, centerY, cellWidth / 8,
+                      BLACK); // rechter oog
+    break;
+  // linker en rechter richting boven en onder oog tekenen
+  case LEFT:
+  case RIGHT:
+    screen.fillCircle(centerX, centerY - cellHeight / 4, cellHeight / 8,
+                      BLACK); // bovenste oog
+    screen.fillCircle(centerX, centerY + cellHeight / 4, cellHeight / 8,
+                      BLACK); // onderste oog
+    break;
+  }
 }
