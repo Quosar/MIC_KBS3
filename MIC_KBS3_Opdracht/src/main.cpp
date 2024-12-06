@@ -187,8 +187,7 @@ uint8_t constructChecksum(uint32_t value)
   return checksum & 0x07; // Return 3-bit checksum
 }
 
-uint32_t constructBus()
-{
+uint32_t constructBus() {
   uint32_t out = 0;
 
   out |= ((uint32_t)posSnake) << 24;                 // Bit 31–24: posSnake
@@ -199,24 +198,21 @@ uint32_t constructBus()
       ((isSmallField & 0x01) << 6) |           // Bit 6: isSmallField
       ((appleGatheredByPlayer2 & 0x01) << 5) | // Bit 5: appleGatheredByPlayer2
       ((gamePaused & 0x01) << 4) |             // Bit 4: gamePaused
-      ((isAlive & 0x01) << 3);                 // Bit 3: isAlive
+      ((isAlive & 0x01) << 3) |                // Bit 3: isAlive
+      ((snake.getDirection() & 0x03));         // Bits 2–1: snake direction
 
-  // checksum toevoegen aan laatste 3 data bits
   uint8_t checksum = constructChecksum(out);
   out |= (uint32_t)(checksum & 0x07); // Bits 2–0: checksum
 
   return out;
 }
 
-void deconstructBus(uint32_t bus)
-{
-  uint8_t checksum = (uint8_t)(bus & 0x07); // checksum pakken uit de bus
-  uint8_t calculatedChecksum =
-      constructChecksum(bus & 0xFFFFFFF8); // checksum berekenen voor de bus
-  if (checksum == calculatedChecksum)
-  { // check of checksum overeenkomt
+void deconstructBus(uint32_t bus) {
+  uint8_t checksum = (uint8_t)(bus & 0x07); // Extract checksum
+  uint8_t calculatedChecksum = constructChecksum(bus & 0xFFFFFFF8);
 
-    posSnake = (uint8_t)((bus >> 24) & 0xFF);          // Bit 31-24: posSnake
+  if (checksum == calculatedChecksum) {
+    posSnake = (uint8_t)((bus >> 24) & 0xFF);          // Bit 31–24: posSnake
     snake.snakeLength = (uint8_t)((bus >> 16) & 0xFF); // Bit 23–16: lengthSnake
     posApple = (uint8_t)((bus >> 8) & 0xFF);           // Bit 15–8: posApple
 
@@ -225,31 +221,44 @@ void deconstructBus(uint32_t bus)
     appleGatheredByPlayer2 = (bus >> 5) & 0x01; // Bit 5: appleGatheredByPlayer2
     gamePaused = (bus >> 4) & 0x01;             // Bit 4: gamePaused
     isAlive = (bus >> 3) & 0x01;                // Bit 3: isAlive
+    uint8_t direction = (bus >> 1) & 0x03;      // Bits 2–1: snake direction
+    snake.setDirection(direction);              // Update snake's direction
   }
 }
 
-void updateGame()
-{
-  snake.move();      // snake pos updaten
-  snake.draw();      // snake en appel tekenen
-  snake.drawScore(); // score updaten
-  if (snake.eatApple(snake.appleX, snake.appleY))
-  {
-    snake.grow(); // snake groeien als appel gegeten is
-  }
-  if (snake.checkCollision())
-  {
-    currentState = DEATH;
-  }
-}
-void stickHandler()
-{
-  if (nunchuck.getState(NUNCHUCK_ADDRESS))
-  {
-    snake.updateDirection(nunchuck.state.joy_x_axis,
-                          nunchuck.state.joy_y_axis);
+void updateGame() {
+  if (!isPlayer1) {
+    snake.move(); // Move snake based on received direction
+    snake.draw();
+    snake.drawScore();
+    if (snake.eatApple(snake.appleX, snake.appleY)) {
+      snake.grow();
+    }
+    if (snake.checkCollision()) {
+      currentState = DEATH;
+    }
   }
 }
+
+
+void stickHandler() {
+  if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
+    uint8_t joyX = nunchuck.state.joy_x_axis;
+    uint8_t joyY = nunchuck.state.joy_y_axis;
+
+    if (joyX < 105) {
+      outBus |= (snake.LEFT << 1);
+    } else if (joyX > 145) {
+      outBus |= (snake.RIGHT << 1);
+    } else if (joyY < 105) {
+      outBus |= (snake.DOWN << 1);
+    } else if (joyY > 145) {
+      outBus |= (snake.UP << 1);
+    }
+  }
+}
+
+
 // game logic die geloopt moet worden
 void handleState()
 {

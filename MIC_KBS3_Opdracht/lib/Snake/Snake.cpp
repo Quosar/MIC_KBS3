@@ -192,3 +192,7 @@ void Snake::drawStartMenu() {
   screen.setCursor(30, 160);
   screen.println("Press Z to Start");
 }
+
+Snake::Direction Snake::getDirection(){ return direction; }
+
+void Snake::setDirection(Direction direction) { direction = direction; }

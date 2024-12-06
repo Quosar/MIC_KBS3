@@ -21,6 +21,12 @@ public:
   void drawScore();
   void drawDeathScreen();
   void drawStartMenu();
+  enum Direction { UP, DOWN, LEFT, RIGHT };
+  Direction direction;
+  Direction getDirection();
+  void setDirection(Direction direction);
+
+
   uint8_t appleX; // appel coords public voor communicatie
   uint8_t appleY;
   uint8_t snakeLength;
@@ -32,10 +38,6 @@ private:
   uint8_t *snakeY;
   Adafruit_ILI9341 screen;
   uint16_t colour;
-
-  enum Direction { UP, DOWN, LEFT, RIGHT };
-  Direction direction;
-
   void clearTail(uint8_t tailX, uint8_t tailY);
   void drawCell(uint16_t x, uint16_t y, uint16_t color);
 };
