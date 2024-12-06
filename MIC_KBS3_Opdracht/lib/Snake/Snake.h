@@ -23,11 +23,11 @@ public:
   void drawStartMenu();
   uint8_t appleX; // appel coords public voor communicatie
   uint8_t appleY;
+  uint8_t snakeLength;
 
 private:
   uint8_t gridSize;
   uint16_t cellWidth, cellHeight;
-  uint8_t snakeLength;
   uint8_t *snakeX; // pointer voor dynamische array
   uint8_t *snakeY;
   Adafruit_ILI9341 screen;
