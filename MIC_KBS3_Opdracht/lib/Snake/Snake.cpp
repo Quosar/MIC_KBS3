@@ -142,7 +142,10 @@ void Snake::clearTail(uint8_t tailX, uint8_t tailY) {
 
 // teken snake cell
 void Snake::drawCell(uint16_t x, uint16_t y, uint16_t colour) {
-  screen.drawRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight, colour);
+  // de snake cell centeren op juiste locaties binnen het grid
+  uint16_t centerX = x * cellWidth + cellWidth / 2;
+  uint16_t centerY = y * cellHeight + cellHeight / 2;
+  screen.fillCircle(centerX, centerY, cellWidth / 2, colour);
 }
 
 void Snake::validateDirection() {
