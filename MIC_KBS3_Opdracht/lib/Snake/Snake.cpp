@@ -23,6 +23,7 @@ Snake::Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
   snakeX = new uint8_t[gridSize * gridSize]; // max grootte van de snake
   snakeY = new uint8_t[gridSize * gridSize]; // max grootte van de snake
   direction = RIGHT;                         // beginrichting is rechts
+  bufferedDirection = RIGHT;                 // gebufferde richting dus ook
   spawnRandApple();
 }
 
@@ -37,16 +38,18 @@ void Snake::updateDirection(
     uint8_t joyX,
     uint8_t joyY) { // TODO: remove magic numbers from the joystick angles
   if (joyX < 105 && direction != RIGHT)
-    direction = LEFT;
+    bufferedDirection = LEFT;
   else if (joyX > 145 && direction != LEFT)
-    direction = RIGHT;
+    bufferedDirection = RIGHT;
   else if (joyY < 105 && direction != UP)
-    direction = DOWN;
+    bufferedDirection = DOWN;
   else if (joyY > 145 && direction != DOWN)
-    direction = UP;
+    bufferedDirection = UP;
 }
 
 void Snake::move() {
+  validateDirection();
+
   // positie van de eindstaart opslaan
   uint8_t tailX = snakeX[snakeLength - 1];
   uint8_t tailY = snakeY[snakeLength - 1];
@@ -56,7 +59,7 @@ void Snake::move() {
     snakeX[i] = snakeX[i - 1];
     snakeY[i] = snakeY[i - 1];
   }
-  
+
   // hoofd bewegen
   switch (direction) {
   case UP:
@@ -78,20 +81,18 @@ void Snake::move() {
 }
 
 void Snake::draw() {
-  // snake tekenen
-  for (uint8_t i = 0; i < snakeLength; i++) {
-    if (i == 0 || i == snakeLength - 1) { // alleen kop en staart tekenen
-      drawCell(snakeX[i], snakeY[i], colour);
-    }
-  }
 
-  // appel tekenen als hij niet gegeten wordt
-  if(!(appleX == snakeX[0] && appleY == snakeY[0])){
-    drawCell(appleX, appleY, RED);
-  }
+  // teken hoofd
+  drawHead(snakeX[0], snakeY[0]);
+  // alles na hoofd veranderd naar body
+  // eerst hoofd clearen
+  screen.fillRect(snakeX[1] * cellWidth, snakeY[1] * cellHeight, cellWidth,
+                  cellHeight, BLACK);
+  // teken body deel
+  drawCell(snakeX[1], snakeY[1], colour);
 
-  // draw border
-  screen.drawLine(0, TFT_WIDTH, TFT_WIDTH, TFT_WIDTH, WHITE);
+  // draw appel
+  drawCell(appleX, appleY, RED);
 
   // draw score
   drawScore();
@@ -119,15 +120,16 @@ void Snake::grow() { snakeLength++; }
 bool Snake::eatApple(uint8_t appleX, uint8_t appleY) {
   if (snakeX[0] == appleX &&
       snakeY[0] == appleY) { // als hoofd van de snake is op pos van appel
-    drawCell(appleX, appleY, colour);
+    drawHead(appleX, appleY);
     spawnRandApple();
+
     return true; // appel is gegeten
   }
   return false; // niet gegeten
 }
 
 void Snake::spawnRandApple() {
-  srand(TCNT0);                // rand seed //TODO: seed vervangen voor clock waarde
+  srand(TCNT0); // rand seed //TODO: seed vervangen voor clock waarde
   appleX = rand() % gridSize; // random appel spawn in het veld
   appleY = rand() % gridSize; // random appel spawn in het veld
 }
@@ -139,7 +141,19 @@ void Snake::clearTail(uint8_t tailX, uint8_t tailY) {
 
 // teken snake cell
 void Snake::drawCell(uint16_t x, uint16_t y, uint16_t colour) {
-  screen.drawRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight, colour);
+  // de snake cell centeren op juiste locaties binnen het grid
+  uint16_t centerX = x * cellWidth + cellWidth / 2;
+  uint16_t centerY = y * cellHeight + cellHeight / 2;
+  screen.fillCircle(centerX, centerY, cellWidth / 2, colour);
+}
+
+void Snake::validateDirection() {
+  if ((direction == UP && bufferedDirection != DOWN) ||
+      (direction == DOWN && bufferedDirection != UP) ||
+      (direction == LEFT && bufferedDirection != RIGHT) ||
+      (direction == RIGHT && bufferedDirection != LEFT)) {
+    direction = bufferedDirection;
+  }
 }
 
 void Snake::reset() {
@@ -150,8 +164,7 @@ void Snake::reset() {
   start(gridSize / 2, gridSize / 2);
 
   // alles wat niet de snake is clearen
-  for (int i = 1; i < gridSize * gridSize; i++)
-  {
+  for (int i = 1; i < gridSize * gridSize; i++) {
     snakeX[i] = 0;
     snakeY[i] = 0;
   }
@@ -159,19 +172,25 @@ void Snake::reset() {
   // start richting zetten
   direction = RIGHT;
 
-  // nieuwe appel spawnen
-  spawnRandApple();
-
   // screen resetten van oude snakes en appels
   screen.fillScreen(BLACK);
+
+  // nieuwe appel spawnen
+  spawnRandApple();
 }
 
 void Snake::drawScore() {
-  screen.setCursor(5 , TFT_WIDTH + 5);
-  screen.setTextColor(WHITE, BLACK); // oude overschrijven met zwart
-  screen.setTextSize(1);
-  screen.print("Score: ");
-  screen.print(snakeLength - SNAKE_START_LENGHT);
+  static uint8_t prevScore = -1;
+  int8_t currentScore = snakeLength - SNAKE_START_LENGHT;
+  // score alleen updaten/tekenen wanneer de score verhoogd
+  if (currentScore != prevScore) {
+    screen.setCursor(5, TFT_WIDTH + 5);
+    screen.setTextColor(WHITE, BLACK); // oude overschrijven met zwart
+    screen.setTextSize(1);
+    screen.print("Score: ");
+    screen.print(currentScore);
+    prevScore = currentScore;
+  }
 }
 
 void Snake::drawDeathScreen() {
@@ -196,3 +215,72 @@ void Snake::drawStartMenu() {
 Snake::Direction Snake::getDirection(){ return direction; }
 
 void Snake::setDirection(Direction direction) { direction = direction; }
+
+void Snake::drawHead(uint16_t x, uint16_t y) {
+
+  // center van driehoek berekenen
+  uint16_t centerX = x * cellWidth + cellHeight / 2;
+  uint16_t centerY = y * cellHeight + cellWidth / 2;
+
+  // driehoek punten op basis van de richting van de snake
+  int16_t x1, y1, x2, y2, x3, y3;
+  switch (direction) {
+  case UP:
+    x1 = centerX - cellWidth / 2;
+    y1 = centerY + cellHeight / 2;
+    x2 = centerX + cellWidth / 2;
+    y2 = centerY + cellHeight / 2;
+    x3 = centerX;
+    y3 = centerY - cellHeight / 2;
+    break;
+  case DOWN:
+    x1 = centerX - cellWidth / 2;
+    y1 = centerY - cellHeight / 2;
+    x2 = centerX + cellWidth / 2;
+    y2 = centerY - cellHeight / 2;
+    x3 = centerX;
+    y3 = centerY + cellHeight / 2;
+    break;
+  case LEFT:
+    x1 = centerX + cellWidth / 2;
+    y1 = centerY - cellHeight / 2;
+    x2 = centerX + cellWidth / 2;
+    y2 = centerY + cellHeight / 2;
+    x3 = centerX - cellWidth / 2;
+    y3 = centerY;
+    break;
+  case RIGHT:
+    x1 = centerX - cellWidth / 2;
+    y1 = centerY - cellHeight / 2;
+    x2 = centerX - cellWidth / 2;
+    y2 = centerY + cellHeight / 2;
+    x3 = centerX + cellWidth / 2;
+    y3 = centerY;
+    break;
+  }
+
+  // driehoek tekenen binnen de berekende punten
+  screen.fillTriangle(x1, y1, x2, y2, x3, y3, colour);
+
+  // ogern van de snake tekkenen
+  // ogen komen op de eerste kwart van het hoofd, dus daarom /4 en hebben een
+  // kleine grootte dus straal van 1/8 cellwidth
+  switch (direction) {
+    // omhoog en omlaag linker en rechter oog tekenen
+  case UP:
+  case DOWN:
+    screen.fillCircle(centerX - cellWidth / 4, centerY, cellWidth / 8,
+                      BLACK); // linker ook
+    screen.fillCircle(centerX + cellWidth / 4, centerY, cellWidth / 8,
+                      BLACK); // rechter oog
+    break;
+  // linker en rechter richting boven en onder oog tekenen
+  case LEFT:
+  case RIGHT:
+    screen.fillCircle(centerX, centerY - cellHeight / 4, cellHeight / 8,
+                      BLACK); // bovenste oog
+    screen.fillCircle(centerX, centerY + cellHeight / 4, cellHeight / 8,
+                      BLACK); // onderste oog
+    break;
+  }
+}

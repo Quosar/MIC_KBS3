@@ -38,8 +38,16 @@ private:
   uint8_t *snakeY;
   Adafruit_ILI9341 screen;
   uint16_t colour;
+
+  // enum Direction { UP, DOWN, LEFT, RIGHT };
+  // Direction direction;
+  
+  Direction bufferedDirection;
+
   void clearTail(uint8_t tailX, uint8_t tailY);
   void drawCell(uint16_t x, uint16_t y, uint16_t color);
+  void validateDirection();
+  void drawHead(uint16_t x, uint16_t y);
 };
 
 #endif

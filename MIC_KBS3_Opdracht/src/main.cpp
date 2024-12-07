@@ -46,7 +46,7 @@ const uint8_t NUNCHUCK_ADDRESS = 0x52;
 
 // Create Snake object
 Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_WIDTH / GRID_SIZE, screen,
-            MAGENTA);
+            GREEN);
 
 // game state tracken
 enum gameState
@@ -187,8 +187,32 @@ uint8_t constructChecksum(uint32_t value)
   return checksum & 0x07; // Return 3-bit checksum
 }
 
-uint32_t constructBus() {
+uint32_t constructBus()
+{
   uint32_t out = 0;
+  uint8_t snakeDirection = 0;
+
+    Snake::Direction UP = UP;
+    Snake::Direction DOWN = DOWN;
+    Snake::Direction LEFT = LEFT;
+    Snake::Direction RIGHT = RIGHT;
+
+  if (snake.getDirection() == UP)
+  {
+    snakeDirection = 0b00;
+  }
+  else if (snake.getDirection() == DOWN)
+  {
+    snakeDirection = 0b01;
+  }
+  else if (snake.getDirection() == LEFT)
+  {
+    snakeDirection = 0b10;
+  }
+  else if (snake.getDirection() == RIGHT)
+  {
+    snakeDirection = 0b11;
+  }
 
   out |= ((uint32_t)posSnake) << 24;                 // Bit 31–24: posSnake
   out |= ((uint32_t)snake.snakeLength & 0xFF) << 16; // Bit 23–16: lengthSnake
@@ -199,7 +223,7 @@ uint32_t constructBus() {
       ((appleGatheredByPlayer2 & 0x01) << 5) | // Bit 5: appleGatheredByPlayer2
       ((gamePaused & 0x01) << 4) |             // Bit 4: gamePaused
       ((isAlive & 0x01) << 3) |                // Bit 3: isAlive
-      ((snake.getDirection() & 0x03));         // Bits 2–1: snake direction
+      ((snakeDirection & 0x03));               // Bits 2–1: snake direction
 
   uint8_t checksum = constructChecksum(out);
   out |= (uint32_t)(checksum & 0x07); // Bits 2–0: checksum
@@ -207,57 +231,115 @@ uint32_t constructBus() {
   return out;
 }
 
-void deconstructBus(uint32_t bus) {
+void deconstructBus(uint32_t bus)
+{
   uint8_t checksum = (uint8_t)(bus & 0x07); // Extract checksum
   uint8_t calculatedChecksum = constructChecksum(bus & 0xFFFFFFF8);
 
-  if (checksum == calculatedChecksum) {
+  uint8_t snakeDirection = 0;
+
+  if (checksum == calculatedChecksum)
+  {
     posSnake = (uint8_t)((bus >> 24) & 0xFF);          // Bit 31–24: posSnake
     snake.snakeLength = (uint8_t)((bus >> 16) & 0xFF); // Bit 23–16: lengthSnake
     posApple = (uint8_t)((bus >> 8) & 0xFF);           // Bit 15–8: posApple
 
-    isPlayer1 = (bus >> 7) & 0x01;              // Bit 7: isPlayer1
-    isSmallField = (bus >> 6) & 0x01;           // Bit 6: isSmallField
-    appleGatheredByPlayer2 = (bus >> 5) & 0x01; // Bit 5: appleGatheredByPlayer2
-    gamePaused = (bus >> 4) & 0x01;             // Bit 4: gamePaused
-    isAlive = (bus >> 3) & 0x01;                // Bit 3: isAlive
-    uint8_t direction = (bus >> 1) & 0x03;      // Bits 2–1: snake direction
-    snake.setDirection(direction);              // Update snake's direction
+    isPlayer1 = (bus >> 7) & 0x01;                  // Bit 7: isPlayer1
+    isSmallField = (bus >> 6) & 0x01;               // Bit 6: isSmallField
+    appleGatheredByPlayer2 = (bus >> 5) & 0x01;     // Bit 5: appleGatheredByPlayer2
+    gamePaused = (bus >> 4) & 0x01;                 // Bit 4: gamePaused
+    isAlive = (bus >> 3) & 0x01;                    // Bit 3: isAlive
+    snakeDirection = (bus >> 1) & 0x03; // Bits 2–1: snake direction
+
+    Snake::Direction UP = UP;
+    Snake::Direction DOWN = DOWN;
+    Snake::Direction LEFT = LEFT;
+    Snake::Direction RIGHT = RIGHT;
+
+    if (snakeDirection == 0b00) // Update snake's direction
+    {
+      snake.setDirection(UP);
+    }
+    else if (snakeDirection == 0b01)
+    {
+      snake.setDirection(DOWN);
+    }
+    else if (snakeDirection == 0b10)
+    {
+      snake.setDirection(LEFT);
+    }
+    else if (snakeDirection == 0b11)
+    {
+      snake.setDirection(RIGHT);
+    }
   }
 }
 
-void updateGame() {
-  if (!isPlayer1) {
+void updateGame()
+{
+  if (!isPlayer1)
+  {
     snake.move(); // Move snake based on received direction
     snake.draw();
     snake.drawScore();
-    if (snake.eatApple(snake.appleX, snake.appleY)) {
+    if (snake.eatApple(snake.appleX, snake.appleY))
+    {
       snake.grow();
     }
-    if (snake.checkCollision()) {
+    if (snake.checkCollision())
+    {
       currentState = DEATH;
     }
   }
 }
 
-
-void stickHandler() {
-  if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
+void stickHandler()
+{
+  if (nunchuck.getState(NUNCHUCK_ADDRESS))
+  {
     uint8_t joyX = nunchuck.state.joy_x_axis;
     uint8_t joyY = nunchuck.state.joy_y_axis;
 
-    if (joyX < 105) {
+    if (joyX < 105)
+    {
       outBus |= (snake.LEFT << 1);
-    } else if (joyX > 145) {
+    }
+    else if (joyX > 145)
+    {
       outBus |= (snake.RIGHT << 1);
-    } else if (joyY < 105) {
+    }
+    else if (joyY < 105)
+    {
       outBus |= (snake.DOWN << 1);
-    } else if (joyY > 145) {
+    }
+    else if (joyY > 145)
+    {
       outBus |= (snake.UP << 1);
     }
   }
 }
 
+void directionHandler()
+{
+  if (nunchuck.getState(NUNCHUCK_ADDRESS))
+  {
+    snake.updateDirection(nunchuck.state.joy_x_axis, nunchuck.state.joy_y_axis);
+  }
+}
+
+uint8_t
+calculateFrameCount(uint8_t snakeLength)
+{ // TODO: magic numbers weghalen
+
+  int frameCount = 10 - (snakeLength / 5);
+
+  if (frameCount < 2)
+    frameCount = 2; // minimum snlheid
+  if (frameCount > 10)
+    frameCount = 10; // maximum snelheid
+
+  return (uint8_t)frameCount;
+}
 
 // game logic die geloopt moet worden
 void handleState()
@@ -275,7 +357,8 @@ void handleState()
     break;
 
   case INGAME:
-    stickHandler();
+    // snelheid aanpassen op lengte slang
+    communicationFrameCount = calculateFrameCount(snake.snakeLength);
     updateGame();
     break;
 
@@ -306,6 +389,8 @@ void handleStateChange()
     case START:
       screen.fillScreen(BLACK);
       snake.start(GRID_SIZE / 2, GRID_SIZE / 2);
+      // teken border
+      screen.drawLine(0, TFT_WIDTH, TFT_WIDTH, TFT_WIDTH, WHITE);
       currentState = INGAME;
       break;
 
@@ -320,7 +405,6 @@ void handleStateChange()
 
 int main()
 {
-  Serial.begin(9600);
   Wire.begin(); // start wire for nunchuck
 
   setupPins();
@@ -336,17 +420,7 @@ int main()
 
   while (1)
   {
-    // if (printBus && communicationInitialized && !isSender){
-    //   outBus = constructBus();
-    // }
-    // if(printBus && communicationInitialized && isSender){
-    //   deconstructBus(inBus);
-    // }
-    if (printBus)
-    {
-      Serial.println(inBus);
-      printBus = false;
-    }
+    directionHandler(); // update direction tussen frames
 
     if (runFrame)
     { // runt iedere 167ms
@@ -381,18 +455,17 @@ void communicate()
         {
           inBus |= (1UL << (DATABITCOUNT -
                             (busBitIndex -
-                             senderOffset))); // bepaalt welke index van de inBus
-                                              // de gelezen waarde in moet sender
-                                              // begint 1 later
+                             senderOffset))); // bepaalt welke index van de
+                                              // inBus de gelezen waarde in
+                                              // moet sender begint 1 later
         }
         else
         {
-          inBus &= ~(
-              1UL
-              << (DATABITCOUNT -
-                  (busBitIndex -
-                   senderOffset))); // bepaalt welke index van de inBus de gelezen
-                                    // waarde in moet sender begint 1 later
+          inBus &= ~(1UL << (DATABITCOUNT -
+                             (busBitIndex -
+                              senderOffset))); // bepaalt welke index van de
+                                               // inBus de gelezen waarde in
+                                               // moet sender begint 1 later
         }
         PORTD ^= (1 << PD7);
       }
@@ -421,7 +494,8 @@ void communicate()
 
       busBitIndex = 0;
 
-      if (!communicationSynced && !isSender && !SyncingIndexFound) // Sneller de arduino's synchroniseren
+      if (!communicationSynced && !isSender &&
+          !SyncingIndexFound) // Sneller de arduino's synchroniseren
       {
         synchronise(inBus);
         busBitIndex = SyncingIndex;
@@ -433,9 +507,9 @@ void communicate()
       }
       if (!communicationInitialized)
       {
-        if (inBus == firstSyncCheck &&
-            !communicationSynced && !isSender) // checkt of de communicatie synchroon loopt of
-                                               // nog synchroon moet gaan lopen
+        if (inBus == firstSyncCheck && !communicationSynced &&
+            !isSender) // checkt of de communicatie synchroon loopt of
+                       // nog synchroon moet gaan lopen
         {
           communicationSynced = true;
           outBus = secondSyncCheck;
@@ -457,9 +531,9 @@ void communicate()
         }
       }
       if (communicationSynced &&
-          !isSender) // zet int 0 interrupt aan om te zorgen dat de !isSender de
-                     // startbit binnen krijgt om de timers synchroon te laten
-                     // lopen
+          !isSender) // zet int 0 interrupt aan om te zorgen dat de !isSender
+                     // de startbit binnen krijgt om de timers synchroon te
+                     // laten lopen
       {
         EIMSK |= (1 << INT0); // INT0 interrupt enable
         TIMSK1 &= ~(1 << OCIE1A);
@@ -492,18 +566,17 @@ void communicate()
       {
         inBus |= (1UL << (DATABITCOUNT -
                           (busBitIndex -
-                           senderOffset))); // bepaalt welke index van de inBus
-                                            // de gelezen waarde in moet sender
-                                            // begint 1 later
+                           senderOffset))); // bepaalt welke index van de
+                                            // inBus de gelezen waarde in moet
+                                            // sender begint 1 later
       }
       else
       {
-        inBus &= ~(
-            1UL
-            << (DATABITCOUNT -
-                (busBitIndex -
-                 senderOffset))); // bepaalt welke index van de inBus de gelezen
-                                  // waarde in moet sender begint 1 later
+        inBus &= ~(1UL << (DATABITCOUNT -
+                           (busBitIndex -
+                            senderOffset))); // bepaalt welke index van de
+                                             // inBus de gelezen waarde in
+                                             // moet sender begint 1 later
       }
       PORTD ^= (1 << PD7);
     }
@@ -511,10 +584,7 @@ void communicate()
   }
 }
 
-ISR(TIMER1_COMPA_vect)
-{
-  communicate();
-}
+ISR(TIMER1_COMPA_vect) { communicate(); }
 
 ISR(INT0_vect)
 {
