@@ -15,7 +15,7 @@
 #define DBLUE 0x0007
 
 // Element Render Data
-// 0 = POSX, 1 = POSX, 2 = SIZEX, 3 = SIZEY, 4 = BODYCOLOR, 5 = BORDERCOLOR, 6 = TEXTCOLOR, 7 = TEXTCURSORPOSX, 8 = TEXTCURSORPOSY, 9 = TEXTSIZE
+// 0 = POSX, 1 = POSY, 2 = SIZEX, 3 = SIZEY, 4 = BODYCOLOR, 5 = BORDERCOLOR, 6 = TEXTCOLOR, 7 = TEXTCURSORPOSX, 8 = TEXTCURSORPOSY, 9 = TEXTSIZE
 const uint16_t menuTopRenderData[] = {70, 10, 100, 20, WHITE, RED, RED, 20, 3, 2}; 
 const uint16_t menuPlr1RenderData[] = {10, 45, 100, 20, WHITE, BLUE, BLUE, 3, 3, 2};
 const uint16_t menuPlr2RenderData[] = {130, 45, 100, 20, WHITE, BLUE, BLUE, 3, 3, 2};
@@ -202,6 +202,7 @@ void Snake::reset() {
   screen.fillScreen(BLACK);
 }
 
+// Draw Score Text
 void Snake::drawScore() {
   screen.setCursor(5 , TFT_WIDTH + 5);
   screen.setTextColor(WHITE, BLACK); // oude overschrijven met zwart
@@ -210,6 +211,7 @@ void Snake::drawScore() {
   screen.print(snakeLength - SNAKE_START_LENGHT);
 }
 
+// Draw Death Screen
 void Snake::drawDeathScreen() {
   screen.fillScreen(BLACK);
   screen.setCursor(60, 160);
@@ -227,17 +229,19 @@ void Snake::drawDeathScreen() {
   @param isStartUp Whether the shadow of the element should be drawn.
 */
 void Snake::drawElement(uint8_t element, bool selected, bool isPlayer1, bool redrawBody, bool isStartup) {
+  // Temporary Storage for storing Element Data
   uint16_t tempStorageArray[10] = {};
   String elementText1 = "";
   String elementText2 = "";
   
-  if (element == 0) {
+  // Store Element Data In Temporary Array
+  if (element == 0) {         // if TopText 
     copyArray(menuTopRenderData, tempStorageArray, 10);
     elementText1 = menuRenderTextData[0];
-  } else if (element == 1) {
+  } else if (element == 1) {  // if Player1
     copyArray(menuPlr1RenderData, tempStorageArray, 10);
     elementText1 = menuRenderTextData[1];
-  } else if (element == 2) {
+  } else if (element == 2) {  // if Player2
     copyArray(menuPlr2RenderData, tempStorageArray, 10);
     elementText1 = menuRenderTextData[2];
     if (selected) {
@@ -245,21 +249,21 @@ void Snake::drawElement(uint8_t element, bool selected, bool isPlayer1, bool red
       tempStorageArray[5] = menuPlr1SelectRenderData[1];
       tempStorageArray[6] = menuPlr1SelectRenderData[2];
     }
-  } else if (element == 3) {
+  } else if (element == 3) {  // if Mode1
     copyArray(menuMode1RenderData, tempStorageArray, 10);
     elementText1 = menuRenderTextData[3];
     if (selected) {
       tempStorageArray[5] = menuModeColor;
       tempStorageArray[6] = menuModeColor;
     }
-  } else if (element == 4) {
+  } else if (element == 4) {  // if Mode2
     copyArray(menuMode2RenderData, tempStorageArray, 10);
     elementText1 = menuRenderTextData[4];
         if (selected) {
       tempStorageArray[5] = menuModeColor;
       tempStorageArray[6] = menuModeColor;
     }
-  } else if (element == 5) {
+  } else if (element == 5) {  // if Mode3
     copyArray(menuMode3RenderData, tempStorageArray, 10);
     if (selected) {
       tempStorageArray[4] = menuFastModeSelectRenderData[0];
@@ -270,59 +274,72 @@ void Snake::drawElement(uint8_t element, bool selected, bool isPlayer1, bool red
     } else {
       elementText1 = menuRenderTextData[5];
     }
-  } else if (element == 6) {
+  } else if (element == 6) {  // if StartButtonPlayer1
     copyArray(menuStartPlr1RenderData, tempStorageArray, 10);
     elementText1 = menuRenderTextData[7];
     elementText2 = menuRenderTextData[8];
-  } else if (element == 7) {
+  } else if (element == 7) {  // if StartButtonPlayer2
     copyArray(menuStartPlr2RenderData, tempStorageArray, 10);
     elementText1 = menuRenderTextData[9];
     elementText2 = menuRenderTextData[10];
-  } else if (element == 8) {
+  } else if (element == 8) {  // if Highscore
     copyArray(menuHScoreRenderData, tempStorageArray, 10);
     elementText1 = menuRenderTextData[11];
   }
 
-  screen.setCursor(tempStorageArray[7] + tempStorageArray[0], tempStorageArray[8] + tempStorageArray[1]);
-  screen.setTextColor(tempStorageArray[6]);
-  if (isStartup) {
-    screen.fillRect(tempStorageArray[0] + 5, tempStorageArray[1] + 5, tempStorageArray[2], tempStorageArray[3], LGREY);
+  // Draw Element
+  screen.setCursor(tempStorageArray[7] + tempStorageArray[0], tempStorageArray[8] + tempStorageArray[1]);                                     // Set Cursor
+  screen.setTextColor(tempStorageArray[6]);                                                                                                   // Set Text Color
+  if (isStartup) {                                                                                                                            // If this is on Startup
+    screen.fillRect(tempStorageArray[0] + 5, tempStorageArray[1] + 5, tempStorageArray[2], tempStorageArray[3], LGREY);                       // Draw Backdrop Rectangle
   }
-  if (redrawBody) {
-    screen.fillRect(tempStorageArray[0], tempStorageArray[1], tempStorageArray[2], tempStorageArray[3], tempStorageArray[4]);
+  if (redrawBody) {                                                                                                                           // If this element should be redrawn
+    screen.fillRect(tempStorageArray[0], tempStorageArray[1], tempStorageArray[2], tempStorageArray[3], tempStorageArray[4]);                 // Draw Background Rectangle
   }
-  screen.drawRect(tempStorageArray[0] - 1, tempStorageArray[1] - 1, tempStorageArray[2] + 2, tempStorageArray[3] + 2, tempStorageArray[5]);
-  screen.print(elementText1);
-  if (elementText2.length() > 0) {
-    if (isPlayer1) {
-      screen.setCursor(menuStartCursorLn2Data[0] + tempStorageArray[0], menuStartCursorLn2Data[1] + tempStorageArray[1]);
-      screen.print(menuRenderTextData[8]);
-    } else {
-      screen.setCursor(menuStartCursorLn2Data[2] + tempStorageArray[0], menuStartCursorLn2Data[3] + tempStorageArray[1]);
-      screen.print(menuRenderTextData[10]);
+  screen.drawRect(tempStorageArray[0] - 1, tempStorageArray[1] - 1, tempStorageArray[2] + 2, tempStorageArray[3] + 2, tempStorageArray[5]);   // Draw Boundary Rectangle
+  screen.print(elementText1);                                                                                                                 // Draw Text
+  if (elementText2.length() > 0) {                                                                                                            // if there is a second line of text
+    if (isPlayer1) {                                                                                                                          // if this is Player1
+      screen.setCursor(menuStartCursorLn2Data[0] + tempStorageArray[0], menuStartCursorLn2Data[1] + tempStorageArray[1]);                     // Set Cursor
+      screen.print(menuRenderTextData[8]);                                                                                                    // Draw Line 2
+    } else {                                      
+      screen.setCursor(menuStartCursorLn2Data[2] + tempStorageArray[0], menuStartCursorLn2Data[3] + tempStorageArray[1]);                     // Set Cursor                
+      screen.print(menuRenderTextData[10]);                                                                                                   // Draw Line 2
     }
   }
 }
 
 void Snake::drawStartMenu() {
+  // Preset Text Size
   screen.setTextSize(2);
 
-  // Extra's
+  // Screen Border
   screen.drawRect(0, 0, screen.width(), screen.height(), WHITE);
   screen.drawRect(1, 1, screen.width() - 2, screen.height() - 2, MAGENTA);
   screen.drawRect(2, 2, screen.width() - 4, screen.height() - 4, WHITE);
 
+  // Draw Top Game Text
   drawElement(0, false, false, true, true);
 
+  // Draw Player 1 Button
   drawElement(1, false, false, true, true);
 
+  // Draw Player 2 Text
   drawElement(2, false, false, true, true);
 
-  drawElement(3, true, false, true, true);
+  // Draw Mode 1 Button (8 x 8)
+  drawElement(3, false, false, true, true);
 
-  drawElement(4, false, false, true, true);
+  // Draw Mode 2 Button (16 x 16)
+  drawElement(4, true, false, true, true);
 
+  // Draw Mode 3 Button (Normal / Fast)
   drawElement(5, false, false, true, true);
 
+  // TEMPORARY
+  // Draw Start Game Button
+  drawElement(6, false, true, true, true);
+
+  // Draw Highscore Text
   drawElement(8, false, false, true, true);
 }

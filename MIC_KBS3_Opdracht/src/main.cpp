@@ -57,6 +57,7 @@ Adafruit_ILI9341 screen(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
 // Touchscreen object
 Adafruit_FT6206 ts;
 
+// Nunchuk Object
 NunChuk nunchuck;
 const uint8_t NUNCHUCK_ADDRESS = 0x52;
 
@@ -69,12 +70,15 @@ enum gameState { MENU, START, INGAME, DEATH, REDRAW };
 gameState currentState = MENU;
 gameState previousState = DEATH;
 
+// Game Size (8x8 / 16x16)
 enum gameMode {SIZE8x8, SIZE16x16};
-gameMode currentMode = SIZE8x8;
+gameMode currentMode = SIZE16x16;
 
+// Game Speed (Normal / Fast)
 volatile bool isFastMode = false;
 volatile bool previousFastMode = false;
 
+// Touch Screen Positions
 volatile uint16_t touchX = 0;
 volatile uint16_t touchY = 0;
 volatile bool isTouching = false;
@@ -114,17 +118,24 @@ void handleState() {
           previousState = REDRAW;
         }
 
-        // Mode 2
+        // Mode 3
         if ((touchX >= MENU_MODE3_X && touchX <= MENU_MODE3_X + 100) && (touchY >= MENU_MODE3_Y && touchY <= MENU_MODE3_Y + 20)) {
           isFastMode = !isFastMode;
           previousState = REDRAW;
         }
 
+        // Select Player 1 + Show Start Button
         if ((touchX >= MENU_PLR1_X && touchX <= MENU_PLR1_X + 100) && (touchY >= MENU_PLR1_Y && touchY <= MENU_PLR1_Y + 20)) {
           isPlayer1 = true;
           snake.drawElement(1, true, true, true, false);
-          snake.drawElement(6, false, true, true, false);
+          //snake.drawElement(6, false, true, true, false);   // For testing, this is disabled
         }
+
+        // For Testing, this does not require player1/player2 selection and is prerendered
+        if ((touchX >= MENU_START_X && touchX <= MENU_START_X + 140) && (touchY >= MENU_START_Y && touchY <= MENU_START_Y + 70)) {
+          // Detection 
+        }
+
         previousTouch = true;
       }
       
@@ -132,11 +143,6 @@ void handleState() {
       previousTouch = false;
     }
 
-    // if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-    //   if (nunchuck.state.z_button) {
-    //     currentState = START;
-    //   }
-    // }
     break;
 
   case INGAME:
