@@ -418,6 +418,7 @@ void handleState()
         // For Testing, this does not require player1/player2 selection and is prerendered
         if ((touchX >= MENU_START_X && touchX <= MENU_START_X + 140) && (touchY >= MENU_START_Y && touchY <= MENU_START_Y + 70)) {
           // Detection 
+          currentState = START;
         }
 
         previousTouch = true;
@@ -436,13 +437,7 @@ void handleState()
     break;
 
   case DEATH:
-    if (nunchuck.getState(NUNCHUCK_ADDRESS))
-    {
-      if (nunchuck.state.z_button)
-      {
-        currentState = START;
-      }
-    }
+    currentState = MENU;
     break;
   case REDRAW:
     break;
@@ -493,7 +488,6 @@ void handleStateChange()
 
     case DEATH:
       snake.reset();
-      snake.drawDeathScreen();
       break;
 
     case INGAME:
