@@ -21,6 +21,11 @@ public:
   void drawScore();
   void drawDeathScreen();
   void drawStartMenu();
+  void drawHighscore(uint8_t score);
+  void drawPlayer1Text(bool selected);
+  void drawPlayer2Text(bool selected);
+  void drawGameStartButton(bool isPlayer1);
+  void drawElement(uint8_t element, bool selected, bool isPlayer1, bool redrawBody, bool isStartup);
   uint8_t appleX; // appel coords public voor communicatie
   uint8_t appleY;
 

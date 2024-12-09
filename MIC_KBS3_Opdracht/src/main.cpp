@@ -1,11 +1,13 @@
 #include "Adafruit_GFX.h"
 #include "Adafruit_ILI9341.h"
+#include "Adafruit_FT6206.h"
 #include "Nunchuk.h"
 #include <Arduino.h>
 #include <Snake.h>
 #include <Wire.h>
 #include <avr/interrupt.h>
 #include <avr/io.h>
+#include "HardwareSerial.h"
 
 // LCD Pin Defines
 #define TFT_CLK 13
@@ -30,12 +32,30 @@ const uint16_t TFT_HEIGHT = 320;
 #define YELLOW 0xFFE0
 #define WHITE 0xFFFF
 
+// Menu Position Defines
+// TODO: Convert to consts
+#define MENU_PLR1_X 10
+#define MENU_PLR1_Y 45
+#define MENU_PLR2_X 130
+#define MENU_PLR2_Y 45
+#define MENU_MODE1_X 70
+#define MENU_MODE1_Y 90
+#define MENU_MODE2_X 70
+#define MENU_MODE2_Y 115
+#define MENU_MODE3_X 70
+#define MENU_MODE3_Y 140
+#define MENU_START_X 70
+#define MENU_START_Y 180
+
 // IR Pins
 #define IR_TRANSMITTER_PIN PD6
 #define IR_RECEIVER_PIN PD2
 
 // LCD object
 Adafruit_ILI9341 screen(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
+
+// Touchscreen object
+Adafruit_FT6206 ts;
 
 NunChuk nunchuck;
 const uint8_t NUNCHUCK_ADDRESS = 0x52;
@@ -45,9 +65,22 @@ Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_WIDTH / GRID_SIZE, screen,
             MAGENTA);
 
 // game state tracken
-enum gameState { MENU, START, INGAME, DEATH };
+enum gameState { MENU, START, INGAME, DEATH, REDRAW };
 gameState currentState = MENU;
 gameState previousState = DEATH;
+
+enum gameMode {SIZE8x8, SIZE16x16};
+gameMode currentMode = SIZE8x8;
+
+volatile bool isFastMode = false;
+volatile bool previousFastMode = false;
+
+volatile uint16_t touchX = 0;
+volatile uint16_t touchY = 0;
+volatile bool isTouching = false;
+volatile bool previousTouch = false;
+
+volatile bool isPlayer1 = false;
 
 void updateGame() {
   snake.move();      // snake pos updaten
@@ -65,11 +98,45 @@ void updateGame() {
 void handleState() {
   switch (currentState) {
   case MENU:
-    if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-      if (nunchuck.state.z_button) {
-        currentState = START;
+    if (isTouching) {
+      if (isTouching != previousTouch) {
+        // Check in bounds
+
+        // Mode 1
+        if ((touchX >= MENU_MODE1_X && touchX <= MENU_MODE1_X + 100) && (touchY >= MENU_MODE1_Y && touchY <= MENU_MODE1_Y + 20)) {
+          currentMode = SIZE8x8;
+          previousState = REDRAW;
+        }
+        
+        // Mode 2
+        if ((touchX >= MENU_MODE2_X && touchX <= MENU_MODE2_X + 100) && (touchY >= MENU_MODE2_Y && touchY <= MENU_MODE2_Y + 20)) {
+          currentMode = SIZE16x16;
+          previousState = REDRAW;
+        }
+
+        // Mode 2
+        if ((touchX >= MENU_MODE3_X && touchX <= MENU_MODE3_X + 100) && (touchY >= MENU_MODE3_Y && touchY <= MENU_MODE3_Y + 20)) {
+          isFastMode = !isFastMode;
+          previousState = REDRAW;
+        }
+
+        if ((touchX >= MENU_PLR1_X && touchX <= MENU_PLR1_X + 100) && (touchY >= MENU_PLR1_Y && touchY <= MENU_PLR1_Y + 20)) {
+          isPlayer1 = true;
+          snake.drawElement(1, true, true, true, false);
+          snake.drawElement(6, false, true, true, false);
+        }
+        previousTouch = true;
       }
+      
+    } else {
+      previousTouch = false;
     }
+
+    // if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
+    //   if (nunchuck.state.z_button) {
+    //     currentState = START;
+    //   }
+    // }
     break;
 
   case INGAME:
@@ -87,7 +154,11 @@ void handleState() {
       }
     }
     break;
+  case REDRAW:
+    break;
   }
+  
+
 }
 
 // game logic die alleen gedaan moet worden wanneer je net in deze gamestate
@@ -96,7 +167,27 @@ void handleStateChange() {
   if (currentState != previousState) {
     switch (currentState) {
     case MENU:
-      snake.drawStartMenu();
+      if (previousState == REDRAW) {
+        if (currentMode == SIZE8x8) {
+          snake.drawElement(3, true, false, false, false);
+          snake.drawElement(4, false, false, false, false);
+        } else if (currentMode == SIZE16x16) {
+          snake.drawElement(3, false, false, false, false);
+          snake.drawElement(4, true, false, false, false);
+        }
+
+        if (isFastMode != previousFastMode) {
+          if (isFastMode) {
+            snake.drawElement(5, true, false, true, false);
+          } else {
+            snake.drawElement(5, false, false, true, false);
+          }
+          previousFastMode = isFastMode;
+        }
+      } else {
+        snake.drawStartMenu();
+        //snake.drawMode1(true);
+      }
       break;
 
     case START:
@@ -109,6 +200,12 @@ void handleStateChange() {
       snake.reset();
       snake.drawDeathScreen();
       break;
+
+    case INGAME:
+      break;
+    
+    case REDRAW:
+      break;
     }
     previousState = currentState;
   }
@@ -117,16 +214,38 @@ void handleStateChange() {
 int main() {
   init();
   Wire.begin();
+
+  //Serial.begin(9600);
   sei(); // Globale interrupts aan
 
   // Zet PD2 als input
   DDRD &= ~(1 << IR_RECEIVER_PIN);
 
   // LCD setup
+
   screen.begin();
   screen.setTextSize(2);
 
+  ts.begin();
+
   while (1) {
+    TS_Point p = ts.getPoint();
+
+    p.x = map(p.x, 0, 240, 240, 0);
+    p.y = map(p.y, 0, 320, 320, 0);
+
+    touchX = p.x;
+    touchY = p.y;
+
+    //Serial.println(touchX);
+    //Serial.println(touchY);
+
+    if (p.z > 0) {
+      isTouching = true;
+    } else {
+      isTouching = false;
+    }
+    
     handleStateChange();
     handleState();
 

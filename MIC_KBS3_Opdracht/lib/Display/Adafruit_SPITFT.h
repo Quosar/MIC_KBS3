@@ -92,6 +92,7 @@ typedef volatile ADAGFX_PORT_t *PORTreg_t; ///< PORT register type
 #include <Adafruit_ZeroDMA.h>
 #endif
 
+
 // This is kind of a kludge. Needed a way to disambiguate the software SPI
 // and parallel constructors via their argument lists. Originally tried a
 // bool as the first argument to the parallel constructor (specifying 8-bit
