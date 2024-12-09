@@ -54,6 +54,7 @@
 #endif
 #endif
 #include <limits.h>
+#include <util/delay.h>
 
 #if defined(ARDUINO_ARCH_ARC32) || defined(ARDUINO_MAXIM)
 #define SPI_DEFAULT_FREQ 16000000

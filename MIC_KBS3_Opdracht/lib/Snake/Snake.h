@@ -26,23 +26,33 @@ public:
   void drawPlayer2Text(bool selected);
   void drawGameStartButton(bool isPlayer1);
   void drawElement(uint8_t element, bool selected, bool isPlayer1, bool redrawBody, bool isStartup);
+  enum Direction { UP, DOWN, LEFT, RIGHT };
+  Direction direction;
+  Direction getDirection();
+  void setDirection(Direction direction);
+
+
   uint8_t appleX; // appel coords public voor communicatie
   uint8_t appleY;
+  uint8_t snakeLength;
 
 private:
   uint8_t gridSize;
   uint16_t cellWidth, cellHeight;
-  uint8_t snakeLength;
   uint8_t *snakeX; // pointer voor dynamische array
   uint8_t *snakeY;
   Adafruit_ILI9341 screen;
   uint16_t colour;
 
-  enum Direction { UP, DOWN, LEFT, RIGHT };
-  Direction direction;
+  // enum Direction { UP, DOWN, LEFT, RIGHT };
+  // Direction direction;
+  
+  Direction bufferedDirection;
 
   void clearTail(uint8_t tailX, uint8_t tailY);
   void drawCell(uint16_t x, uint16_t y, uint16_t color);
+  void validateDirection();
+  void drawHead(uint16_t x, uint16_t y);
 };
 
 #endif
