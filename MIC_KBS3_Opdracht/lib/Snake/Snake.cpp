@@ -215,6 +215,21 @@ void Snake::reset() {
   spawnRandApple();
 }
 
+void Snake::setScore(uint16_t newScore) {
+  
+}
+
+uint16_t Snake::getScore() {
+  return score;
+}
+
+uint16_t Snake::getHighscore() {
+  if (score > highscore) {
+    highscore = score;
+  }
+  return highscore;
+}
+
 // Draw Score Text
 void Snake::drawScore() {
   static uint8_t prevScore = -1;
@@ -303,7 +318,7 @@ void Snake::drawElement(uint8_t element, bool selected, bool isPlayer1, bool red
     elementText2 = menuRenderTextData[10];
   } else if (element == 8) {  // if Highscore
     copyArray(menuHScoreRenderData, tempStorageArray, 10);
-    elementText1 = menuRenderTextData[11];
+    elementText1 = menuRenderTextData[11] + 0;
   }
 
   // Draw Element

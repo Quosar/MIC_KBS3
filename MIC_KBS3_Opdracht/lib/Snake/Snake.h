@@ -31,6 +31,11 @@ public:
   Direction getDirection();
   void setDirection(Direction direction);
 
+  uint16_t getScore();
+  uint16_t getHighscore();
+
+  void setScore(uint16_t newScore);
+
 
   uint8_t appleX; // appel coords public voor communicatie
   uint8_t appleY;
@@ -43,6 +48,8 @@ private:
   uint8_t *snakeY;
   Adafruit_ILI9341 screen;
   uint16_t colour;
+  uint16_t score;
+  uint16_t highscore;
 
   // enum Direction { UP, DOWN, LEFT, RIGHT };
   // Direction direction;
