@@ -341,19 +341,19 @@ void handleState() {
       if (isTouching != previousTouch) {
         // Check in bounds
 
-        // Mode 1
-        if ((touchX >= MENU_MODE1_X && touchX <= MENU_MODE1_X + 100) &&
-            (touchY >= MENU_MODE1_Y && touchY <= MENU_MODE1_Y + 20)) {
-          currentGameSize = SIZE8x8;
-          previousState = REDRAW;
-        }
+        // // Mode 1
+        // if ((touchX >= MENU_MODE1_X && touchX <= MENU_MODE1_X + 100) &&
+        //     (touchY >= MENU_MODE1_Y && touchY <= MENU_MODE1_Y + 20)) {
+        //   currentGameSize = SIZE8x8;
+        //   previousState = REDRAW;
+        // }
 
-        // Mode 2
-        if ((touchX >= MENU_MODE2_X && touchX <= MENU_MODE2_X + 100) &&
-            (touchY >= MENU_MODE2_Y && touchY <= MENU_MODE2_Y + 20)) {
-          currentGameSize = SIZE16x16;
-          previousState = REDRAW;
-        }
+        // // Mode 2
+        // if ((touchX >= MENU_MODE2_X && touchX <= MENU_MODE2_X + 100) &&
+        //     (touchY >= MENU_MODE2_Y && touchY <= MENU_MODE2_Y + 20)) {
+        //   currentGameSize = SIZE16x16;
+        //   previousState = REDRAW;
+        // }
 
         // Mode 3
         if ((touchX >= MENU_MODE3_X && touchX <= MENU_MODE3_X + 100) &&
@@ -414,13 +414,13 @@ void handleStateChange() {
     switch (currentState) {
     case MENU:
       if (previousState == REDRAW) {
-        if (currentGameSize == SIZE8x8) {
-          snake.drawElement(3, true, false, false, false);
-          snake.drawElement(4, false, false, false, false);
-        } else if (currentGameSize == SIZE16x16) {
-          snake.drawElement(3, false, false, false, false);
-          snake.drawElement(4, true, false, false, false);
-        }
+        // if (currentGameSize == SIZE8x8) {
+        //   snake.drawElement(3, true, false, false, false);
+        //   snake.drawElement(4, false, false, false, false);
+        // } else if (currentGameSize == SIZE16x16) {
+        //   snake.drawElement(3, false, false, false, false);
+        //   snake.drawElement(4, true, false, false, false);
+        // }
 
         if (isFastMode != previousFastMode) {
           if (isFastMode) {
