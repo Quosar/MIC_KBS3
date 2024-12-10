@@ -317,9 +317,9 @@ void directionHandler() {
   }
 }
 
-uint8_t
-calculateFrameCount(uint8_t snakeLength) { // TODO: magic numbers weghalen
-  uint8_t frameCount;
+// TODO: magic numbers weghalen
+int8_t calculateFrameCount(uint8_t snakeLength) {
+  int8_t frameCount;
   if (currentGameSpeed == NORMAL) {
     frameCount = 10 - (snakeLength / 5);
   } else if (currentGameSpeed == FAST) {
@@ -330,7 +330,7 @@ calculateFrameCount(uint8_t snakeLength) { // TODO: magic numbers weghalen
   if (frameCount > 10)
     frameCount = 10; // minimum snelheid
 
-  return (uint8_t)frameCount;
+  return (int8_t)frameCount;
 }
 
 // game logic die geloopt moet worden
