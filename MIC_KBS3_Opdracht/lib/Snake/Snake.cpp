@@ -215,9 +215,9 @@ void Snake::reset() {
   spawnRandApple();
 }
 
-void Snake::setScore(uint16_t newScore) {
-  
-}
+// void Snake::setHighscore(uint8_t newScore) {
+
+// }
 
 uint16_t Snake::getScore() {
   return score;
@@ -234,13 +234,14 @@ uint16_t Snake::getHighscore() {
 void Snake::drawScore() {
   static uint8_t prevScore = -1;
   int8_t currentScore = snakeLength - SNAKE_START_LENGHT;
+  score = currentScore;
   // score alleen updaten/tekenen wanneer de score verhoogd
   if (currentScore != prevScore) {
     screen.setCursor(5, TFT_WIDTH + 5);
     screen.setTextColor(WHITE, BLACK); // oude overschrijven met zwart
     screen.setTextSize(1);
     screen.print("Score: ");
-    screen.print(currentScore);
+    screen.print(score);
     prevScore = currentScore;
   }
 }
@@ -318,7 +319,7 @@ void Snake::drawElement(uint8_t element, bool selected, bool isPlayer1, bool red
     elementText2 = menuRenderTextData[10];
   } else if (element == 8) {  // if Highscore
     copyArray(menuHScoreRenderData, tempStorageArray, 10);
-    elementText1 = menuRenderTextData[11] + 0;
+    elementText1 = menuRenderTextData[11] + getHighscore();
   }
 
   // Draw Element

@@ -34,7 +34,7 @@ public:
   uint16_t getScore();
   uint16_t getHighscore();
 
-  void setScore(uint16_t newScore);
+  // void setHighscore(uint8_t newScore);
 
 
   uint8_t appleX; // appel coords public voor communicatie
@@ -48,8 +48,8 @@ private:
   uint8_t *snakeY;
   Adafruit_ILI9341 screen;
   uint16_t colour;
-  uint16_t score;
-  uint16_t highscore;
+  uint8_t score = 0;
+  uint8_t highscore = 0;
 
   // enum Direction { UP, DOWN, LEFT, RIGHT };
   // Direction direction;
