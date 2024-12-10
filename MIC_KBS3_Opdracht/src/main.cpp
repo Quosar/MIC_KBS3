@@ -1,13 +1,13 @@
+#include "Adafruit_FT6206.h"
 #include "Adafruit_GFX.h"
 #include "Adafruit_ILI9341.h"
-#include "Adafruit_FT6206.h"
+#include "HardwareSerial.h"
 #include "Nunchuk.h"
 #include <Arduino.h>
 #include <Snake.h>
 #include <Wire.h>
 #include <avr/interrupt.h>
 #include <avr/io.h>
-#include "HardwareSerial.h"
 
 // LCD Pin Defines
 #define TFT_CLK 13
@@ -74,8 +74,11 @@ Snake snake(GRID_SIZE, TFT_WIDTH / GRID_SIZE, TFT_WIDTH / GRID_SIZE, screen,
             GREEN);
 
 // Game Size (8x8 / 16x16)
-enum gameMode {SIZE8x8, SIZE16x16};
-gameMode currentMode = SIZE16x16;
+enum gameSize { SIZE8x8, SIZE16x16 };
+gameSize currentGameSize = SIZE16x16;
+
+enum gameSpeed { NORMAL, FAST };
+gameSpeed currentGameSpeed = NORMAL;
 
 // Game Speed (Normal / Fast)
 volatile bool isFastMode = false;
@@ -87,27 +90,20 @@ volatile uint16_t touchY = 0;
 volatile bool isTouching = false;
 volatile bool previousTouch = false;
 
-enum gameState
-{
-  MENU,
-  START,
-  INGAME,
-  DEATH,
-  REDRAW
-};
+enum gameState { MENU, START, INGAME, DEATH, REDRAW };
 volatile gameState currentState = MENU;
 volatile gameState previousState = DEATH;
 
 // communication
 volatile uint32_t firstSyncCheck =
-    0x80000000;                                 // 3827391077 // unieke bit volgorde die niet eerder 0xE4215A65
-                                                // gedetecteerd kan worden zoals bijvoorbeeld 0x33333333
+    0x80000000; // 3827391077 // unieke bit volgorde die niet eerder 0xE4215A65
+                // gedetecteerd kan worden zoals bijvoorbeeld 0x33333333
 volatile uint32_t secondSyncCheck = 0xAAAAAAAA; // 2863311530
 volatile uint32_t thirdSyncCheck = 0xAE6CB249;  // 2926359113
 volatile uint32_t outBus =
-    firstSyncCheck;               // Uitgaande data bus begint als firstSyncCheck om
-                                  // communicatie te synchroniseren
-volatile uint32_t inBus = 0;      // Binnenkomende data bus
+    firstSyncCheck;          // Uitgaande data bus begint als firstSyncCheck om
+                             // communicatie te synchroniseren
+volatile uint32_t inBus = 0; // Binnenkomende data bus
 volatile uint8_t busBitIndex = 0; // huidige bit index inBus
 
 volatile bool isSender = true; // player1 begint met zenden en zetten timer
@@ -145,8 +141,7 @@ volatile bool gamePaused = true;
 volatile bool isAlive = false;
 volatile uint8_t checksum;
 
-void setupPins()
-{
+void setupPins() {
   DDRD |= (1 << PD6); // PD6 Ouptut
 
   DDRD &= ~(1 << IR_RECEIVER_PIN);  // Set PD2 as input
@@ -156,8 +151,7 @@ void setupPins()
   PORTD &= ~(1 << PD7); // PD7 begint LOW
 }
 
-void setupTimers()
-{
+void setupTimers() {
   // Correct Timer 1 setup for CTC mode with prescaler 64
   TCCR1A = 0;
   TCCR1B = 0;
@@ -174,39 +168,29 @@ void setupTimers()
   OCR0A = OCSILLATIONSPEED;
 }
 
-void SetupInterrupts()
-{
+void SetupInterrupts() {
   EICRA &= ~(1 << ISC01);
   EICRA &= ~(1 << ISC00); // Trigger bij LOW
   EIMSK &= ~(1 << INT0);  // INT0 interrupt disable
 }
 
-void initializeCommunication()
-{
+void initializeCommunication() {
   busBitIndex = 0;
   TCNT1 = 0;
   TIMSK1 |= (1 << OCIE1A); // Enable Timer1 Compare Match A interrupt
-  if (isSender)
-  {
+  if (isSender) {
     senderOffset = 1;
   }
 }
 
-void synchronise(uint32_t bus)
-{
-  if (bus != 0)
-  {
-    for (uint8_t i = 0; i <= DATABITCOUNT; i++)
-    {
+void synchronise(uint32_t bus) {
+  if (bus != 0) {
+    for (uint8_t i = 0; i <= DATABITCOUNT; i++) {
       // Check each bit starting from the most significant bit (MSB)
-      if ((bus >> (DATABITCOUNT - 1 - i)) & 1)
-      {
-        if (i <= 30)
-        {
+      if ((bus >> (DATABITCOUNT - 1 - i)) & 1) {
+        if (i <= 30) {
           SyncingIndex = DATABITCOUNT - i + 2;
-        }
-        else
-        {
+        } else {
           SyncingIndex = 0;
         }
         SyncingIndexFound = true;
@@ -216,40 +200,30 @@ void synchronise(uint32_t bus)
   }
 }
 
-uint8_t constructChecksum(uint32_t value)
-{
+uint8_t constructChecksum(uint32_t value) {
   uint8_t checksum = 0;
-  for (uint8_t i = 3; i < DATABITCOUNT; i++)
-  { // Start bij bit 3
+  for (uint8_t i = 3; i < DATABITCOUNT; i++) { // Start bij bit 3
     checksum ^= (value >> i) & 0x01;
   }
   return checksum & 0x07; // Return 3-bit checksum
 }
 
-uint32_t constructBus()
-{
+uint32_t constructBus() {
   uint32_t out = 0;
   uint8_t snakeDirection = 0;
 
-    Snake::Direction UP = UP;
-    Snake::Direction DOWN = DOWN;
-    Snake::Direction LEFT = LEFT;
-    Snake::Direction RIGHT = RIGHT;
+  Snake::Direction UP = UP;
+  Snake::Direction DOWN = DOWN;
+  Snake::Direction LEFT = LEFT;
+  Snake::Direction RIGHT = RIGHT;
 
-  if (snake.getDirection() == UP)
-  {
+  if (snake.getDirection() == UP) {
     snakeDirection = 0b00;
-  }
-  else if (snake.getDirection() == DOWN)
-  {
+  } else if (snake.getDirection() == DOWN) {
     snakeDirection = 0b01;
-  }
-  else if (snake.getDirection() == LEFT)
-  {
+  } else if (snake.getDirection() == LEFT) {
     snakeDirection = 0b10;
-  }
-  else if (snake.getDirection() == RIGHT)
-  {
+  } else if (snake.getDirection() == RIGHT) {
     snakeDirection = 0b11;
   }
 
@@ -270,25 +244,23 @@ uint32_t constructBus()
   return out;
 }
 
-void deconstructBus(uint32_t bus)
-{
+void deconstructBus(uint32_t bus) {
   uint8_t checksum = (uint8_t)(bus & 0x07); // Extract checksum
   uint8_t calculatedChecksum = constructChecksum(bus & 0xFFFFFFF8);
 
   uint8_t snakeDirection = 0;
 
-  if (checksum == calculatedChecksum)
-  {
+  if (checksum == calculatedChecksum) {
     posSnake = (uint8_t)((bus >> 24) & 0xFF);          // Bit 31–24: posSnake
     snake.snakeLength = (uint8_t)((bus >> 16) & 0xFF); // Bit 23–16: lengthSnake
     posApple = (uint8_t)((bus >> 8) & 0xFF);           // Bit 15–8: posApple
 
-    isPlayer1 = (bus >> 7) & 0x01;                  // Bit 7: isPlayer1
-    isSmallField = (bus >> 6) & 0x01;               // Bit 6: isSmallField
-    appleGatheredByPlayer2 = (bus >> 5) & 0x01;     // Bit 5: appleGatheredByPlayer2
-    gamePaused = (bus >> 4) & 0x01;                 // Bit 4: gamePaused
-    isAlive = (bus >> 3) & 0x01;                    // Bit 3: isAlive
-    snakeDirection = (bus >> 1) & 0x03; // Bits 2–1: snake direction
+    isPlayer1 = (bus >> 7) & 0x01;              // Bit 7: isPlayer1
+    isSmallField = (bus >> 6) & 0x01;           // Bit 6: isSmallField
+    appleGatheredByPlayer2 = (bus >> 5) & 0x01; // Bit 5: appleGatheredByPlayer2
+    gamePaused = (bus >> 4) & 0x01;             // Bit 4: gamePaused
+    isAlive = (bus >> 3) & 0x01;                // Bit 3: isAlive
+    snakeDirection = (bus >> 1) & 0x03;         // Bits 2–1: snake direction
 
     Snake::Direction UP = UP;
     Snake::Direction DOWN = DOWN;
@@ -298,132 +270,123 @@ void deconstructBus(uint32_t bus)
     if (snakeDirection == 0b00) // Update snake's direction
     {
       snake.setDirection(UP);
-    }
-    else if (snakeDirection == 0b01)
-    {
+    } else if (snakeDirection == 0b01) {
       snake.setDirection(DOWN);
-    }
-    else if (snakeDirection == 0b10)
-    {
+    } else if (snakeDirection == 0b10) {
       snake.setDirection(LEFT);
-    }
-    else if (snakeDirection == 0b11)
-    {
+    } else if (snakeDirection == 0b11) {
       snake.setDirection(RIGHT);
     }
   }
 }
 
-void updateGame()
-{
-  if (!isPlayer1)
-  {
+void updateGame() {
+  if (!isPlayer1) {
     snake.move(); // Move snake based on received direction
     snake.draw();
     snake.drawScore();
-    if (snake.eatApple(snake.appleX, snake.appleY))
-    {
+    if (snake.eatApple(snake.appleX, snake.appleY)) {
       snake.grow();
     }
-    if (snake.checkCollision())
-    {
+    if (snake.checkCollision()) {
       currentState = DEATH;
     }
   }
 }
 
-void stickHandler()
-{
-  if (nunchuck.getState(NUNCHUCK_ADDRESS))
-  {
+void stickHandler() {
+  if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
     uint8_t joyX = nunchuck.state.joy_x_axis;
     uint8_t joyY = nunchuck.state.joy_y_axis;
 
-    if (joyX < 105)
-    {
+    if (joyX < 105) {
       outBus |= (snake.LEFT << 1);
-    }
-    else if (joyX > 145)
-    {
+    } else if (joyX > 145) {
       outBus |= (snake.RIGHT << 1);
-    }
-    else if (joyY < 105)
-    {
+    } else if (joyY < 105) {
       outBus |= (snake.DOWN << 1);
-    }
-    else if (joyY > 145)
-    {
+    } else if (joyY > 145) {
       outBus |= (snake.UP << 1);
     }
   }
 }
 
-void directionHandler()
-{
-  if (nunchuck.getState(NUNCHUCK_ADDRESS))
-  {
+void directionHandler() {
+  if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
     snake.updateDirection(nunchuck.state.joy_x_axis, nunchuck.state.joy_y_axis);
   }
 }
 
 uint8_t
-calculateFrameCount(uint8_t snakeLength)
-{ // TODO: magic numbers weghalen
-
-  int frameCount = 10 - (snakeLength / 5);
-
+calculateFrameCount(uint8_t snakeLength) { // TODO: magic numbers weghalen
+  uint8_t frameCount;
+  if (currentGameSpeed == NORMAL) {
+    frameCount = 10 - (snakeLength / 5);
+  } else if (currentGameSpeed == FAST) {
+    frameCount = 5 - (snakeLength / 3);
+  }
   if (frameCount < 2)
-    frameCount = 2; // minimum snlheid
+    frameCount = 2; // maximum snelheid
   if (frameCount > 10)
-    frameCount = 10; // maximum snelheid
+    frameCount = 10; // minimum snelheid
 
   return (uint8_t)frameCount;
 }
 
 // game logic die geloopt moet worden
-void handleState()
-{
-  switch (currentState)
-  {
+void handleState() {
+  switch (currentState) {
   case MENU:
     if (isTouching) {
       if (isTouching != previousTouch) {
         // Check in bounds
 
         // Mode 1
-        if ((touchX >= MENU_MODE1_X && touchX <= MENU_MODE1_X + 100) && (touchY >= MENU_MODE1_Y && touchY <= MENU_MODE1_Y + 20)) {
-          currentMode = SIZE8x8;
+        if ((touchX >= MENU_MODE1_X && touchX <= MENU_MODE1_X + 100) &&
+            (touchY >= MENU_MODE1_Y && touchY <= MENU_MODE1_Y + 20)) {
+          currentGameSize = SIZE8x8;
           previousState = REDRAW;
         }
-        
+
         // Mode 2
-        if ((touchX >= MENU_MODE2_X && touchX <= MENU_MODE2_X + 100) && (touchY >= MENU_MODE2_Y && touchY <= MENU_MODE2_Y + 20)) {
-          currentMode = SIZE16x16;
+        if ((touchX >= MENU_MODE2_X && touchX <= MENU_MODE2_X + 100) &&
+            (touchY >= MENU_MODE2_Y && touchY <= MENU_MODE2_Y + 20)) {
+          currentGameSize = SIZE16x16;
           previousState = REDRAW;
         }
 
         // Mode 3
-        if ((touchX >= MENU_MODE3_X && touchX <= MENU_MODE3_X + 100) && (touchY >= MENU_MODE3_Y && touchY <= MENU_MODE3_Y + 20)) {
+        if ((touchX >= MENU_MODE3_X && touchX <= MENU_MODE3_X + 100) &&
+            (touchY >= MENU_MODE3_Y && touchY <= MENU_MODE3_Y + 20)) {
           isFastMode = !isFastMode;
+          if (isFastMode) {
+            currentGameSpeed = FAST;
+          } else {
+            currentGameSpeed = NORMAL;
+          }
           previousState = REDRAW;
         }
 
         // Select Player 1 + Show Start Button
-        if ((touchX >= MENU_PLR1_X && touchX <= MENU_PLR1_X + 100) && (touchY >= MENU_PLR1_Y && touchY <= MENU_PLR1_Y + 20)) {
+        if ((touchX >= MENU_PLR1_X && touchX <= MENU_PLR1_X + 100) &&
+            (touchY >= MENU_PLR1_Y && touchY <= MENU_PLR1_Y + 20)) {
           isPlayer1 = true;
           snake.drawElement(1, true, true, true, false);
-          //snake.drawElement(6, false, true, true, false);   // For testing, this is disabled
+          // snake.drawElement(6, false, true, true, false);   // For testing,
+          // this is disabled
         }
 
-        // For Testing, this does not require player1/player2 selection and is prerendered
-        if ((touchX >= MENU_START_X && touchX <= MENU_START_X + 140) && (touchY >= MENU_START_Y && touchY <= MENU_START_Y + 70)) {
-          // Detection 
+        // For Testing, this does not require player1/player2 selection and is
+        // prerendered
+        if ((touchX >= MENU_START_X && touchX <= MENU_START_X + 140) &&
+            (touchY >= MENU_START_Y && touchY <= MENU_START_Y + 70)) {
+          // Detection
           currentState = START;
         }
 
         previousTouch = true;
       }
-      
+
     } else {
       previousTouch = false;
     }
@@ -442,24 +405,19 @@ void handleState()
   case REDRAW:
     break;
   }
-  
-
 }
 
 // game logic die alleen gedaan moet worden wanneer je net in deze gamestate
 // komt
-void handleStateChange()
-{
-  if (currentState != previousState)
-  {
-    switch (currentState)
-    {
+void handleStateChange() {
+  if (currentState != previousState) {
+    switch (currentState) {
     case MENU:
       if (previousState == REDRAW) {
-        if (currentMode == SIZE8x8) {
+        if (currentGameSize == SIZE8x8) {
           snake.drawElement(3, true, false, false, false);
           snake.drawElement(4, false, false, false, false);
-        } else if (currentMode == SIZE16x16) {
+        } else if (currentGameSize == SIZE16x16) {
           snake.drawElement(3, false, false, false, false);
           snake.drawElement(4, true, false, false, false);
         }
@@ -474,7 +432,7 @@ void handleStateChange()
         }
       } else {
         snake.drawStartMenu();
-        //snake.drawMode1(true);
+        // snake.drawMode1(true);
       }
       break;
 
@@ -488,11 +446,12 @@ void handleStateChange()
 
     case DEATH:
       snake.reset();
+      currentGameSpeed = NORMAL;
       break;
 
     case INGAME:
       break;
-    
+
     case REDRAW:
       break;
     }
@@ -504,7 +463,7 @@ int main() {
   init();
   Wire.begin();
 
-  //Serial.begin(9600);
+  // Serial.begin(9600);
   setupPins();
   setupTimers();
   SetupInterrupts();
@@ -516,11 +475,10 @@ int main() {
   screen.setTextSize(2);
 
   ts.begin();
-  
+
   sei();
 
-  while (1)
-  {
+  while (1) {
     TS_Point p = ts.getPoint();
 
     p.x = map(p.x, 0, 240, 240, 0);
@@ -529,8 +487,8 @@ int main() {
     touchX = p.x;
     touchY = p.y;
 
-    //Serial.println(touchX);
-    //Serial.println(touchY);
+    // Serial.println(touchX);
+    // Serial.println(touchY);
 
     if (p.z > 0) {
       isTouching = true;
@@ -540,8 +498,7 @@ int main() {
 
     directionHandler(); // update direction tussen frames
 
-    if (runFrame)
-    { // runt iedere 167ms
+    if (runFrame) {
       handleStateChange();
       handleState();
       runFrame = false;
@@ -551,8 +508,7 @@ int main() {
   return 0;
 }
 
-void communicate()
-{
+void communicate() {
   if (!IRWaiting) // checkt of de IR-reciever een pauze nodig heeft
   {
     if (busBitIndex == 0) // checkt of de start bit gestuurd moet worden
@@ -564,21 +520,17 @@ void communicate()
         busBitIndex <=
             DATABITCOUNT + 1) // 1-33 voor het sturen en lezen van de bits
     {
-      if (!isSender)
-      {
+      if (!isSender) {
         PORTD ^= (1 << PD7);
         bool bit = (PIND & (1 << IR_RECEIVER_PIN)) ==
                    0; // LOW is logische 1 in IR communicatie
-        if (bit)
-        {
+        if (bit) {
           inBus |= (1UL << (DATABITCOUNT -
                             (busBitIndex -
                              senderOffset))); // bepaalt welke index van de
                                               // inBus de gelezen waarde in
                                               // moet sender begint 1 later
-        }
-        else
-        {
+        } else {
           inBus &= ~(1UL << (DATABITCOUNT -
                              (busBitIndex -
                               senderOffset))); // bepaalt welke index van de
@@ -592,12 +544,9 @@ void communicate()
       bool outBit = (outBus >> (DATABITCOUNT - (busBitIndex))) &
                     0x01; // bepaalt of de volgende bit in de outBus en 1 of 0
                           // moet transmitten
-      if (outBit)
-      {
+      if (outBit) {
         TCCR0A |= (1 << COM0A0); // Turn on oscillation
-      }
-      else
-      {
+      } else {
         TCCR0A &= ~(1 << COM0A0);
         PORTD &= ~(1 << PD6); // Ensure PD6 is LOW
       }
@@ -617,14 +566,11 @@ void communicate()
       {
         synchronise(inBus);
         busBitIndex = SyncingIndex;
-      }
-      else if (!communicationSynced && !isSender && SyncingIndexFound)
-      {
+      } else if (!communicationSynced && !isSender && SyncingIndexFound) {
         busBitIndex = 0;
         SyncingIndexFound = false;
       }
-      if (!communicationInitialized)
-      {
+      if (!communicationInitialized) {
         if (inBus == firstSyncCheck && !communicationSynced &&
             !isSender) // checkt of de communicatie synchroon loopt of
                        // nog synchroon moet gaan lopen
@@ -638,13 +584,11 @@ void communicate()
         {
           outBus = secondSyncCheck;
         }
-        if (inBus == secondSyncCheck && !isSender)
-        {
+        if (inBus == secondSyncCheck && !isSender) {
           outBus = thirdSyncCheck;
           communicationInitialized = true;
         }
-        if (inBus == thirdSyncCheck && isSender)
-        {
+        if (inBus == thirdSyncCheck && isSender) {
           communicationInitialized = true;
         }
       }
@@ -656,13 +600,10 @@ void communicate()
         EIMSK |= (1 << INT0); // INT0 interrupt enable
         TIMSK1 &= ~(1 << OCIE1A);
       }
-      if (communicationFrameCounter >= communicationFrameCount)
-      {
+      if (communicationFrameCounter >= communicationFrameCount) {
         runFrame = true;
         communicationFrameCounter = 0;
-      }
-      else
-      {
+      } else {
         communicationFrameCounter = communicationFrameCounter + 1;
       }
       TCCR0A &= ~(1 << COM0A0);
@@ -670,26 +611,20 @@ void communicate()
       printBus = true;
     }
     IRWaiting = true; // zorgt ervoor dat de IR-reciever een pauze krijgt
-  }
-  else
-  {
+  } else {
     TCCR0A &= ~(1 << COM0A0);
     PORTD |= (1 << PD6); // Ensure PD6 is LOW
-    if (isSender && busBitIndex >= 2 && busBitIndex <= DATABITCOUNT + 2)
-    {
+    if (isSender && busBitIndex >= 2 && busBitIndex <= DATABITCOUNT + 2) {
       PORTD ^= (1 << PD7);
       bool bit = (PIND & (1 << IR_RECEIVER_PIN)) ==
                  0; // LOW is logische 1 in IR communicatie
-      if (bit)
-      {
+      if (bit) {
         inBus |= (1UL << (DATABITCOUNT -
                           (busBitIndex -
                            senderOffset))); // bepaalt welke index van de
                                             // inBus de gelezen waarde in moet
                                             // sender begint 1 later
-      }
-      else
-      {
+      } else {
         inBus &= ~(1UL << (DATABITCOUNT -
                            (busBitIndex -
                             senderOffset))); // bepaalt welke index van de
@@ -704,8 +639,7 @@ void communicate()
 
 ISR(TIMER1_COMPA_vect) { communicate(); }
 
-ISR(INT0_vect)
-{
+ISR(INT0_vect) {
   TCNT1 = 5;
   busBitIndex = 0;
   EIMSK &= ~(1 << INT0); // INT0 interrupt disable
