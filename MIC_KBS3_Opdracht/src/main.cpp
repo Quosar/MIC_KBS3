@@ -72,7 +72,7 @@ const uint8_t NUNCHUCK_ADDRESS = 0x52;
 
 // Create Snake object
 Snake largeFieldSnake(LARGE_FIELD_GRID_SIZE, TFT_WIDTH / LARGE_FIELD_GRID_SIZE,
-            TFT_WIDTH / LARGE_FIELD_GRID_SIZE, screen, GREEN);
+                      TFT_WIDTH / LARGE_FIELD_GRID_SIZE, screen, GREEN);
 
 Snake smallFieldSnake(SMALL_FIELD_GRID_SIZE, TFT_WIDTH / SMALL_FIELD_GRID_SIZE,
                       TFT_WIDTH / SMALL_FIELD_GRID_SIZE, screen, GREEN);
@@ -231,9 +231,10 @@ uint32_t constructBus() {
     snakeDirection = 0b11;
   }
 
-  out |= ((uint32_t)posSnake) << 24;                 // Bit 31–24: posSnake
-  out |= ((uint32_t)largeFieldSnake.snakeLength & 0xFF) << 16; // Bit 23–16: lengthSnake
-  out |= ((uint32_t)posApple & 0xFF) << 8;           // Bit 15–8: posApple
+  out |= ((uint32_t)posSnake) << 24; // Bit 31–24: posSnake
+  out |= ((uint32_t)largeFieldSnake.snakeLength & 0xFF)
+         << 16;                            // Bit 23–16: lengthSnake
+  out |= ((uint32_t)posApple & 0xFF) << 8; // Bit 15–8: posApple
   out |=
       ((isPlayer1 & 0x01) << 7) |              // Bit 7: isPlayer1
       ((isSmallField & 0x01) << 6) |           // Bit 6: isSmallField
@@ -255,9 +256,10 @@ void deconstructBus(uint32_t bus) {
   uint8_t snakeDirection = 0;
 
   if (checksum == calculatedChecksum) {
-    posSnake = (uint8_t)((bus >> 24) & 0xFF);          // Bit 31–24: posSnake
-    largeFieldSnake.snakeLength = (uint8_t)((bus >> 16) & 0xFF); // Bit 23–16: lengthSnake
-    posApple = (uint8_t)((bus >> 8) & 0xFF);           // Bit 15–8: posApple
+    posSnake = (uint8_t)((bus >> 24) & 0xFF); // Bit 31–24: posSnake
+    largeFieldSnake.snakeLength =
+        (uint8_t)((bus >> 16) & 0xFF);       // Bit 23–16: lengthSnake
+    posApple = (uint8_t)((bus >> 8) & 0xFF); // Bit 15–8: posApple
 
     isPlayer1 = (bus >> 7) & 0x01;              // Bit 7: isPlayer1
     isSmallField = (bus >> 6) & 0x01;           // Bit 6: isSmallField
@@ -317,7 +319,8 @@ void stickHandler() {
 
 void directionHandler() {
   if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-    largeFieldSnake.updateDirection(nunchuck.state.joy_x_axis, nunchuck.state.joy_y_axis);
+    largeFieldSnake.updateDirection(nunchuck.state.joy_x_axis,
+                                    nunchuck.state.joy_y_axis);
   }
 }
 
@@ -345,19 +348,19 @@ void handleState() {
       if (isTouching != previousTouch) {
         // Check in bounds
 
-        // // Mode 1
-        // if ((touchX >= MENU_MODE1_X && touchX <= MENU_MODE1_X + 100) &&
-        //     (touchY >= MENU_MODE1_Y && touchY <= MENU_MODE1_Y + 20)) {
-        //   currentGameSize = SIZE8x8;
-        //   previousState = REDRAW;
-        // }
+        // Mode 1
+        if ((touchX >= MENU_MODE1_X && touchX <= MENU_MODE1_X + 100) &&
+            (touchY >= MENU_MODE1_Y && touchY <= MENU_MODE1_Y + 20)) {
+          currentGameSize = SIZE8x8;
+          previousState = REDRAW;
+        }
 
-        // // Mode 2
-        // if ((touchX >= MENU_MODE2_X && touchX <= MENU_MODE2_X + 100) &&
-        //     (touchY >= MENU_MODE2_Y && touchY <= MENU_MODE2_Y + 20)) {
-        //   currentGameSize = SIZE16x16;
-        //   previousState = REDRAW;
-        // }
+        // Mode 2
+        if ((touchX >= MENU_MODE2_X && touchX <= MENU_MODE2_X + 100) &&
+            (touchY >= MENU_MODE2_Y && touchY <= MENU_MODE2_Y + 20)) {
+          currentGameSize = SIZE16x16;
+          previousState = REDRAW;
+        }
 
         // Mode 3
         if ((touchX >= MENU_MODE3_X && touchX <= MENU_MODE3_X + 100) &&
@@ -376,8 +379,6 @@ void handleState() {
             (touchY >= MENU_PLR1_Y && touchY <= MENU_PLR1_Y + 20)) {
           isPlayer1 = true;
           largeFieldSnake.drawElement(1, true, true, true, false);
-          // snake.drawElement(6, false, true, true, false);   // For testing,
-          // this is disabled
         }
 
         // For Testing, this does not require player1/player2 selection and is
@@ -399,8 +400,16 @@ void handleState() {
 
   case INGAME:
     // snelheid aanpassen op lengte slang
-    communicationFrameCount = calculateFrameCount(largeFieldSnake.snakeLength);
-    updateGame(largeFieldSnake);
+    if (currentGameSize == SIZE16x16) {
+      communicationFrameCount =
+          calculateFrameCount(largeFieldSnake.snakeLength);
+      updateGame(largeFieldSnake);
+    } else {
+      communicationFrameCount =
+          calculateFrameCount(smallFieldSnake.snakeLength);
+      updateGame(smallFieldSnake);
+    }
+
     break;
 
   case DEATH:
@@ -413,18 +422,18 @@ void handleState() {
 
 // game logic die alleen gedaan moet worden wanneer je net in deze gamestate
 // komt
-void handleStateChange() {
+void handleStateChange(Snake &snake) {
   if (currentState != previousState) {
     switch (currentState) {
     case MENU:
       if (previousState == REDRAW) {
-        // if (currentGameSize == SIZE8x8) {
-        //   snake.drawElement(3, true, false, false, false);
-        //   snake.drawElement(4, false, false, false, false);
-        // } else if (currentGameSize == SIZE16x16) {
-        //   snake.drawElement(3, false, false, false, false);
-        //   snake.drawElement(4, true, false, false, false);
-        // }
+        if (currentGameSize == SIZE8x8) {
+          snake.drawElement(3, true, false, false, false);
+          snake.drawElement(4, false, false, false, false);
+        } else if (currentGameSize == SIZE16x16) {
+          snake.drawElement(3, false, false, false, false);
+          snake.drawElement(4, true, false, false, false);
+        }
 
         if (isFastMode != previousFastMode) {
           if (isFastMode) {
@@ -436,20 +445,28 @@ void handleStateChange() {
         }
       } else {
         largeFieldSnake.drawStartMenu();
-        // snake.drawMode1(true);
       }
       break;
 
     case START:
       screen.fillScreen(BLACK);
-      largeFieldSnake.start(LARGE_FIELD_GRID_SIZE / 2, LARGE_FIELD_GRID_SIZE / 2);
+      if (currentGameSize == SIZE16x16) {
+        largeFieldSnake.start(LARGE_FIELD_GRID_SIZE / 2,
+                              LARGE_FIELD_GRID_SIZE / 2);
+      } else {
+        smallFieldSnake.start(3, 3);
+      }
+
       // teken border
       screen.drawLine(0, TFT_WIDTH, TFT_WIDTH, TFT_WIDTH, WHITE);
       currentState = INGAME;
       break;
 
     case DEATH:
-      largeFieldSnake.reset();
+      if (currentGameSize == SIZE16x16) {
+        largeFieldSnake.reset();
+      }
+
       currentGameSpeed = NORMAL;
       break;
 
@@ -467,7 +484,6 @@ int main() {
   init();
   Wire.begin();
 
-  // Serial.begin(9600);
   setupPins();
   setupTimers();
   SetupInterrupts();
@@ -491,9 +507,6 @@ int main() {
     touchX = p.x;
     touchY = p.y;
 
-    // Serial.println(touchX);
-    // Serial.println(touchY);
-
     if (p.z > 0) {
       isTouching = true;
     } else {
@@ -503,7 +516,7 @@ int main() {
     directionHandler(); // update direction tussen frames
 
     if (runFrame) {
-      handleStateChange();
+      handleStateChange(largeFieldSnake);
       handleState();
       runFrame = false;
     }

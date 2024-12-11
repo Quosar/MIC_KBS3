@@ -362,11 +362,11 @@ void Snake::drawStartMenu() {
   // // Draw Player 2 Text
   // drawElement(2, false, false, true, true);
 
-  // // Draw Mode 1 Button (8 x 8)
-  // drawElement(3, false, false, true, true);
+  // Draw Mode 1 Button (8 x 8)
+  drawElement(3, false, false, true, true);
 
-  // // Draw Mode 2 Button (16 x 16)
-  // drawElement(4, true, false, true, true);
+  // Draw Mode 2 Button (16 x 16)
+  drawElement(4, true, false, true, true);
 
   // Draw Mode 3 Button (Normal / Fast)
   drawElement(5, false, false, true, true);
