@@ -72,9 +72,11 @@ Snake smallFieldSnake(SMALL_FIELD_GRID_SIZE, TFT_WIDTH / SMALL_FIELD_GRID_SIZE,
 // Game Size (8x8 / 16x16)
 enum gameSize { SIZE8x8, SIZE16x16 };
 gameSize currentGameSize = SIZE16x16;
+gameSize previousGameSize = SIZE16x16;
 
 enum gameSpeed { NORMAL, FAST };
 gameSpeed currentGameSpeed = NORMAL;
+gameSpeed previousGameSpeed = NORMAL;
 
 // Game Speed (Normal / Fast)
 volatile bool isFastMode = false;
@@ -420,9 +422,11 @@ void handleState() {
 
         // Mode 2
         if ((touchX >= DSCREEN_PAGAIN_X && touchX <= DSCREEN_PAGAIN_X + 80) &&
-            (touchY >= DSCREEN_PAGAIN_Y && touchY <= DSCREEN_PAGAIN_Y + 60)) {  
-          currentState = START;
-        }
+            (touchY >= DSCREEN_PAGAIN_Y && touchY <= DSCREEN_PAGAIN_Y + 60)) {
+              currentGameSize = previousGameSize;
+              currentGameSpeed = previousGameSpeed;
+              currentState = START;
+           }
 
         previousTouch = true;
       }
@@ -483,6 +487,9 @@ void handleStateChange(Snake &snake) {
       // teken border
       screen.drawLine(0, TFT_WIDTH, TFT_WIDTH, TFT_WIDTH, WHITE);
       currentState = INGAME;
+
+      previousGameSpeed = currentGameSpeed;
+      previousGameSize = currentGameSize;
       break;
 
     case DEATH:
