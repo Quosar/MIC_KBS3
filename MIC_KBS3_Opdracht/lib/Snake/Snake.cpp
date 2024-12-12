@@ -154,8 +154,8 @@ void Snake::draw() {
   drawHead(snakeX[0], snakeY[0]);
   // alles na hoofd veranderd naar body
   // eerst hoofd clearen
-  screen.fillRect(snakeX[1] * cellWidth, snakeY[1] * cellHeight, cellWidth,
-                  cellHeight, BLACK);
+  screen.fillRect(snakeX[1] * cellWidth, snakeY[1] * cellHeight, cellWidth + 1,
+                  cellHeight + 1, BLACK);
   // teken body deel
   drawCell(snakeX[1], snakeY[1], colour);
 
@@ -210,9 +210,10 @@ void Snake::clearTail(uint8_t tailX, uint8_t tailY) {
 // teken snake cell
 void Snake::drawCell(uint16_t x, uint16_t y, uint16_t colour) {
   // de snake cell centeren op juiste locaties binnen het grid
-  uint16_t centerX = x * cellWidth + cellWidth / 2;
-  uint16_t centerY = y * cellHeight + cellHeight / 2;
-  screen.fillCircle(centerX, centerY, cellWidth / 2, colour);
+  uint16_t radius = (cellWidth - 1) / 2;
+  uint16_t centerX = x * cellWidth + radius;
+  uint16_t centerY = y * cellHeight + radius;
+  screen.fillCircle(centerX, centerY, radius, colour);
 }
 
 void Snake::validateDirection() {
