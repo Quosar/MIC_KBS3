@@ -1,15 +1,15 @@
 #include "Display.h"
 
-Display::Display()
-    : display(TFT_CS, TFT_DC) {
-    display.begin();
-
-    touchscreen.begin();
+Display::Display() : display(TFT_CS, TFT_DC) {
+      display.begin();
 }
 
 Display::~Display() {}
 
-void Display::begin() { display.begin(); }
+void Display::begin() {
+    touchscreen.begin();
+    display.fillScreen(ILI9341_BLACK);
+}
 
 void Display::fillScreen(uint16_t color) { display.fillScreen(color); }
 

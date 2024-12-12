@@ -1,4 +1,3 @@
-#include "Adafruit_FT6206.h"
 #include "Display.h"
 #include "HardwareSerial.h"
 #include "Nunchuk.h"
@@ -8,20 +7,11 @@
 #include <avr/interrupt.h>
 #include <avr/io.h>
 
-
-
 // TFT defines
 const uint8_t LARGE_FIELD_GRID_SIZE = 16;
 const uint8_t SMALL_FIELD_GRID_SIZE = 8;
 const uint8_t TFT_WIDTH = 240;
 const uint16_t TFT_HEIGHT = 320;
-
-#define TFT_CLK 13
-#define TFT_MISO 12
-#define TFT_MOSI 11
-#define TFT_DC 9
-#define TFT_CS 10
-#define TFT_RST 8
 
 // Color defines
 #define BLACK 0x0000
@@ -47,6 +37,11 @@ const uint16_t TFT_HEIGHT = 320;
 #define MENU_MODE3_Y 140
 #define MENU_START_X 70
 #define MENU_START_Y 180
+
+#define DSCREEN_MENU_X 35
+#define DSCREEN_MENU_Y 180
+#define DSCREEN_PAGAIN_X 125
+#define DSCREEN_PAGAIN_Y 180
 
 // IR Pins
 #define IR_TRANSMITTER_PIN PD6
@@ -413,11 +408,36 @@ void handleState() {
     break;
 
   case DEATH:
-    currentState = MENU;
+     if (isTouching) {
+      if (isTouching != previousTouch) {
+        // Check in bounds
+
+        // Mode 1
+        if ((touchX >= DSCREEN_MENU_X && touchX <= DSCREEN_MENU_X + 80) &&
+            (touchY >= DSCREEN_MENU_Y && touchY <= DSCREEN_MENU_Y + 60)) {
+          currentState = MENU;
+        }
+
+        // Mode 2
+        if ((touchX >= DSCREEN_PAGAIN_X && touchX <= DSCREEN_PAGAIN_X + 80) &&
+            (touchY >= DSCREEN_PAGAIN_Y && touchY <= DSCREEN_PAGAIN_Y + 60)) {  
+          currentState = START;
+        }
+
+        previousTouch = true;
+      }
+
+    } else {
+      previousTouch = false;
+    }
     break;
   case REDRAW:
     break;
   }
+}
+
+long mapValue(long x, long inMin, long inMax, long outMin, long outMax) {
+  return (x - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
 }
 
 // game logic die alleen gedaan moet worden wanneer je net in deze gamestate
@@ -444,7 +464,9 @@ void handleStateChange(Snake &snake) {
           previousFastMode = isFastMode;
         }
       } else {
+        // largeFieldSnake.drawDeathScreen(true, 10, 8);
         largeFieldSnake.drawStartMenu();
+        // screen.fillScreen(BLACK);
       }
       break;
 
@@ -470,6 +492,8 @@ void handleStateChange(Snake &snake) {
         smallFieldSnake.reset();
       }
 
+      largeFieldSnake.drawDeathScreen(true, 20, 20);
+
       currentGameSpeed = NORMAL;
       break;
 
@@ -494,16 +518,19 @@ int main() {
 
   // LCD setup
 
+  screen.begin();
+
   // screen.setTextSize(2);
-  // screen.fillScreen(BLACK);
+  //screen.fillScreen(BLACK);
 
   sei();
 
   while (1) {
     TS_Point p = screen.getPoint();
 
-    p.x = map(p.x, 0, 240, 240, 0);
-    p.y = map(p.y, 0, 320, 320, 0);
+    p.x = mapValue(p.x, 0, 240, 240, 0);
+    p.y = mapValue(p.y, 0, 320, 320, 0);
+
 
     touchX = p.x;
     touchY = p.y;

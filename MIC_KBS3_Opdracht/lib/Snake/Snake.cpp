@@ -35,14 +35,14 @@ const uint16_t menuStartPlr2RenderData[] = {50,   180,  140, 70, DBLUE,
                                             CYAN, CYAN, 7,   16, 2};
 const uint16_t menuHScoreRenderData[] = {45,     280,    150, 20, DBLUE,
                                          YELLOW, YELLOW, 5,   3,  2};
-const uint16_t dscreenWinStateRenderData[] = {55, 20, 130, 40, GREEN, 
-                                            WHITE, WHITE, 2, 1, 3};
+const uint16_t dscreenWinStateRenderData[] = {45, 20, 150, 40, GREEN, 
+                                            BLACK, BLACK, 7, 8, 3};
 const uint16_t dscreenScoreRenderData[] = {45, 70, 150, 60, WHITE,
-                                          DBLUE, DBLUE, 10, 5, 2};
+                                          DBLUE, DBLUE, 10, 5, 1};
 const uint16_t dscreenMenuRenderData[] = {35, 180, 80, 60, DBLUE,
-                                          CYAN, CYAN, 20, 20, 2};
+                                          CYAN, CYAN, 18, 24, 2};
 const uint16_t dscreenPlayAgainRenderData[] = {125, 180, 80, 60, DBLUE,
-                                               CYAN, CYAN, 20, 20, 2};
+                                               CYAN, CYAN, 18, 10, 2};
 
 
 const uint16_t menuModeColor = GREEN;
@@ -52,6 +52,8 @@ const uint16_t menuFastModeSelectRenderData[3] = {RED, CYAN, CYAN};
 
 // BODYCOLOR, BORDERCOLOR, TEXTCOLOR
 const uint16_t menuPlr1SelectRenderData[3] = {GREEN, BLACK, BLACK};
+
+const uint16_t dscreenDefeatRenderData[3] = {BLACK, RED, RED};
 
 // 0 = PLR1POSX, 1 = PLR1POSY, 2 = PLR2POSX, 3 = PLR2POSY
 const uint16_t menuStartCursorLn2Data[4] = {30, 36, 7, 34};
@@ -277,19 +279,26 @@ void Snake::drawScore() {
 }
 
 // Draw Death Screen
-void Snake::drawDeathScreen() {
-  screen.fillScreen(BLACK);
-  screen.setCursor(60, 160);
-  screen.setTextColor(RED);
-  screen.setTextSize(2);
-  screen.println("Game Over!");
-  screen.println("PRESS Z TO CONTINUE");
+void Snake::drawDeathScreen(bool isWinner, uint8_t lengthPlr1, uint8_t lengthPlr2) {
+  if (isWinner) {
+    drawElement(9, true, false, true, true);
+  } else {
+    drawElement(9, false, false, true, true);
+  }
+
+  drawElement(10, false, false, true, true);
+
+  drawElement(11, false, false, true, true);
+  drawElement(12, false, false, true, true);
+
+  drawElement(8, false, false, true, true);
+
 }
 /*!
   @brief Draws an element with text, shadow and border.
 
   @param element The Index of the element: 0=Top; 1=Player1; 2=Player2; 3=Mode1;
-  4=Mode2; 5=Mode3; 6=StartPlr1; 7=StartPlr2; 8=Highscore
+  4=Mode2; 5=Mode3; 6=StartPlr1; 7=StartPlr2; 8=Highscore; 9=DScreenWinState; 10=DScreenScore; 11=DScreenMenu; 12=DScreenPlayAgain
   @param selected Whether the drawn element has been selected by Touch.
   @param redrawBody Whether the body of the element should be drawn.
   @param isStartUp Whether the shadow of the element should be drawn.
@@ -298,8 +307,8 @@ void Snake::drawElement(uint8_t element, bool selected, bool isPlayer1,
                         bool redrawBody, bool isStartup) {
   // Temporary Storage for storing Element Data
   uint16_t tempStorageArray[10] = {};
-  String elementText1 = "";
-  String elementText2 = "";
+  const char * elementText1 = "";
+  const char * elementText2 = "";
 
   // Store Element Data In Temporary Array
   if (element == 0) { // if TopText
@@ -352,9 +361,31 @@ void Snake::drawElement(uint8_t element, bool selected, bool isPlayer1,
   } else if (element == 8) { // if Highscore
     copyArray(menuHScoreRenderData, tempStorageArray, 10);
     elementText1 = menuRenderTextData[11];
+  } else if (element == 9) {  // if DScreen/Victory
+    copyArray(dscreenWinStateRenderData, tempStorageArray, 10);
+    if (selected) {
+      elementText1 = menuRenderTextData[12];
+    } else {
+      tempStorageArray[4] = dscreenDefeatRenderData[0];
+      tempStorageArray[5] = dscreenDefeatRenderData[1];
+      tempStorageArray[6] = dscreenDefeatRenderData[2];
+      elementText1 = menuRenderTextData[13];
+    }
+  } else if (element == 10) {  // if DScreen/Score
+    copyArray(dscreenScoreRenderData, tempStorageArray, 10);
+    elementText1 = menuRenderTextData[14];
+    elementText2 = menuRenderTextData[15];
+  } else if (element == 11) {  // if DScreen/Menu
+    copyArray(dscreenMenuRenderData, tempStorageArray, 10);
+    elementText1 = menuRenderTextData[16];
+  } else if (element == 12) {  // if DScreen/PlayAgain
+    copyArray(dscreenPlayAgainRenderData, tempStorageArray, 10);
+    elementText1 = menuRenderTextData[17];
+    elementText2 = menuRenderTextData[18];
   }
 
   // Draw Element
+  screen.setTextSize(tempStorageArray[9]);
   screen.setCursor(tempStorageArray[7] + tempStorageArray[0],
                    tempStorageArray[8] + tempStorageArray[1]); // Set Cursor
   screen.setTextColor(tempStorageArray[6]);                    // Set Text Color
@@ -375,22 +406,30 @@ void Snake::drawElement(uint8_t element, bool selected, bool isPlayer1,
   if (element == 8) {
     screen.print(getHighscore());
   }
-  if (elementText2.length() > 0) {      // if there is a second line of text
+  if (element == 10) {
+    screen.print(20);
+  }
+  if (strlen(elementText2) > 0) {      // if there is a second line of text
     if (isPlayer1) {                    // if this is Player1
       screen.setCursor(menuStartCursorLn2Data[0] + tempStorageArray[0],
                        menuStartCursorLn2Data[1] +
                            tempStorageArray[1]); // Set Cursor
-      screen.print(menuRenderTextData[8]);       // Draw Line 2
+      screen.print(elementText2);       // Draw Line 2
+
     } else {
       screen.setCursor(menuStartCursorLn2Data[2] + tempStorageArray[0],
                        menuStartCursorLn2Data[3] +
                            tempStorageArray[1]); // Set Cursor
-      screen.print(menuRenderTextData[10]);      // Draw Line 2
+      screen.print(elementText2);      // Draw Line 2
+    }
+    if (element == 10) {
+        screen.print(10);
     }
   }
 }
 
 void Snake::drawStartMenu() {
+  screen.fillScreen(BLACK);
   // Preset Text Size
   screen.setTextSize(2);
 

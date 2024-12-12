@@ -20,7 +20,7 @@ public:
   void spawnRandApple();
   void reset();
   void drawScore();
-  void drawDeathScreen();
+  void drawDeathScreen(bool isWinner, uint8_t lengthPlr1, uint8_t lengthPlr2);
   void drawStartMenu();
   void drawHighscore(uint8_t score);
   void drawPlayer1Text(bool selected);
