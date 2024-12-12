@@ -473,7 +473,7 @@ void handleStateChange(Snake &snake) {
       } else {
         smallFieldSnake.reset();
       }
-
+      currentGameSize = SIZE16x16;
       currentGameSpeed = NORMAL;
       break;
 

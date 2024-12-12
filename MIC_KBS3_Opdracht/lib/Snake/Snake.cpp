@@ -160,7 +160,11 @@ void Snake::draw() {
   drawCell(snakeX[1], snakeY[1], colour);
 
   // draw appel
-  drawCell(appleX, appleY, RED);
+  if(!(snakeX[0] == appleX && snakeY[0] == appleY)){
+    drawCell(appleX, appleY, RED);
+  }else{
+    drawCell(appleX, appleY, GREEN);
+  }
 
   // draw score
   drawScore();
