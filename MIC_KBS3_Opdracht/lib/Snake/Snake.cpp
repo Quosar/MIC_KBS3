@@ -1,6 +1,6 @@
 #include "Snake.h"
-#include "string.h"
 #include "HardwareSerial.h"
+#include "string.h"
 
 // Color defines
 #define BLACK 0x0000
@@ -15,16 +15,26 @@
 #define DBLUE 0x0007
 
 // Element Render Data
-// 0 = POSX, 1 = POSY, 2 = SIZEX, 3 = SIZEY, 4 = BODYCOLOR, 5 = BORDERCOLOR, 6 = TEXTCOLOR, 7 = TEXTCURSORPOSX, 8 = TEXTCURSORPOSY, 9 = TEXTSIZE
-const uint16_t menuTopRenderData[] = {70, 10, 100, 20, WHITE, RED, RED, 20, 3, 2}; 
-const uint16_t menuPlr1RenderData[] = {10, 45, 100, 20, WHITE, BLUE, BLUE, 3, 3, 2};
-const uint16_t menuPlr2RenderData[] = {130, 45, 100, 20, WHITE, BLUE, BLUE, 3, 3, 2};
-const uint16_t menuMode1RenderData[] = {70, 90, 100, 20, WHITE, MAGENTA, MAGENTA, 20, 3, 2};
-const uint16_t menuMode2RenderData[] = {70, 115, 100, 20, WHITE, MAGENTA, MAGENTA, 10, 3, 2};
-const uint16_t menuMode3RenderData[] = {70, 140, 100, 20, WHITE, MAGENTA, MAGENTA, 18, 3, 2};
-const uint16_t menuStartPlr1RenderData[] = {50, 180, 140, 70, DBLUE, CYAN, CYAN, 28, 10, 3};
-const uint16_t menuStartPlr2RenderData[] = {50, 180, 140, 70, DBLUE, CYAN, CYAN, 7, 16, 2};
-const uint16_t menuHScoreRenderData[] = {45, 280, 150, 20, DBLUE, YELLOW, YELLOW, 5, 3, 2};
+// 0 = POSX, 1 = POSY, 2 = SIZEX, 3 = SIZEY, 4 = BODYCOLOR, 5 = BORDERCOLOR, 6 =
+// TEXTCOLOR, 7 = TEXTCURSORPOSX, 8 = TEXTCURSORPOSY, 9 = TEXTSIZE
+const uint16_t menuTopRenderData[] = {70,  10,  100, 20, WHITE,
+                                      RED, RED, 20,  3,  2};
+const uint16_t menuPlr1RenderData[] = {10,   45,   100, 20, WHITE,
+                                       BLUE, BLUE, 3,   3,  2};
+const uint16_t menuPlr2RenderData[] = {130,  45,   100, 20, WHITE,
+                                       BLUE, BLUE, 3,   3,  2};
+const uint16_t menuMode1RenderData[] = {70,      90,      100, 20, WHITE,
+                                        MAGENTA, MAGENTA, 20,  3,  2};
+const uint16_t menuMode2RenderData[] = {70,      115,     100, 20, WHITE,
+                                        MAGENTA, MAGENTA, 10,  3,  2};
+const uint16_t menuMode3RenderData[] = {70,      140,     100, 20, WHITE,
+                                        MAGENTA, MAGENTA, 18,  3,  2};
+const uint16_t menuStartPlr1RenderData[] = {50,   180,  140, 70, DBLUE,
+                                            CYAN, CYAN, 28,  10, 3};
+const uint16_t menuStartPlr2RenderData[] = {50,   180,  140, 70, DBLUE,
+                                            CYAN, CYAN, 7,   16, 2};
+const uint16_t menuHScoreRenderData[] = {45,     280,    150, 20, DBLUE,
+                                         YELLOW, YELLOW, 5,   3,  2};
 
 const uint16_t menuModeColor = GREEN;
 
@@ -37,22 +47,27 @@ const uint16_t menuPlr1SelectRenderData[3] = {GREEN, BLACK, BLACK};
 // 0 = PLR1POSX, 1 = PLR1POSY, 2 = PLR2POSX, 3 = PLR2POSY
 const uint16_t menuStartCursorLn2Data[4] = {30, 36, 7, 34};
 
-// Top, Plr1, Plr2, Mode1, Mode2, Normal, Fast, Start1, Start2, Waiting1, Waiting2, HScore
-const String menuRenderTextData[] = {"Snake", "Player 1", "Player 2", "8 x 8", "16 x 16", "Normal", "FAST", "Start", "Game!", "Waiting for", "Player 1...", "Highscore:"};
+// Top, Plr1, Plr2, Mode1, Mode2, Normal, Fast, Start1, Start2, Waiting1,
+// Waiting2, HScore
+const String menuRenderTextData[] = {
+    "Snake",   "Player 1",    "Player 2",    "8 x 8",
+    "16 x 16", "Normal",      "FAST",        "Start",
+    "Game!",   "Waiting for", "Player 1...", "Highscore:"};
 
 const uint16_t TFT_WIDTH = 240;
 const uint16_t TFT_HEIGHT = 320;
 
 const uint8_t SNAKE_START_LENGHT = 3;
 
-void copyArray(const uint16_t arrayOG[10], uint16_t newArray[10], uint8_t arraySize) {
-  for (int i=0; i<arraySize; i++) {
+void copyArray(const uint16_t arrayOG[10], uint16_t newArray[10],
+               uint8_t arraySize) {
+  for (int i = 0; i < arraySize; i++) {
     newArray[i] = arrayOG[i];
   }
 }
 
 Snake::Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
-             Adafruit_ILI9341 screen, uint16_t colour)
+             Display screen, uint16_t colour)
     : gridSize(gridSize), cellWidth(cellWidth), cellHeight(cellHeight),
       screen(screen), colour(colour) {
   snakeLength = SNAKE_START_LENGHT;          // start lengte van de snake
@@ -219,9 +234,7 @@ void Snake::reset() {
 
 // }
 
-uint16_t Snake::getScore() {
-  return score;
-}
+uint16_t Snake::getScore() { return score; }
 
 uint16_t Snake::getHighscore() {
   if (score > highscore) {
@@ -258,25 +271,27 @@ void Snake::drawDeathScreen() {
 /*!
   @brief Draws an element with text, shadow and border.
 
-  @param element The Index of the element: 0=Top; 1=Player1; 2=Player2; 3=Mode1; 4=Mode2; 5=Mode3; 6=StartPlr1; 7=StartPlr2; 8=Highscore
+  @param element The Index of the element: 0=Top; 1=Player1; 2=Player2; 3=Mode1;
+  4=Mode2; 5=Mode3; 6=StartPlr1; 7=StartPlr2; 8=Highscore
   @param selected Whether the drawn element has been selected by Touch.
   @param redrawBody Whether the body of the element should be drawn.
   @param isStartUp Whether the shadow of the element should be drawn.
 */
-void Snake::drawElement(uint8_t element, bool selected, bool isPlayer1, bool redrawBody, bool isStartup) {
+void Snake::drawElement(uint8_t element, bool selected, bool isPlayer1,
+                        bool redrawBody, bool isStartup) {
   // Temporary Storage for storing Element Data
   uint16_t tempStorageArray[10] = {};
   String elementText1 = "";
   String elementText2 = "";
-  
+
   // Store Element Data In Temporary Array
-  if (element == 0) {         // if TopText 
+  if (element == 0) { // if TopText
     copyArray(menuTopRenderData, tempStorageArray, 10);
     elementText1 = menuRenderTextData[0];
-  } else if (element == 1) {  // if Player1
+  } else if (element == 1) { // if Player1
     copyArray(menuPlr1RenderData, tempStorageArray, 10);
     elementText1 = menuRenderTextData[1];
-  } else if (element == 2) {  // if Player2
+  } else if (element == 2) { // if Player2
     copyArray(menuPlr2RenderData, tempStorageArray, 10);
     elementText1 = menuRenderTextData[2];
     if (selected) {
@@ -284,21 +299,21 @@ void Snake::drawElement(uint8_t element, bool selected, bool isPlayer1, bool red
       tempStorageArray[5] = menuPlr1SelectRenderData[1];
       tempStorageArray[6] = menuPlr1SelectRenderData[2];
     }
-  } else if (element == 3) {  // if Mode1
+  } else if (element == 3) { // if Mode1
     copyArray(menuMode1RenderData, tempStorageArray, 10);
     elementText1 = menuRenderTextData[3];
     if (selected) {
       tempStorageArray[5] = menuModeColor;
       tempStorageArray[6] = menuModeColor;
     }
-  } else if (element == 4) {  // if Mode2
+  } else if (element == 4) { // if Mode2
     copyArray(menuMode2RenderData, tempStorageArray, 10);
     elementText1 = menuRenderTextData[4];
-        if (selected) {
+    if (selected) {
       tempStorageArray[5] = menuModeColor;
       tempStorageArray[6] = menuModeColor;
     }
-  } else if (element == 5) {  // if Mode3
+  } else if (element == 5) { // if Mode3
     copyArray(menuMode3RenderData, tempStorageArray, 10);
     if (selected) {
       tempStorageArray[4] = menuFastModeSelectRenderData[0];
@@ -309,37 +324,48 @@ void Snake::drawElement(uint8_t element, bool selected, bool isPlayer1, bool red
     } else {
       elementText1 = menuRenderTextData[5];
     }
-  } else if (element == 6) {  // if StartButtonPlayer1
+  } else if (element == 6) { // if StartButtonPlayer1
     copyArray(menuStartPlr1RenderData, tempStorageArray, 10);
     elementText1 = menuRenderTextData[7];
     elementText2 = menuRenderTextData[8];
-  } else if (element == 7) {  // if StartButtonPlayer2
+  } else if (element == 7) { // if StartButtonPlayer2
     copyArray(menuStartPlr2RenderData, tempStorageArray, 10);
     elementText1 = menuRenderTextData[9];
     elementText2 = menuRenderTextData[10];
-  } else if (element == 8) {  // if Highscore
+  } else if (element == 8) { // if Highscore
     copyArray(menuHScoreRenderData, tempStorageArray, 10);
     elementText1 = menuRenderTextData[11] + getHighscore();
   }
 
   // Draw Element
-  screen.setCursor(tempStorageArray[7] + tempStorageArray[0], tempStorageArray[8] + tempStorageArray[1]);                                     // Set Cursor
-  screen.setTextColor(tempStorageArray[6]);                                                                                                   // Set Text Color
-  if (isStartup) {                                                                                                                            // If this is on Startup
-    screen.fillRect(tempStorageArray[0] + 5, tempStorageArray[1] + 5, tempStorageArray[2], tempStorageArray[3], LGREY);                       // Draw Backdrop Rectangle
+  screen.setCursor(tempStorageArray[7] + tempStorageArray[0],
+                   tempStorageArray[8] + tempStorageArray[1]); // Set Cursor
+  screen.setTextColor(tempStorageArray[6]);                    // Set Text Color
+  if (isStartup) { // If this is on Startup
+    screen.fillRect(tempStorageArray[0] + 5, tempStorageArray[1] + 5,
+                    tempStorageArray[2], tempStorageArray[3],
+                    LGREY); // Draw Backdrop Rectangle
   }
-  if (redrawBody) {                                                                                                                           // If this element should be redrawn
-    screen.fillRect(tempStorageArray[0], tempStorageArray[1], tempStorageArray[2], tempStorageArray[3], tempStorageArray[4]);                 // Draw Background Rectangle
+  if (redrawBody) { // If this element should be redrawn
+    screen.fillRect(tempStorageArray[0], tempStorageArray[1],
+                    tempStorageArray[2], tempStorageArray[3],
+                    tempStorageArray[4]); // Draw Background Rectangle
   }
-  screen.drawRect(tempStorageArray[0] - 1, tempStorageArray[1] - 1, tempStorageArray[2] + 2, tempStorageArray[3] + 2, tempStorageArray[5]);   // Draw Boundary Rectangle
-  screen.print(elementText1);                                                                                                                 // Draw Text
-  if (elementText2.length() > 0) {                                                                                                            // if there is a second line of text
-    if (isPlayer1) {                                                                                                                          // if this is Player1
-      screen.setCursor(menuStartCursorLn2Data[0] + tempStorageArray[0], menuStartCursorLn2Data[1] + tempStorageArray[1]);                     // Set Cursor
-      screen.print(menuRenderTextData[8]);                                                                                                    // Draw Line 2
-    } else {                                      
-      screen.setCursor(menuStartCursorLn2Data[2] + tempStorageArray[0], menuStartCursorLn2Data[3] + tempStorageArray[1]);                     // Set Cursor                
-      screen.print(menuRenderTextData[10]);                                                                                                   // Draw Line 2
+  screen.drawRect(tempStorageArray[0] - 1, tempStorageArray[1] - 1,
+                  tempStorageArray[2] + 2, tempStorageArray[3] + 2,
+                  tempStorageArray[5]); // Draw Boundary Rectangle
+  screen.print(elementText1);           // Draw Text
+  if (elementText2.length() > 0) {      // if there is a second line of text
+    if (isPlayer1) {                    // if this is Player1
+      screen.setCursor(menuStartCursorLn2Data[0] + tempStorageArray[0],
+                       menuStartCursorLn2Data[1] +
+                           tempStorageArray[1]); // Set Cursor
+      screen.print(menuRenderTextData[8]);       // Draw Line 2
+    } else {
+      screen.setCursor(menuStartCursorLn2Data[2] + tempStorageArray[0],
+                       menuStartCursorLn2Data[3] +
+                           tempStorageArray[1]); // Set Cursor
+      screen.print(menuRenderTextData[10]);      // Draw Line 2
     }
   }
 }
@@ -379,7 +405,7 @@ void Snake::drawStartMenu() {
   drawElement(8, false, false, true, true);
 }
 
-Snake::Direction Snake::getDirection(){ return direction; }
+Snake::Direction Snake::getDirection() { return direction; }
 
 void Snake::setDirection(Direction direction) { direction = direction; }
 

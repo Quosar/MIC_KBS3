@@ -1,6 +1,5 @@
 #include "Adafruit_FT6206.h"
-#include "Adafruit_GFX.h"
-#include "Adafruit_ILI9341.h"
+#include "Display.h"
 #include "HardwareSerial.h"
 #include "Nunchuk.h"
 #include <Arduino.h>
@@ -9,19 +8,20 @@
 #include <avr/interrupt.h>
 #include <avr/io.h>
 
-// LCD Pin Defines
-#define TFT_CLK 13
-#define TFT_MISO 12
-#define TFT_MOSI 11
-#define TFT_DC 9
-#define TFT_CS 10
-#define TFT_RST 8
+
 
 // TFT defines
 const uint8_t LARGE_FIELD_GRID_SIZE = 16;
 const uint8_t SMALL_FIELD_GRID_SIZE = 8;
 const uint8_t TFT_WIDTH = 240;
 const uint16_t TFT_HEIGHT = 320;
+
+#define TFT_CLK 13
+#define TFT_MISO 12
+#define TFT_MOSI 11
+#define TFT_DC 9
+#define TFT_CS 10
+#define TFT_RST 8
 
 // Color defines
 #define BLACK 0x0000
@@ -61,7 +61,8 @@ const uint16_t TFT_HEIGHT = 320;
 #define COMMUNICATIONOFFSETMIN 0
 
 // LCD object
-Adafruit_ILI9341 screen(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
+Display screen;
+
 
 // Touchscreen object
 Adafruit_FT6206 ts;
@@ -287,16 +288,14 @@ void deconstructBus(uint32_t bus) {
 }
 
 void updateGame(Snake &snake) {
-  if (!isPlayer1) {
-    snake.move(); // Move snake based on received direction
-    snake.draw();
-    snake.drawScore();
-    if (snake.eatApple(snake.appleX, snake.appleY)) {
-      snake.grow();
-    }
-    if (snake.checkCollision()) {
-      currentState = DEATH;
-    }
+  snake.move(); // Move snake based on received direction
+  snake.draw();
+  snake.drawScore();
+  if (snake.eatApple(snake.appleX, snake.appleY)) {
+    snake.grow();
+  }
+  if (snake.checkCollision()) {
+    currentState = DEATH;
   }
 }
 
@@ -319,8 +318,13 @@ void stickHandler() {
 
 void directionHandler() {
   if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
-    largeFieldSnake.updateDirection(nunchuck.state.joy_x_axis,
-                                    nunchuck.state.joy_y_axis);
+    if (currentGameSize == SIZE16x16) {
+      largeFieldSnake.updateDirection(nunchuck.state.joy_x_axis,
+                                      nunchuck.state.joy_y_axis);
+    } else {
+      smallFieldSnake.updateDirection(nunchuck.state.joy_x_axis,
+                                      nunchuck.state.joy_y_axis);
+    }
   }
 }
 
@@ -454,7 +458,8 @@ void handleStateChange(Snake &snake) {
         largeFieldSnake.start(LARGE_FIELD_GRID_SIZE / 2,
                               LARGE_FIELD_GRID_SIZE / 2);
       } else {
-        smallFieldSnake.start(3, 3);
+        smallFieldSnake.start(SMALL_FIELD_GRID_SIZE / 2,
+                              SMALL_FIELD_GRID_SIZE / 2);
       }
 
       // teken border
@@ -465,6 +470,8 @@ void handleStateChange(Snake &snake) {
     case DEATH:
       if (currentGameSize == SIZE16x16) {
         largeFieldSnake.reset();
+      } else {
+        smallFieldSnake.reset();
       }
 
       currentGameSpeed = NORMAL;
@@ -491,8 +498,9 @@ int main() {
 
   // LCD setup
 
-  screen.begin();
+
   screen.setTextSize(2);
+  screen.fillScreen(BLACK);
 
   ts.begin();
 

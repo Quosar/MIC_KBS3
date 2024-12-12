@@ -3,11 +3,12 @@
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_ILI9341.h>
+#include "Display.h"
 
 class Snake {
 public:
   Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
-        Adafruit_ILI9341 screen, uint16_t colour);
+         Display screen, uint16_t colour);
 
   void start(uint8_t x, uint8_t y);
   void updateDirection(uint8_t joyX, uint8_t joyY);
@@ -46,7 +47,7 @@ private:
   uint16_t cellWidth, cellHeight;
   uint8_t *snakeX; // pointer voor dynamische array
   uint8_t *snakeY;
-  Adafruit_ILI9341 screen;
+  Display screen;
   uint16_t colour;
   uint8_t score = 0;
   uint8_t highscore = 0;
