@@ -26,8 +26,6 @@ public:
   void setCursor(int16_t x, int16_t y);
   void setTextColor(uint16_t color, uint16_t bg);
   void setTextSize(uint8_t size);
-  void print(const char *text);
-  void println(const char *text);
   void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
   void fillTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2,
                     int16_t y2, uint16_t color);
@@ -35,6 +33,11 @@ public:
   void drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
   void setTextColor(uint16_t color);
   void print(String text);
+  void println(String text);
+  void print(const char *text);
+  void println(const char *text);
+  void print(int8_t text);
+  void println(int8_t text);
 
   uint8_t width();
   uint16_t height();

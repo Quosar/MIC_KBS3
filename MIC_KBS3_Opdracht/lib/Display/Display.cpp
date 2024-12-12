@@ -60,6 +60,18 @@ void Display::print(String text) {
     display.print(text);
 }
 
+void Display::println(String text) {
+    display.println(text);
+}
+
+void Display::print(int8_t text) {
+    display.print(text);
+}
+
+void Display::println(int8_t text) {
+    display.println(text);
+}
+
 uint8_t Display::width()
 {
     return 240;

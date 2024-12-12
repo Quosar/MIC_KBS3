@@ -35,6 +35,15 @@ const uint16_t menuStartPlr2RenderData[] = {50,   180,  140, 70, DBLUE,
                                             CYAN, CYAN, 7,   16, 2};
 const uint16_t menuHScoreRenderData[] = {45,     280,    150, 20, DBLUE,
                                          YELLOW, YELLOW, 5,   3,  2};
+const uint16_t dscreenWinStateRenderData[] = {55, 20, 130, 40, GREEN, 
+                                            WHITE, WHITE, 2, 1, 3};
+const uint16_t dscreenScoreRenderData[] = {45, 70, 150, 60, WHITE,
+                                          DBLUE, DBLUE, 10, 5, 2};
+const uint16_t dscreenMenuRenderData[] = {35, 180, 80, 60, DBLUE,
+                                          CYAN, CYAN, 20, 20, 2};
+const uint16_t dscreenPlayAgainRenderData[] = {125, 180, 80, 60, DBLUE,
+                                               CYAN, CYAN, 20, 20, 2};
+
 
 const uint16_t menuModeColor = GREEN;
 
@@ -47,12 +56,20 @@ const uint16_t menuPlr1SelectRenderData[3] = {GREEN, BLACK, BLACK};
 // 0 = PLR1POSX, 1 = PLR1POSY, 2 = PLR2POSX, 3 = PLR2POSY
 const uint16_t menuStartCursorLn2Data[4] = {30, 36, 7, 34};
 
-// Top, Plr1, Plr2, Mode1, Mode2, Normal, Fast, Start1, Start2, Waiting1,
-// Waiting2, HScore
-const String menuRenderTextData[] = {
-    "Snake",   "Player 1",    "Player 2",    "8 x 8",
-    "16 x 16", "Normal",      "FAST",        "Start",
-    "Game!",   "Waiting for", "Player 1...", "Highscore:"};
+// 0 = Top, 1 = Plr1, 2 = Plr2, 3 = Mode1,
+// 4 = Mode2, 5 = Normal, 6 = Fast,
+// 7 = Start1, 8 = Start2, 9 = Waiting1,
+// 10 = Waiting2, 11 =  HScore, 12 = Victory,
+// 13 = Defeat, 14 = YourScore, 15 = OpponentScore,
+// 16 = Menu, 17 = Play, 18 = Again
+const char * menuRenderTextData[] = {
+  "Snake",               "Player 1",      "Player 2",
+  "8 x 8",               "16 x 16",       "Normal",
+  "FAST",                "Start",         "Game!",
+  "Waiting for",         "Player 1...",   "Highscore:",
+  "Victory!",            "Defeat!",       "Your Score: ",
+  "Opponent's Score: ",  "Menu",          "Play",
+  "Again!"};
 
 const uint16_t TFT_WIDTH = 240;
 const uint16_t TFT_HEIGHT = 320;
@@ -334,7 +351,7 @@ void Snake::drawElement(uint8_t element, bool selected, bool isPlayer1,
     elementText2 = menuRenderTextData[10];
   } else if (element == 8) { // if Highscore
     copyArray(menuHScoreRenderData, tempStorageArray, 10);
-    elementText1 = menuRenderTextData[11] + getHighscore();
+    elementText1 = menuRenderTextData[11];
   }
 
   // Draw Element
@@ -355,6 +372,9 @@ void Snake::drawElement(uint8_t element, bool selected, bool isPlayer1,
                   tempStorageArray[2] + 2, tempStorageArray[3] + 2,
                   tempStorageArray[5]); // Draw Boundary Rectangle
   screen.print(elementText1);           // Draw Text
+  if (element == 8) {
+    screen.print(getHighscore());
+  }
   if (elementText2.length() > 0) {      // if there is a second line of text
     if (isPlayer1) {                    // if this is Player1
       screen.setCursor(menuStartCursorLn2Data[0] + tempStorageArray[0],

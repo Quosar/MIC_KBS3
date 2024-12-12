@@ -498,9 +498,8 @@ int main() {
 
   // LCD setup
 
-
-  screen.setTextSize(2);
-  screen.fillScreen(BLACK);
+  // screen.setTextSize(2);
+  // screen.fillScreen(BLACK);
 
   ts.begin();
 
