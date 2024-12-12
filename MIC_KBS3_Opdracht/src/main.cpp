@@ -63,10 +63,6 @@ const uint16_t TFT_HEIGHT = 320;
 // LCD object
 Display screen;
 
-
-// Touchscreen object
-Adafruit_FT6206 ts;
-
 // Nunchuk Object
 NunChuk nunchuck;
 const uint8_t NUNCHUCK_ADDRESS = 0x52;
@@ -501,12 +497,10 @@ int main() {
   // screen.setTextSize(2);
   // screen.fillScreen(BLACK);
 
-  ts.begin();
-
   sei();
 
   while (1) {
-    TS_Point p = ts.getPoint();
+    TS_Point p = screen.getPoint();
 
     p.x = map(p.x, 0, 240, 240, 0);
     p.y = map(p.y, 0, 320, 320, 0);

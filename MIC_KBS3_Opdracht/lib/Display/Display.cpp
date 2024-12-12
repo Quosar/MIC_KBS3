@@ -3,6 +3,8 @@
 Display::Display()
     : display(TFT_CS, TFT_DC) {
     display.begin();
+
+    touchscreen.begin();
 }
 
 Display::~Display() {}
@@ -70,6 +72,10 @@ void Display::print(int8_t text) {
 
 void Display::println(int8_t text) {
     display.println(text);
+}
+
+TS_Point Display::getPoint() {
+  return touchscreen.getPoint();
 }
 
 uint8_t Display::width()

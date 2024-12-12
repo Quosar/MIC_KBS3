@@ -1,6 +1,6 @@
 #ifndef DISPLAY___H
 #define DISPLAY___H
-#include "Adafruit_GFX.h"
+#include "Adafruit_FT6206.h"
 #include "Adafruit_ILI9341.h"
 
 // LCD Pin Defines
@@ -14,6 +14,7 @@
 class Display {
 private:
   Adafruit_ILI9341 display;
+  Adafruit_FT6206 touchscreen;
 
 public:
   Display();
@@ -38,6 +39,8 @@ public:
   void println(const char *text);
   void print(int8_t text);
   void println(int8_t text);
+
+  TS_Point getPoint();
 
   uint8_t width();
   uint16_t height();
