@@ -230,14 +230,14 @@ void Snake::reset() {
   // snakelengte resetten
   snakeLength = SNAKE_START_LENGHT; // start lenget snake
 
-  // snake position resetten naar het midden
-  start(gridSize / 2, gridSize / 2);
+  // Clear Arrays om memory leaks te voorkomen
+  delete[] snakeX;
+  delete[] snakeY;
 
-  // alles wat niet de snake is clearen
-  for (int i = 1; i < gridSize * gridSize; i++) {
-    snakeX[i] = 0;
-    snakeY[i] = 0;
-  }
+  // Herinitialize de arrays
+  snakeX = new uint8_t[gridSize * gridSize];
+  snakeY = new uint8_t[gridSize * gridSize];
+
 
   // start richting zetten
   direction = RIGHT;
@@ -247,6 +247,7 @@ void Snake::reset() {
 
   // nieuwe appel spawnen
   spawnRandApple();
+
 }
 
 // void Snake::setHighscore(uint8_t newScore) {
@@ -280,6 +281,7 @@ void Snake::drawScore() {
 
 // Draw Death Screen
 void Snake::drawDeathScreen(bool isWinner, uint8_t lengthPlr1, uint8_t lengthPlr2) {
+  screen.fillScreen(BLACK);
   if (isWinner) {
     drawElement(9, true, false, true, true);
   } else {

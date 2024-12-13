@@ -468,39 +468,35 @@ void handleStateChange(Snake &snake) {
           previousFastMode = isFastMode;
         }
       } else {
-        // largeFieldSnake.drawDeathScreen(true, 10, 8);
         largeFieldSnake.drawStartMenu();
-        // screen.fillScreen(BLACK);
       }
       break;
 
     case START:
       screen.fillScreen(BLACK);
       if (currentGameSize == SIZE16x16) {
+        largeFieldSnake.reset();
         largeFieldSnake.start(LARGE_FIELD_GRID_SIZE / 2,
                               LARGE_FIELD_GRID_SIZE / 2);
       } else {
+        smallFieldSnake.reset();
         smallFieldSnake.start(SMALL_FIELD_GRID_SIZE / 2,
                               SMALL_FIELD_GRID_SIZE / 2);
       }
 
       // teken border
       screen.drawLine(0, TFT_WIDTH, TFT_WIDTH, TFT_WIDTH, WHITE);
-      currentState = INGAME;
-
       previousGameSpeed = currentGameSpeed;
       previousGameSize = currentGameSize;
+      currentState = INGAME;
+
+
       break;
 
     case DEATH:
-      if (currentGameSize == SIZE16x16) {
-        largeFieldSnake.reset();
-      } else {
-        smallFieldSnake.reset();
-      }
+      snake.drawDeathScreen(true, 20, 20);
 
-      largeFieldSnake.drawDeathScreen(true, 20, 20);
-
+      currentGameSize = SIZE16x16;
       currentGameSpeed = NORMAL;
       break;
 
