@@ -147,6 +147,9 @@ void setupPins() {
 
   DDRD |= (1 << PD7);   // PD7 Ouptut
   PORTD &= ~(1 << PD7); // PD7 begint LOW
+
+  DDRD |= (1 << PD5);
+  PORTD &= ~(1 << PD5);
 }
 
 void setupTimers() {
@@ -683,6 +686,10 @@ void communicate() {
     }
     IRWaiting = false;
   }
+}
+
+ISR(TIMER2_COMPB_vect) {
+  PORTD ^= (1 << PD5);
 }
 
 ISR(TIMER1_COMPA_vect) { communicate(); }

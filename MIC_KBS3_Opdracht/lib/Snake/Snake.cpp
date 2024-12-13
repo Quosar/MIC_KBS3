@@ -14,6 +14,11 @@
 #define LGREY 0x4208
 #define DBLUE 0x0007
 
+// Sound Defines
+#define SOUND_EAT 128
+#define SOUND_GAMESTART 50
+#define SOUND_DEATH 20;
+
 // Element Render Data
 // 0 = POSX, 1 = POSY, 2 = SIZEX, 3 = SIZEY, 4 = BODYCOLOR, 5 = BORDERCOLOR, 6 =
 // TEXTCOLOR, 7 = TEXTCURSORPOSX, 8 = TEXTCURSORPOSY, 9 = TEXTSIZE
@@ -258,6 +263,19 @@ void Snake::reset() {
 // void Snake::setHighscore(uint8_t newScore) {
 
 // }
+
+void Snake::playSound(Sound sound) {
+  TIMSK2 |= (1 << OCIE2B);
+  TCNT2 = 0;
+
+  if (sound == EAT) {
+    OCR2B = 128;
+  }
+}
+
+void Snake::stopSound() {
+  TIMSK2 &= ~(1 << OCIE2B);
+}
 
 uint16_t Snake::getScore() { return score; }
 

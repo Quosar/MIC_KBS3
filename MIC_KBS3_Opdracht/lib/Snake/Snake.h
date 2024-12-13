@@ -27,6 +27,12 @@ public:
   void drawPlayer2Text(bool selected);
   void drawGameStartButton(bool isPlayer1);
   void drawElement(uint8_t element, bool selected, bool isPlayer1, bool redrawBody, bool isStartup);
+
+  enum Sound { EAT, DEATH, STARTGAME };
+
+  void playSound(Sound sound);
+  void stopSound();
+
   enum Direction { UP, DOWN, LEFT, RIGHT };
   Direction direction;
   Direction getDirection();
@@ -34,6 +40,7 @@ public:
 
   uint16_t getScore();
   uint16_t getHighscore();
+
 
   // void setHighscore(uint8_t newScore);
 
