@@ -158,21 +158,21 @@ void setupTimers() {
   TCCR0A = 0;
   TCCR0B = 0;
   
-  // Fast PWM mode with OCR0A as TOP (mode = 7)
+  // Fast PWM mode OCR0A als TOP
   TCCR0A |= (1 << WGM00) | (1 << WGM01);
   TCCR0B |= (1 << WGM02);
   
   // No prescaler
-  TCCR0B |= (1 << CS00); // CS00=1 -> no prescaling
+  TCCR0B |= (1 << CS00);
   
-  // Toggle OC0A on compare match (OC0A on PD6)
+  // Toggle OC0A on compare match (OC0A PD6)
   TCCR0A |= (1 << COM0A0);
 
-  // Non-inverting PWM on OC0B (backlight on PD5)
+  // Non-inverting PWM on OC0B (backlight PD5)
   TCCR0A |= (1 << COM0B1);
 
-  // Set OCR0A for ~38 kHz
-  OCR0A = 209; 
+  // Set OCR0A for 38 kHz
+  OCR0A = OCSILLATIONSPEED; 
 
   // Initially set OCR0B for backlight
   OCR0B = 0;

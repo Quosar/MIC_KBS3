@@ -89,14 +89,10 @@ void Display::println(int8_t text) {
 }
 
 void Display::refreshBacklight() {
-  // Start ADC conversion if not already running
   if(!(ADCSRA & (1<<ADSC))){
-    // When conversion completes, ADCH has the 8-bit result (left aligned)
-    // Map ADCH (0-255) to (0-25) for OCR0B
-    OCR0B = ADCH / 2; // Rough scaling: 255/25 ≈ 10
-    
-    // Start next conversion
-    ADCSRA |= (1<<ADSC);
+    OCR0B = ADCH / 2; // zorgen dat die binnen 209 blijft
+
+    ADCSRA |= (1<<ADSC); // volgende conversie
   }
 }
 
