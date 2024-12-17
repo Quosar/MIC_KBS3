@@ -341,58 +341,6 @@ int8_t calculateFrameCount(uint8_t snakeLength) {
 void handleState() {
   switch (currentState) {
   case MENU:
-    if (isTouching) {
-      if (isTouching != previousTouch) {
-        // Check in bounds
-
-        // Mode 1
-        if ((touchX >= MENU_MODE1_X && touchX <= MENU_MODE1_X + 100) &&
-            (touchY >= MENU_MODE1_Y && touchY <= MENU_MODE1_Y + 20)) {
-          currentGameSize = SIZE8x8;
-          previousState = REDRAW;
-        }
-
-        // Mode 2
-        if ((touchX >= MENU_MODE2_X && touchX <= MENU_MODE2_X + 100) &&
-            (touchY >= MENU_MODE2_Y && touchY <= MENU_MODE2_Y + 20)) {
-          currentGameSize = SIZE16x16;
-          previousState = REDRAW;
-        }
-
-        // Mode 3
-        if ((touchX >= MENU_MODE3_X && touchX <= MENU_MODE3_X + 100) &&
-            (touchY >= MENU_MODE3_Y && touchY <= MENU_MODE3_Y + 20)) {
-          isFastMode = !isFastMode;
-          if (isFastMode) {
-            currentGameSpeed = FAST;
-          } else {
-            currentGameSpeed = NORMAL;
-          }
-          previousState = REDRAW;
-        }
-
-        // Select Player 1 + Show Start Button
-        if ((touchX >= MENU_PLR1_X && touchX <= MENU_PLR1_X + 100) &&
-            (touchY >= MENU_PLR1_Y && touchY <= MENU_PLR1_Y + 20)) {
-          isPlayer1 = true;
-          largeFieldSnake.drawElement(1, true, true, true, false);
-        }
-
-        // For Testing, this does not require player1/player2 selection and is
-        // prerendered
-        if ((touchX >= MENU_START_X && touchX <= MENU_START_X + 140) &&
-            (touchY >= MENU_START_Y && touchY <= MENU_START_Y + 70)) {
-          // Detection
-          currentState = START;
-        }
-
-        previousTouch = true;
-      }
-
-    } else {
-      previousTouch = false;
-    }
-
     break;
 
   case INGAME:
@@ -410,30 +358,6 @@ void handleState() {
     break;
 
   case DEATH:
-     if (isTouching) {
-      if (isTouching != previousTouch) {
-        // Check in bounds
-
-        // Mode 1
-        if ((touchX >= DSCREEN_MENU_X && touchX <= DSCREEN_MENU_X + 80) &&
-            (touchY >= DSCREEN_MENU_Y && touchY <= DSCREEN_MENU_Y + 60)) {
-          currentState = MENU;
-        }
-
-        // Mode 2
-        if ((touchX >= DSCREEN_PAGAIN_X && touchX <= DSCREEN_PAGAIN_X + 80) &&
-            (touchY >= DSCREEN_PAGAIN_Y && touchY <= DSCREEN_PAGAIN_Y + 60)) {
-              currentGameSize = previousGameSize;
-              currentGameSpeed = previousGameSpeed;
-              currentState = START;
-           }
-
-        previousTouch = true;
-      }
-
-    } else {
-      previousTouch = false;
-    }
     break;
   case REDRAW:
     break;
@@ -490,7 +414,6 @@ void handleStateChange(Snake &snake) {
       previousGameSize = currentGameSize;
       currentState = INGAME;
 
-
       break;
 
     case DEATH:
@@ -510,6 +433,101 @@ void handleStateChange(Snake &snake) {
   }
 }
 
+void handleDeathscreenTouch() {
+  if (isTouching) {
+    if (isTouching != previousTouch) {
+      // Check in bounds
+
+      // Mode 1
+      if ((touchX >= DSCREEN_MENU_X && touchX <= DSCREEN_MENU_X + 80) &&
+          (touchY >= DSCREEN_MENU_Y && touchY <= DSCREEN_MENU_Y + 60)) {
+        currentState = MENU;
+      }
+
+      // Mode 2
+      if ((touchX >= DSCREEN_PAGAIN_X && touchX <= DSCREEN_PAGAIN_X + 80) &&
+          (touchY >= DSCREEN_PAGAIN_Y && touchY <= DSCREEN_PAGAIN_Y + 60)) {
+        currentGameSize = previousGameSize;
+        currentGameSpeed = previousGameSpeed;
+        currentState = START;
+      }
+
+      previousTouch = true;
+    }
+
+  } else {
+    previousTouch = false;
+  }
+}
+
+void handleMenuTouch() {
+  if (isTouching) {
+    if (isTouching != previousTouch) {
+      // Check in bounds
+
+      // Mode 1
+      if ((touchX >= MENU_MODE1_X && touchX <= MENU_MODE1_X + 100) &&
+          (touchY >= MENU_MODE1_Y && touchY <= MENU_MODE1_Y + 20)) {
+        currentGameSize = SIZE8x8;
+        previousState = REDRAW;
+      }
+
+      // Mode 2
+      if ((touchX >= MENU_MODE2_X && touchX <= MENU_MODE2_X + 100) &&
+          (touchY >= MENU_MODE2_Y && touchY <= MENU_MODE2_Y + 20)) {
+        currentGameSize = SIZE16x16;
+        previousState = REDRAW;
+      }
+
+      // Mode 3
+      if ((touchX >= MENU_MODE3_X && touchX <= MENU_MODE3_X + 100) &&
+          (touchY >= MENU_MODE3_Y && touchY <= MENU_MODE3_Y + 20)) {
+        isFastMode = !isFastMode;
+        if (isFastMode) {
+          currentGameSpeed = FAST;
+        } else {
+          currentGameSpeed = NORMAL;
+        }
+        previousState = REDRAW;
+      }
+
+      // Select Player 1 + Show Start Button
+      if ((touchX >= MENU_PLR1_X && touchX <= MENU_PLR1_X + 100) &&
+          (touchY >= MENU_PLR1_Y && touchY <= MENU_PLR1_Y + 20)) {
+        isPlayer1 = true;
+        largeFieldSnake.drawElement(1, true, true, true, false);
+      }
+
+      // For Testing, this does not require player1/player2 selection and is
+      // prerendered
+      if ((touchX >= MENU_START_X && touchX <= MENU_START_X + 140) &&
+          (touchY >= MENU_START_Y && touchY <= MENU_START_Y + 70)) {
+        // Detection
+        currentState = START;
+      }
+
+      previousTouch = true;
+    }
+
+  } else {
+    previousTouch = false;
+  }
+}
+
+void touchHandler() {
+  switch (currentState) {
+  case MENU:
+    handleMenuTouch(); // handle touch van menu input elke loop
+    break;
+  case INGAME:
+    directionHandler();
+    break;
+  case DEATH:
+    handleDeathscreenTouch();
+    break;
+  }
+}
+
 int main() {
   init();
   Wire.begin();
@@ -519,40 +537,23 @@ int main() {
   SetupInterrupts();
   initializeCommunication();
 
-  // LCD setup
-
   screen.begin();
-
-  // screen.setTextSize(2);
-  //screen.fillScreen(BLACK);
-
+  
   sei();
 
   while (1) {
     TS_Point p = screen.getPoint();
+    touchX = mapValue(p.x, 0, 240, 240, 0);
+    touchY = mapValue(p.y, 0, 320, 320, 0);
+    isTouching = p.z > 0;
 
-    p.x = mapValue(p.x, 0, 240, 240, 0);
-    p.y = mapValue(p.y, 0, 320, 320, 0);
-
-
-    touchX = p.x;
-    touchY = p.y;
-
-    if (p.z > 0) {
-      isTouching = true;
-    } else {
-      isTouching = false;
-    }
-
-    directionHandler(); // update direction tussen frames
-
+    touchHandler();
     if (runFrame) {
       handleStateChange(largeFieldSnake);
       handleState();
       runFrame = false;
     }
   }
-
   return 0;
 }
 
