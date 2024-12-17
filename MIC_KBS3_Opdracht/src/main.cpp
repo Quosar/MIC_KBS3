@@ -484,8 +484,8 @@ void handleStateChange(Snake &snake) {
                               SMALL_FIELD_GRID_SIZE / 2);
       }
 
-      // teken border
-      screen.drawLine(0, TFT_WIDTH, TFT_WIDTH, TFT_WIDTH, WHITE);
+      // teken border 1 pixel onder speelveld
+      screen.drawLine(0, TFT_WIDTH + 1, TFT_WIDTH, TFT_WIDTH + 1, WHITE);
       previousGameSpeed = currentGameSpeed;
       previousGameSize = currentGameSize;
       currentState = INGAME;
