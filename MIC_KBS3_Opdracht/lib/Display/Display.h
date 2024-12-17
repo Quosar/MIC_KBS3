@@ -40,6 +40,8 @@ public:
   void print(int8_t text);
   void println(int8_t text);
 
+  void refreshBacklight();
+
   TS_Point getPoint();
 
   uint8_t width();

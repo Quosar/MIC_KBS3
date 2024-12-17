@@ -100,6 +100,8 @@ Snake::Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
   direction = RIGHT;                         // beginrichting is rechts
   bufferedDirection = RIGHT;                 // gebufferde richting dus ook
   spawnRandApple();
+
+  OCR0A = 0;
 }
 
 void Snake::start(uint8_t x, uint8_t y) {
@@ -265,11 +267,15 @@ void Snake::reset() {
 // }
 
 void Snake::playSound(Sound sound) {
-  TIMSK2 |= (1 << OCIE2B);
-  TCNT2 = 0;
+  TIMSK0 |= (1 << OCIE0A);
+  TCNT0 = 0;
 
   if (sound == EAT) {
-    OCR2B = 128;
+    OCR0A = SOUND_EAT;
+  } else if (sound == DEATH) {
+    OCR0A = SOUND_DEATH; 
+  } else if (sound == STARTGAME) {
+    OCR0A = SOUND_GAMESTART;
   }
 }
 
