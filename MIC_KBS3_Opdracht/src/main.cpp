@@ -2,8 +2,8 @@
 #include "HardwareSerial.h"
 #include "Nunchuk.h"
 #include <Arduino.h>
-#include <Snake.h>
 #include <Communication.h>
+#include <Snake.h>
 #include <Wire.h>
 #include <avr/interrupt.h>
 #include <avr/io.h>
@@ -44,11 +44,6 @@ const uint16_t TFT_HEIGHT = 320;
 #define DSCREEN_PAGAIN_X 125
 #define DSCREEN_PAGAIN_Y 180
 
-// IR Pins
-#define IR_TRANSMITTER_PIN PD6
-#define IR_RECEIVER_PIN PD2
-
-// TODO: VANAF HIER COMMUNICATIE VAR AND FUNCS VOOR IN EEN CLASS ZO
 #define IR_LED_PIN PD6         // Pin 6 voor IR LED (OC0A)
 #define IR_RECEIVER_PIN PD2    // Pin 2 voor IR Receiver (INT0)
 #define DATABITCOUNT 32        // bits in een databus
@@ -129,9 +124,9 @@ void directionHandler() {
 int8_t calculateFrameCount(uint8_t snakeLength) {
   int8_t frameCount;
   if (currentGameSpeed == NORMAL) {
-    frameCount = 8 - (snakeLength / 5);
+    frameCount = 10 - (snakeLength / 5);
   } else if (currentGameSpeed == FAST) {
-    frameCount = 4 - (snakeLength / 5);
+    frameCount = 5 - (snakeLength / 5);
   }
   if (frameCount < 2)
     frameCount = 2; // maximum snelheid
@@ -161,7 +156,6 @@ void handleState() {
     }
 
     break;
-
   case DEATH:
     break;
   case REDRAW:
@@ -226,9 +220,8 @@ void handleStateChange(Snake &snake) {
 
     case DEATH:
       snake.drawDeathScreen(true, 20, 20);
-
-      currentGameSize = SIZE16x16;
       currentGameSpeed = NORMAL;
+      currentGameSize = SIZE16x16;
       break;
 
     case INGAME:
@@ -302,7 +295,7 @@ void handleMenuTouch() {
       // Select Player 1 + Show Start Button
       if ((touchX >= MENU_PLR1_X && touchX <= MENU_PLR1_X + 100) &&
           (touchY >= MENU_PLR1_Y && touchY <= MENU_PLR1_Y + 20)) {
-        //communication.isPlayer1 = true;
+        // communication.isPlayer1 = true;
         largeFieldSnake.drawElement(1, true, true, true, false);
       }
 
@@ -323,6 +316,11 @@ void handleMenuTouch() {
 }
 
 void touchHandler() {
+  TS_Point p = screen.getPoint();
+  touchX = mapValue(p.x, 0, 240, 240, 0);
+  touchY = mapValue(p.y, 0, 320, 320, 0);
+  isTouching = p.z > 0;
+
   switch (currentState) {
   case MENU:
     handleMenuTouch(); // handle touch van menu input elke loop
@@ -340,21 +338,17 @@ int main() {
   init();
   Wire.begin();
 
+  // aparte setups voor testen
   communication.setupPins();
   communication.setupTimers();
   communication.SetupInterrupts();
   communication.initializeCommunication();
 
   screen.begin();
-  
+
   sei();
 
   while (1) {
-    TS_Point p = screen.getPoint();
-    touchX = mapValue(p.x, 0, 240, 240, 0);
-    touchY = mapValue(p.y, 0, 320, 320, 0);
-    isTouching = p.z > 0;
-
     touchHandler();
     if (communication.runFrame) {
       // if(currentGameSize == SIZE16x16){
