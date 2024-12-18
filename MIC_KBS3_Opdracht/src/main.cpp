@@ -44,11 +44,6 @@ const uint16_t TFT_HEIGHT = 320;
 #define DSCREEN_PAGAIN_X 125
 #define DSCREEN_PAGAIN_Y 180
 
-// IR Pins
-#define IR_TRANSMITTER_PIN PD6
-#define IR_RECEIVER_PIN PD2
-
-// TODO: VANAF HIER COMMUNICATIE VAR AND FUNCS VOOR IN EEN CLASS ZO
 #define IR_LED_PIN PD6         // Pin 6 voor IR LED (OC0A)
 #define IR_RECEIVER_PIN PD2    // Pin 2 voor IR Receiver (INT0)
 #define DATABITCOUNT 32        // bits in een databus
@@ -155,7 +150,6 @@ void handleState() {
     }
 
     break;
-
   case DEATH:
     break;
   case REDRAW:
@@ -217,9 +211,8 @@ void handleStateChange(Snake &snake) {
 
     case DEATH:
       snake.drawDeathScreen(true, 20, 20);
-
-      currentGameSize = SIZE16x16;
       currentGameSpeed = NORMAL;
+      currentGameSize = SIZE16x16;
       break;
 
     case INGAME:
@@ -314,6 +307,11 @@ void handleMenuTouch() {
 }
 
 void touchHandler() {
+  TS_Point p = screen.getPoint();
+  touchX = mapValue(p.x, 0, 240, 240, 0);
+  touchY = mapValue(p.y, 0, 320, 320, 0);
+  isTouching = p.z > 0;
+
   switch (currentState) {
   case MENU:
     handleMenuTouch(); // handle touch van menu input elke loop
@@ -341,11 +339,6 @@ int main() {
   sei();
 
   while (1) {
-    TS_Point p = screen.getPoint();
-    touchX = mapValue(p.x, 0, 240, 240, 0);
-    touchY = mapValue(p.y, 0, 320, 320, 0);
-    isTouching = p.z > 0;
-
     touchHandler();
     if (communication.runFrame) {
       handleStateChange(largeFieldSnake);
