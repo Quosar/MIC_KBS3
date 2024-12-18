@@ -88,9 +88,50 @@ volatile uint16_t touchY = 0;
 volatile bool isTouching = false;
 volatile bool previousTouch = false;
 
+// Sound Variable
+volatile uint8_t soundFrames = 1;             // Pitch of the sound (higher is lower pitch)
+volatile uint8_t currentSoundFrame = 1;       // Current frame of the sound
+volatile uint8_t currentSoundIndex = 0;       // 
+volatile uint8_t currentSoundFrameIndex = 0;
+
+const uint8_t soundEat[][3] = {
+  {1, 1, 20},
+  {0, 1, 20},
+  {1, 1, 20},
+  {0, 1, 20},
+  {1, 1, 20},
+  {0, 1, 20},
+};
+
+const uint8_t soundMenuSelect8x8[][3] = {
+  {1, 3, 30},
+  {0, 3, 30},
+  {1, 2, 30},
+};
+
+const uint8_t soundMenuSelect16x16[][3] = {
+  {1, 4, 20},
+  {0, 4, 20},
+  {1, 3, 20},
+  {0, 3, 20},
+  {1, 2, 20},
+  {0, 2, 20},
+};
+
+const uint8_t soundStart[][3] = {
+  {1, 4, 30},
+  {1, 3, 45},
+  {1, 2, 60},
+  {1, 1, 75},
+};
+
+uint8_t soundQueue[10][3];
+
 enum gameState { MENU, START, INGAME, DEATH, REDRAW };
 volatile gameState currentState = MENU;
 volatile gameState previousState = DEATH;
+
+enum Sound { SOUND_EAT, SOUND_DEATH, SOUND_START, SOUND_MENU8X8, SOUND_MENU16X16, SOUND_MENUNORMAL, SOUND_MENUFAST };
 
 // communication
 volatile uint32_t firstSyncCheck =
@@ -139,6 +180,37 @@ volatile bool gamePaused = true;
 volatile bool isAlive = false;
 volatile uint8_t checksum;
 
+void copyArrayArray(const uint8_t arrayOG[10][3], uint8_t newArray[10][3],
+               uint8_t arraySize) {
+  for (int i = 0; i < arraySize; i++) {
+    for (int j = 0; j < 3; j++) {
+      newArray[i][j] = arrayOG[i][j];
+    }
+  }
+}
+
+
+void playSound(Sound sound) {
+  // Copy over the sound array to a temporary array
+  if (sound == SOUND_EAT) {
+    copyArrayArray(soundEat, soundQueue, 10);
+  } else if (sound == SOUND_START) {
+    copyArrayArray(soundStart, soundQueue, 10);
+  } else if (sound == SOUND_MENU8X8) {
+    copyArrayArray(soundMenuSelect8x8, soundQueue, 10);
+  } else if (sound == SOUND_MENU16X16) {
+    copyArrayArray(soundMenuSelect16x16, soundQueue, 10);
+  }
+
+  // Initialize sound array
+  soundFrames = soundQueue[currentSoundIndex][1];
+
+  // Enable Timer Compare
+  // Floor Timer2 Val
+  TIMSK2 |= (1 << OCIE2A);
+  TCNT2 = 0;
+}
+
 void setupPins() {
   DDRD |= (1 << PD6); // PD6 Ouptut
 
@@ -150,139 +222,154 @@ void setupPins() {
 
   DDRD |= (1 << PD5);
   DDRD |= (1 << PD3);
-  //PORTD &= ~(1 << PD5);
+  //PORTD &= ~(1 << PD3);
 }
 
-// void setupTimers() {
-//   // Correct Timer 1 setup for CTC mode with prescaler 64
-//   TCCR1A = 0;
-//   TCCR1B = 0;
-//   TCCR1B |= (1 << WGM12);              // Correct: WGM12 is in TCCR1B
-//   TCCR1B |= (1 << CS11) | (1 << CS10); // Prescaler 64
-//   OCR1A = COMMUNICATIONSPEED;
+void setupTimers() {
+  // Correct Timer 1 setup for CTC mode with prescaler 64
+  TCCR1A = 0;
+  TCCR1B = 0;
+  TCCR1B |= (1 << WGM12);              // Correct: WGM12 is in TCCR1B
+  TCCR1B |= (1 << CS11) | (1 << CS10); // Prescaler 64
+  OCR1A = COMMUNICATIONSPEED;
 
-//   // Correct Timer 0 setup
-//   TCCR0A = 0;
-//   TCCR0B = 0;
-//   TCCR0A |= (1 << WGM01);  // CTC mode
-//   TCCR0B |= (1 << CS00);   // No prescaler
-//   TCCR0A |= (1 << COM0A0); // Zet oscillatie aan
-//   OCR0A = OCSILLATIONSPEED;
-// }
+   // Clear registers
+  TCCR0A = 0;
+  TCCR0B = 0;
+  
+  // Fast PWM mode OCR0A als TOP
+  TCCR0A |= (1 << WGM00) | (1 << WGM01);
+  TCCR0B |= (1 << WGM02);
+  
+  // No prescaler
+  TCCR0B |= (1<<CS00);
+  
+  // Toggle OC0A on compare match (OC0A PD6)
+  TCCR0A |= (1 << COM0A0);
 
-// void SetupInterrupts() {
-//   EICRA &= ~(1 << ISC01);
-//   EICRA &= ~(1 << ISC00); // Trigger bij LOW
-//   EIMSK &= ~(1 << INT0);  // INT0 interrupt disable
-// }
+  // Non-inverting PWM on OC0B (backlight PD5)
+  TCCR0A |= (1 << COM0B1);
 
-// void initializeCommunication() {
-//   busBitIndex = 0;
-//   TCNT1 = 0;
-//   TIMSK1 |= (1 << OCIE1A); // Enable Timer1 Compare Match A interrupt
-//   if (isSender) {
-//     senderOffset = 1;
-//   }
-// }
+  // Set OCR0A for 38 kHz
+  OCR0A = OCSILLATIONSPEED; 
 
-// void synchronise(uint32_t bus) {
-//   if (bus != 0) {
-//     for (uint8_t i = 0; i <= DATABITCOUNT; i++) {
-//       // Check each bit starting from the most significant bit (MSB)
-//       if ((bus >> (DATABITCOUNT - 1 - i)) & 1) {
-//         if (i <= 30) {
-//           SyncingIndex = DATABITCOUNT - i + 2;
-//         } else {
-//           SyncingIndex = 0;
-//         }
-//         SyncingIndexFound = true;
-//         break; // Exit the loop after finding the first '1' bit
-//       }
-//     }
-//   }
-// }
+  // Initially set OCR0B for backlight
+  OCR0B = 0;
+}
 
-// uint8_t constructChecksum(uint32_t value) {
-//   uint8_t checksum = 0;
-//   for (uint8_t i = 3; i < DATABITCOUNT; i++) { // Start bij bit 3
-//     checksum ^= (value >> i) & 0x01;
-//   }
-//   return checksum & 0x07; // Return 3-bit checksum
-// }
+void SetupInterrupts() {
+  EICRA &= ~(1 << ISC01);
+  EICRA &= ~(1 << ISC00); // Trigger bij LOW
+  EIMSK &= ~(1 << INT0);  // INT0 interrupt disable
+}
 
-// uint32_t constructBus() {
-//   uint32_t out = 0;
-//   uint8_t snakeDirection = 0;
+void initializeCommunication() {
+  busBitIndex = 0;
+  TCNT1 = 0;
+  TIMSK1 |= (1 << OCIE1A); // Enable Timer1 Compare Match A interrupt
+  if (isSender) {
+    senderOffset = 1;
+  }
+}
 
-//   Snake::Direction UP = UP;
-//   Snake::Direction DOWN = DOWN;
-//   Snake::Direction LEFT = LEFT;
-//   Snake::Direction RIGHT = RIGHT;
+void synchronise(uint32_t bus) {
+  if (bus != 0) {
+    for (uint8_t i = 0; i <= DATABITCOUNT; i++) {
+      // Check each bit starting from the most significant bit (MSB)
+      if ((bus >> (DATABITCOUNT - 1 - i)) & 1) {
+        if (i <= 30) {
+          SyncingIndex = DATABITCOUNT - i + 2;
+        } else {
+          SyncingIndex = 0;
+        }
+        SyncingIndexFound = true;
+        break; // Exit the loop after finding the first '1' bit
+      }
+    }
+  }
+}
 
-//   if (largeFieldSnake.getDirection() == UP) {
-//     snakeDirection = 0b00;
-//   } else if (largeFieldSnake.getDirection() == DOWN) {
-//     snakeDirection = 0b01;
-//   } else if (largeFieldSnake.getDirection() == LEFT) {
-//     snakeDirection = 0b10;
-//   } else if (largeFieldSnake.getDirection() == RIGHT) {
-//     snakeDirection = 0b11;
-//   }
+uint8_t constructChecksum(uint32_t value) {
+  uint8_t checksum = 0;
+  for (uint8_t i = 3; i < DATABITCOUNT; i++) { // Start bij bit 3
+    checksum ^= (value >> i) & 0x01;
+  }
+  return checksum & 0x07; // Return 3-bit checksum
+}
 
-//   out |= ((uint32_t)posSnake) << 24; // Bit 31–24: posSnake
-//   out |= ((uint32_t)largeFieldSnake.snakeLength & 0xFF)
-//          << 16;                            // Bit 23–16: lengthSnake
-//   out |= ((uint32_t)posApple & 0xFF) << 8; // Bit 15–8: posApple
-//   out |=
-//       ((isPlayer1 & 0x01) << 7) |              // Bit 7: isPlayer1
-//       ((isSmallField & 0x01) << 6) |           // Bit 6: isSmallField
-//       ((appleGatheredByPlayer2 & 0x01) << 5) | // Bit 5: appleGatheredByPlayer2
-//       ((gamePaused & 0x01) << 4) |             // Bit 4: gamePaused
-//       ((isAlive & 0x01) << 3) |                // Bit 3: isAlive
-//       ((snakeDirection & 0x03));               // Bits 2–1: snake direction
+uint32_t constructBus() {
+  uint32_t out = 0;
+  uint8_t snakeDirection = 0;
 
-//   uint8_t checksum = constructChecksum(out);
-//   out |= (uint32_t)(checksum & 0x07); // Bits 2–0: checksum
+  Snake::Direction UP = UP;
+  Snake::Direction DOWN = DOWN;
+  Snake::Direction LEFT = LEFT;
+  Snake::Direction RIGHT = RIGHT;
 
-//   return out;
-// }
+  if (largeFieldSnake.getDirection() == UP) {
+    snakeDirection = 0b00;
+  } else if (largeFieldSnake.getDirection() == DOWN) {
+    snakeDirection = 0b01;
+  } else if (largeFieldSnake.getDirection() == LEFT) {
+    snakeDirection = 0b10;
+  } else if (largeFieldSnake.getDirection() == RIGHT) {
+    snakeDirection = 0b11;
+  }
 
-// void deconstructBus(uint32_t bus) {
-//   uint8_t checksum = (uint8_t)(bus & 0x07); // Extract checksum
-//   uint8_t calculatedChecksum = constructChecksum(bus & 0xFFFFFFF8);
+  out |= ((uint32_t)posSnake) << 24; // Bit 31–24: posSnake
+  out |= ((uint32_t)largeFieldSnake.snakeLength & 0xFF)
+         << 16;                            // Bit 23–16: lengthSnake
+  out |= ((uint32_t)posApple & 0xFF) << 8; // Bit 15–8: posApple
+  out |=
+      ((isPlayer1 & 0x01) << 7) |              // Bit 7: isPlayer1
+      ((isSmallField & 0x01) << 6) |           // Bit 6: isSmallField
+      ((appleGatheredByPlayer2 & 0x01) << 5) | // Bit 5: appleGatheredByPlayer2
+      ((gamePaused & 0x01) << 4) |             // Bit 4: gamePaused
+      ((isAlive & 0x01) << 3) |                // Bit 3: isAlive
+      ((snakeDirection & 0x03));               // Bits 2–1: snake direction
 
-//   uint8_t snakeDirection = 0;
+  uint8_t checksum = constructChecksum(out);
+  out |= (uint32_t)(checksum & 0x07); // Bits 2–0: checksum
 
-//   if (checksum == calculatedChecksum) {
-//     posSnake = (uint8_t)((bus >> 24) & 0xFF); // Bit 31–24: posSnake
-//     largeFieldSnake.snakeLength =
-//         (uint8_t)((bus >> 16) & 0xFF);       // Bit 23–16: lengthSnake
-//     posApple = (uint8_t)((bus >> 8) & 0xFF); // Bit 15–8: posApple
+  return out;
+}
 
-//     isPlayer1 = (bus >> 7) & 0x01;              // Bit 7: isPlayer1
-//     isSmallField = (bus >> 6) & 0x01;           // Bit 6: isSmallField
-//     appleGatheredByPlayer2 = (bus >> 5) & 0x01; // Bit 5: appleGatheredByPlayer2
-//     gamePaused = (bus >> 4) & 0x01;             // Bit 4: gamePaused
-//     isAlive = (bus >> 3) & 0x01;                // Bit 3: isAlive
-//     snakeDirection = (bus >> 1) & 0x03;         // Bits 2–1: snake direction
+void deconstructBus(uint32_t bus) {
+  uint8_t checksum = (uint8_t)(bus & 0x07); // Extract checksum
+  uint8_t calculatedChecksum = constructChecksum(bus & 0xFFFFFFF8);
 
-//     Snake::Direction UP = UP;
-//     Snake::Direction DOWN = DOWN;
-//     Snake::Direction LEFT = LEFT;
-//     Snake::Direction RIGHT = RIGHT;
+  uint8_t snakeDirection = 0;
 
-//     if (snakeDirection == 0b00) // Update snake's direction
-//     {
-//       largeFieldSnake.setDirection(UP);
-//     } else if (snakeDirection == 0b01) {
-//       largeFieldSnake.setDirection(DOWN);
-//     } else if (snakeDirection == 0b10) {
-//       largeFieldSnake.setDirection(LEFT);
-//     } else if (snakeDirection == 0b11) {
-//       largeFieldSnake.setDirection(RIGHT);
-//     }
-//   }
-// }
+  if (checksum == calculatedChecksum) {
+    posSnake = (uint8_t)((bus >> 24) & 0xFF); // Bit 31–24: posSnake
+    largeFieldSnake.snakeLength =
+        (uint8_t)((bus >> 16) & 0xFF);       // Bit 23–16: lengthSnake
+    posApple = (uint8_t)((bus >> 8) & 0xFF); // Bit 15–8: posApple
+
+    isPlayer1 = (bus >> 7) & 0x01;              // Bit 7: isPlayer1
+    isSmallField = (bus >> 6) & 0x01;           // Bit 6: isSmallField
+    appleGatheredByPlayer2 = (bus >> 5) & 0x01; // Bit 5: appleGatheredByPlayer2
+    gamePaused = (bus >> 4) & 0x01;             // Bit 4: gamePaused
+    isAlive = (bus >> 3) & 0x01;                // Bit 3: isAlive
+    snakeDirection = (bus >> 1) & 0x03;         // Bits 2–1: snake direction
+
+    Snake::Direction UP = UP;
+    Snake::Direction DOWN = DOWN;
+    Snake::Direction LEFT = LEFT;
+    Snake::Direction RIGHT = RIGHT;
+
+    if (snakeDirection == 0b00) // Update snake's direction
+    {
+      largeFieldSnake.setDirection(UP);
+    } else if (snakeDirection == 0b01) {
+      largeFieldSnake.setDirection(DOWN);
+    } else if (snakeDirection == 0b10) {
+      largeFieldSnake.setDirection(LEFT);
+    } else if (snakeDirection == 0b11) {
+      largeFieldSnake.setDirection(RIGHT);
+    }
+  }
+}
 
 void updateGame(Snake &snake) {
   snake.move(); // Move snake based on received direction
@@ -354,6 +441,10 @@ void handleState() {
             (touchY >= MENU_MODE1_Y && touchY <= MENU_MODE1_Y + 20)) {
           currentGameSize = SIZE8x8;
           previousState = REDRAW;
+          //largeFieldSnake.playSound();
+          // soundFrames = SOUND_EAT;
+          // soundFrames += 1;
+          playSound(SOUND_MENU8X8);
         }
 
         // Mode 2
@@ -361,6 +452,9 @@ void handleState() {
             (touchY >= MENU_MODE2_Y && touchY <= MENU_MODE2_Y + 20)) {
           currentGameSize = SIZE16x16;
           previousState = REDRAW;
+          // soundFrames = SOUND_DEATH;
+          // soundFrames += 1;
+          playSound(SOUND_MENU16X16);
         }
 
         // Mode 3
@@ -373,6 +467,8 @@ void handleState() {
             currentGameSpeed = NORMAL;
           }
           previousState = REDRAW;
+          // soundFrames = SOUND_GAMESTART;
+          // soundFrames += 1;
         }
 
         // Select Player 1 + Show Start Button
@@ -516,17 +612,17 @@ void handleStateChange(Snake &snake) {
 
 int main() {
   init();
-  Serial.begin(9600);
+  // Serial.begin(9600);
   Wire.begin();
 
   setupPins();
-  // setupTimers();
-  // SetupInterrupts();
-  // initializeCommunication();
+  setupTimers();
+  SetupInterrupts();
+  initializeCommunication();
 
   // LCD setup
 
-  //screen.begin();
+  screen.begin();
 
   //cli();
 
@@ -559,150 +655,195 @@ int main() {
       handleState();
       runFrame = false;
     }
+
+    //Serial.println(currentSoundFrame);
   }
 
   return 0;
 }
 
-// void communicate() {
-//   if (!IRWaiting) // checkt of de IR-reciever een pauze nodig heeft
-//   {
-//     if (busBitIndex == 0) // checkt of de start bit gestuurd moet worden
-//     {
-//       inBus = 0x00000000;
-//       TCCR0A |= (1 << COM0A0); // Turn on oscillation
-//     }
-//     if (busBitIndex >= 1 &&
-//         busBitIndex <=
-//             DATABITCOUNT + 1) // 1-33 voor het sturen en lezen van de bits
-//     {
-//       if (!isSender) {
-//         PORTD ^= (1 << PD7);
-//         bool bit = (PIND & (1 << IR_RECEIVER_PIN)) ==
-//                    0; // LOW is logische 1 in IR communicatie
-//         if (bit) {
-//           inBus |= (1UL << (DATABITCOUNT -
-//                             (busBitIndex -
-//                              senderOffset))); // bepaalt welke index van de
-//                                               // inBus de gelezen waarde in
-//                                               // moet sender begint 1 later
-//         } else {
-//           inBus &= ~(1UL << (DATABITCOUNT -
-//                              (busBitIndex -
-//                               senderOffset))); // bepaalt welke index van de
-//                                                // inBus de gelezen waarde in
-//                                                // moet sender begint 1 later
-//         }
-//         PORTD ^= (1 << PD7);
-//       }
+void communicate() {
+  if (!IRWaiting) // checkt of de IR-reciever een pauze nodig heeft
+  {
+    if (busBitIndex == 0) // checkt of de start bit gestuurd moet worden
+    {
+      inBus = 0x00000000;
+      TCCR0A |= (1 << COM0A0); // Turn on oscillation
+    }
+    if (busBitIndex >= 1 &&
+        busBitIndex <=
+            DATABITCOUNT + 1) // 1-33 voor het sturen en lezen van de bits
+    {
+      if (!isSender) {
+        PORTD ^= (1 << PD7);
+        bool bit = (PIND & (1 << IR_RECEIVER_PIN)) ==
+                   0; // LOW is logische 1 in IR communicatie
+        if (bit) {
+          inBus |= (1UL << (DATABITCOUNT -
+                            (busBitIndex -
+                             senderOffset))); // bepaalt welke index van de
+                                              // inBus de gelezen waarde in
+                                              // moet sender begint 1 later
+        } else {
+          inBus &= ~(1UL << (DATABITCOUNT -
+                             (busBitIndex -
+                              senderOffset))); // bepaalt welke index van de
+                                               // inBus de gelezen waarde in
+                                               // moet sender begint 1 later
+        }
+        PORTD ^= (1 << PD7);
+      }
 
-//       // Transmit current bit
-//       bool outBit = (outBus >> (DATABITCOUNT - (busBitIndex))) &
-//                     0x01; // bepaalt of de volgende bit in de outBus en 1 of 0
-//                           // moet transmitten
-//       if (outBit) {
-//         TCCR0A |= (1 << COM0A0); // Turn on oscillation
-//       } else {
-//         TCCR0A &= ~(1 << COM0A0);
-//         PORTD &= ~(1 << PD6); // Ensure PD6 is LOW
-//       }
-//     }
+      // Transmit current bit
+      bool outBit = (outBus >> (DATABITCOUNT - (busBitIndex))) &
+                    0x01; // bepaalt of de volgende bit in de outBus en 1 of 0
+                          // moet transmitten
+      if (outBit) {
+        TCCR0A |= (1 << COM0A0); // Turn on oscillation
+      } else {
+        TCCR0A &= ~(1 << COM0A0);
+        PORTD &= ~(1 << PD6); // Ensure PD6 is LOW
+      }
+    }
 
-//     busBitIndex++; // verhoogt de index
+    busBitIndex++; // verhoogt de index
 
-//     if (busBitIndex >
-//         DATABITCOUNT + 2) // checkt of de laatste bit is geweest en checkt of
-//                           // hij alles nu mag resetten
-//     {
+    if (busBitIndex >
+        DATABITCOUNT + 2) // checkt of de laatste bit is geweest en checkt of
+                          // hij alles nu mag resetten
+    {
 
-//       busBitIndex = 0;
+      busBitIndex = 0;
 
-//       if (!communicationSynced && !isSender &&
-//           !SyncingIndexFound) // Sneller de arduino's synchroniseren
-//       {
-//         synchronise(inBus);
-//         busBitIndex = SyncingIndex;
-//       } else if (!communicationSynced && !isSender && SyncingIndexFound) {
-//         busBitIndex = 0;
-//         SyncingIndexFound = false;
-//       }
-//       if (!communicationInitialized) {
-//         if (inBus == firstSyncCheck && !communicationSynced &&
-//             !isSender) // checkt of de communicatie synchroon loopt of
-//                        // nog synchroon moet gaan lopen
-//         {
-//           communicationSynced = true;
-//           outBus = secondSyncCheck;
-//         }
-//         if (inBus == secondSyncCheck &&
-//             isSender) //  geedt aan de andere kant aan dat de
-//                       //  communicatie is geïnitializeerd
-//         {
-//           outBus = secondSyncCheck;
-//         }
-//         if (inBus == secondSyncCheck && !isSender) {
-//           outBus = thirdSyncCheck;
-//           communicationInitialized = true;
-//         }
-//         if (inBus == thirdSyncCheck && isSender) {
-//           communicationInitialized = true;
-//         }
-//       }
-//       if (communicationSynced &&
-//           !isSender) // zet int 0 interrupt aan om te zorgen dat de !isSender
-//                      // de startbit binnen krijgt om de timers synchroon te
-//                      // laten lopen
-//       {
-//         EIMSK |= (1 << INT0); // INT0 interrupt enable
-//         TIMSK1 &= ~(1 << OCIE1A);
-//       }
-//       if (communicationFrameCounter >= communicationFrameCount) {
-//         runFrame = true;
-//         communicationFrameCounter = 0;
-//       } else {
-//         communicationFrameCounter = communicationFrameCounter + 1;
-//       }
-//       TCCR0A &= ~(1 << COM0A0);
-//       PORTD |= (1 << PD6); // Ensure PD6 is LOW
-//       printBus = true;
-//     }
-//     IRWaiting = true; // zorgt ervoor dat de IR-reciever een pauze krijgt
-//   } else {
-//     TCCR0A &= ~(1 << COM0A0);
-//     PORTD |= (1 << PD6); // Ensure PD6 is LOW
-//     if (isSender && busBitIndex >= 2 && busBitIndex <= DATABITCOUNT + 2) {
-//       PORTD ^= (1 << PD7);
-//       bool bit = (PIND & (1 << IR_RECEIVER_PIN)) ==
-//                  0; // LOW is logische 1 in IR communicatie
-//       if (bit) {
-//         inBus |= (1UL << (DATABITCOUNT -
-//                           (busBitIndex -
-//                            senderOffset))); // bepaalt welke index van de
-//                                             // inBus de gelezen waarde in moet
-//                                             // sender begint 1 later
-//       } else {
-//         inBus &= ~(1UL << (DATABITCOUNT -
-//                            (busBitIndex -
-//                             senderOffset))); // bepaalt welke index van de
-//                                              // inBus de gelezen waarde in
-//                                              // moet sender begint 1 later
-//       }
-//       PORTD ^= (1 << PD7);
-//     }
-//     IRWaiting = false;
-//   }
-// }
-
-ISR(TIMER0_COMPA_vect) {
-  PORTD ^= (1 << PD3);
+      if (!communicationSynced && !isSender &&
+          !SyncingIndexFound) // Sneller de arduino's synchroniseren
+      {
+        synchronise(inBus);
+        busBitIndex = SyncingIndex;
+      } else if (!communicationSynced && !isSender && SyncingIndexFound) {
+        busBitIndex = 0;
+        SyncingIndexFound = false;
+      }
+      if (!communicationInitialized) {
+        if (inBus == firstSyncCheck && !communicationSynced &&
+            !isSender) // checkt of de communicatie synchroon loopt of
+                       // nog synchroon moet gaan lopen
+        {
+          communicationSynced = true;
+          outBus = secondSyncCheck;
+        }
+        if (inBus == secondSyncCheck &&
+            isSender) //  geedt aan de andere kant aan dat de
+                      //  communicatie is geïnitializeerd
+        {
+          outBus = secondSyncCheck;
+        }
+        if (inBus == secondSyncCheck && !isSender) {
+          outBus = thirdSyncCheck;
+          communicationInitialized = true;
+        }
+        if (inBus == thirdSyncCheck && isSender) {
+          communicationInitialized = true;
+        }
+      }
+      if (communicationSynced &&
+          !isSender) // zet int 0 interrupt aan om te zorgen dat de !isSender
+                     // de startbit binnen krijgt om de timers synchroon te
+                     // laten lopen
+      {
+        EIMSK |= (1 << INT0); // INT0 interrupt enable
+        TIMSK1 &= ~(1 << OCIE1A);
+      }
+      if (communicationFrameCounter >= communicationFrameCount) {
+        runFrame = true;
+        communicationFrameCounter = 0;
+      } else {
+        communicationFrameCounter = communicationFrameCounter + 1;
+      }
+      TCCR0A &= ~(1 << COM0A0);
+      PORTD |= (1 << PD6); // Ensure PD6 is LOW
+      printBus = true;
+    }
+    IRWaiting = true; // zorgt ervoor dat de IR-reciever een pauze krijgt
+  } else {
+    TCCR0A &= ~(1 << COM0A0);
+    PORTD |= (1 << PD6); // Ensure PD6 is LOW
+    if (isSender && busBitIndex >= 2 && busBitIndex <= DATABITCOUNT + 2) {
+      PORTD ^= (1 << PD7);
+      bool bit = (PIND & (1 << IR_RECEIVER_PIN)) ==
+                 0; // LOW is logische 1 in IR communicatie
+      if (bit) {
+        inBus |= (1UL << (DATABITCOUNT -
+                          (busBitIndex -
+                           senderOffset))); // bepaalt welke index van de
+                                            // inBus de gelezen waarde in moet
+                                            // sender begint 1 later
+      } else {
+        inBus &= ~(1UL << (DATABITCOUNT -
+                           (busBitIndex -
+                            senderOffset))); // bepaalt welke index van de
+                                             // inBus de gelezen waarde in
+                                             // moet sender begint 1 later
+      }
+      PORTD ^= (1 << PD7);
+    }
+    IRWaiting = false;
+  }
 }
 
-// ISR(TIMER1_COMPA_vect) { communicate(); }
+ISR(TIMER2_COMPA_vect) {
+  // Add 1 to the current Sound Frame
+  currentSoundFrame += 1;
 
-// ISR(INT0_vect) {
-//   TCNT1 = 5;
-//   busBitIndex = 0;
-//   EIMSK &= ~(1 << INT0); // INT0 interrupt disable
-//   TIMSK1 |= (1 << OCIE1A);
-//   communicate();
-// }
+  // Check if frame equals or exceeds sound frame (pitch)
+  if (currentSoundFrame >= soundFrames) {
+
+    // 0 = No Sound; 1 = Play Sound
+    if (soundQueue[currentSoundIndex][0] == 1) {
+      PORTD ^= (1 << PD3);
+    } else {
+      PORTD &= ~(1 << PD3);
+    }
+
+    // Add 1 to the currentSoundFrameIndex up to the given frames in the array
+    // Reset current Sound Frame
+    currentSoundFrameIndex += 1;
+    currentSoundFrame = 0;
+
+    // Check if all frames of the sound have played
+    if (currentSoundFrameIndex >= soundQueue[currentSoundIndex][2]) {
+
+      // Add 1 to the sound index to move to the next array in the sound
+      // Reset the sound frame index
+      // Set the pitch of the sound
+      currentSoundIndex += 1;
+      currentSoundFrameIndex = 0;
+      soundFrames = soundQueue[currentSoundIndex][1];
+
+      // If all arrays in the sound have played (max is maximum allowed sounds in sound array)
+      if (currentSoundIndex >= 6) {
+
+        // Reset all variables
+        // Disable Speaker
+        // Disable Timer Compare
+        soundFrames = 1;
+        currentSoundFrame = 1;
+        currentSoundFrameIndex = 0;
+        currentSoundIndex = 0;
+        PORTD &= ~(1 << PD3);
+        TIMSK2 &= ~(1 << OCIE2A);
+      }
+    }
+  }
+
+}
+
+ISR(TIMER1_COMPA_vect) { communicate(); }
+
+ISR(INT0_vect) {
+  TCNT1 = 5;
+  busBitIndex = 0;
+  EIMSK &= ~(1 << INT0); // INT0 interrupt disable
+  TIMSK1 |= (1 << OCIE1A);
+  communicate();
+}

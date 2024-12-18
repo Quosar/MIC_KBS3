@@ -12,16 +12,6 @@ Display::Display() : display(TFT_CS, TFT_DC) {
   // Enable ADC
   ADCSRA |= (1<<ADEN);
 
-  // Fast PWM mode, non-inverting
-  TCCR0A |= (1<<WGM00) | (1<<WGM01);
-  TCCR0A |= (1<<COM0B1);
-  //Prescaler 64
-  TCCR0B |= (1<<CS00) | (1<<CS01);
-
-  //TIMSK0 |= (1 << OCIE0A);
-
-  TCNT0 = 0;
-
   // Set the backlight pin as output
   DDRD |= ((1 << _backlight_pin));
 
@@ -99,15 +89,11 @@ void Display::println(int8_t text) {
 }
 
 void Display::refreshBacklight() {
-    // Add code to refresh the backlight as needed
-    if(!(ADCSRA & (1<<ADSC))){
-        OCR0B = ADCH;
-        OCR0A = ADCH;
-    }
+  if(!(ADCSRA & (1<<ADSC))){
+    OCR0B = ADCH / 2; // zorgen dat die binnen 209 blijft
 
-    
-
-    ADCSRA |= (1<<ADSC);
+    ADCSRA |= (1<<ADSC); // volgende conversie
+  }
 }
 
 TS_Point Display::getPoint() {
