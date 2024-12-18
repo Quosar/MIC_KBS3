@@ -47,8 +47,8 @@ private:
 
   uint8_t gridSize;
   uint16_t cellWidth, cellHeight;
-  uint8_t *snakeX; // pointer voor dynamische array
-  uint8_t *snakeY;
+  volatile uint8_t *snakeX; // pointer voor dynamische array
+  volatile uint8_t *snakeY;
   uint16_t colour;
   uint8_t score = 0;
   uint8_t highscore = 0;

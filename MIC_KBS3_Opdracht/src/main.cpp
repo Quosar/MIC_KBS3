@@ -113,6 +113,7 @@ void directionHandler() {
     if (currentGameSize == SIZE16x16) {
       largeFieldSnake.updateDirection(nunchuck.state.joy_x_axis,
                                       nunchuck.state.joy_y_axis);
+      largeFieldSnakeOther.updateDirection(nunchuck.state.joy_x_axis, nunchuck.state.joy_y_axis);
     } else {
       smallFieldSnake.updateDirection(nunchuck.state.joy_x_axis,
                                       nunchuck.state.joy_y_axis);
@@ -159,6 +160,8 @@ void handleState() {
   case DEATH:
     break;
   case REDRAW:
+    break;
+  case START:
     break;
   }
 }
@@ -331,6 +334,10 @@ void touchHandler() {
   case DEATH:
     handleDeathscreenTouch();
     break;
+  case REDRAW:
+    break;
+  case START:
+    break;
   }
 }
 
@@ -351,11 +358,11 @@ int main() {
   while (1) {
     touchHandler();
     if (communication.runFrame) {
-      // if(currentGameSize == SIZE16x16){
+      if(currentGameSize == SIZE16x16){
         handleStateChange(largeFieldSnake);
-      // } else {
-      //   handleStateChange(smallFieldSnake);
-      // }
+      } else {
+        handleStateChange(smallFieldSnake);
+      }
       handleState();
       communication.runFrame = false;
     }
@@ -366,7 +373,7 @@ int main() {
 ISR(TIMER1_COMPA_vect) { communication.communicate(); }
 
 ISR(INT0_vect) {
-  TCNT1 = 5;
+  TCNT1 = 53;
   communication.busBitIndex = 0;
   EIMSK &= ~(1 << INT0); // INT0 interrupt disable
   TIMSK1 |= (1 << OCIE1A);
