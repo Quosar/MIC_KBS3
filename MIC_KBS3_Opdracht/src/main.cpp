@@ -2,8 +2,8 @@
 #include "HardwareSerial.h"
 #include "Nunchuk.h"
 #include <Arduino.h>
-#include <Snake.h>
 #include <Communication.h>
+#include <Snake.h>
 #include <Wire.h>
 #include <avr/interrupt.h>
 #include <avr/io.h>
@@ -126,7 +126,6 @@ int8_t calculateFrameCount(uint8_t snakeLength) {
     frameCount = 2; // maximum snelheid
   if (frameCount > 8)
     frameCount = 8; // minimum snelheid
-
 
   return (int8_t)frameCount;
 }
@@ -286,7 +285,7 @@ void handleMenuTouch() {
       // Select Player 1 + Show Start Button
       if ((touchX >= MENU_PLR1_X && touchX <= MENU_PLR1_X + 100) &&
           (touchY >= MENU_PLR1_Y && touchY <= MENU_PLR1_Y + 20)) {
-        //communication.isPlayer1 = true;
+        // communication.isPlayer1 = true;
         largeFieldSnake.drawElement(1, true, true, true, false);
       }
 
@@ -329,13 +328,14 @@ int main() {
   init();
   Wire.begin();
 
+  // aparte setups voor testen
   communication.setupPins();
   communication.setupTimers();
   communication.SetupInterrupts();
   communication.initializeCommunication();
 
   screen.begin();
-  
+
   sei();
 
   while (1) {
