@@ -67,12 +67,6 @@ Snake largeFieldSnake(LARGE_FIELD_GRID_SIZE, TFT_WIDTH / LARGE_FIELD_GRID_SIZE,
 Snake smallFieldSnake(SMALL_FIELD_GRID_SIZE, TFT_WIDTH / SMALL_FIELD_GRID_SIZE,
                       TFT_WIDTH / SMALL_FIELD_GRID_SIZE, screen, GREEN);
 
-Snake largeFieldSnakeOther(LARGE_FIELD_GRID_SIZE, TFT_WIDTH / LARGE_FIELD_GRID_SIZE,
-                      TFT_WIDTH / LARGE_FIELD_GRID_SIZE, screen, MAGENTA);
-
-// Snake smallFieldSnakeOther(SMALL_FIELD_GRID_SIZE, TFT_WIDTH / SMALL_FIELD_GRID_SIZE,
-//                       TFT_WIDTH / SMALL_FIELD_GRID_SIZE, screen, MAGENTA);                      
-
 // Game Size (8x8 / 16x16)
 enum gameSize { SIZE8x8, SIZE16x16 };
 gameSize currentGameSize = SIZE16x16;
@@ -103,9 +97,9 @@ void updateGame(Snake &snake) {
   if (snake.eatApple(snake.appleX, snake.appleY)) {
     snake.grow();
   }
-  // if (snake.checkCollision()) {
-  //   currentState = DEATH;
-  // }
+  if (snake.checkCollision()) {
+    currentState = DEATH;
+  }
 }
 
 void directionHandler() {
@@ -148,7 +142,6 @@ void handleState() {
       communication.communicationFrameCount =
           calculateFrameCount(largeFieldSnake.snakeLength);
       updateGame(largeFieldSnake);
-      updateGame(largeFieldSnakeOther);
     } else {
       communication.communicationFrameCount =
           calculateFrameCount(smallFieldSnake.snakeLength);
@@ -167,12 +160,39 @@ long mapValue(long x, long inMin, long inMax, long outMin, long outMax) {
   return (x - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
 }
 
+const uint8_t SEVEN_SEGMENT_ADRES = 0x21;
+const uint8_t SEVEN_SEGMENT_DIGITS[] = {
+    0xC0, // 0
+    0xF9, // 1
+    0xA4, // 2
+    0xB0, // 3
+    0x99, // 4
+    0x92, // 5
+    0x82, // 6
+    0xF8, // 7
+    0x80, // 8
+    0x90, // 9
+    0x88, // A
+    0x83, // B
+    0xC6, // C
+    0xA1, // D
+    0x86, // E
+    0x8E  // F
+};
+
+void updateSevenSegmentDisplay(uint8_t value) {
+  Wire.beginTransmission(SEVEN_SEGMENT_ADRES);
+  Wire.write(SEVEN_SEGMENT_DIGITS[value]);
+  Wire.endTransmission(SEVEN_SEGMENT_ADRES);
+}
+
 // game logic die alleen gedaan moet worden wanneer je net in deze gamestate
 // komt
 void handleStateChange(Snake &snake) {
   if (currentState != previousState) {
     switch (currentState) {
     case MENU:
+      updateSevenSegmentDisplay(0);
       if (previousState == REDRAW) {
         if (currentGameSize == SIZE8x8) {
           snake.drawElement(3, true, false, false, false);
@@ -198,13 +218,20 @@ void handleStateChange(Snake &snake) {
     case START:
       screen.fillScreen(BLACK);
       if (currentGameSize == SIZE16x16) {
-        largeFieldSnake.reset();
-        largeFieldSnake.start(6,
-                              6);
-        largeFieldSnakeOther.reset();
-        largeFieldSnakeOther.start(10, 10);
+        if (currentGameSpeed == NORMAL) {
+          updateSevenSegmentDisplay(1);
+        } else {
+          updateSevenSegmentDisplay(2);
+        }
 
+        largeFieldSnake.reset();
+        largeFieldSnake.start(6, 6);
       } else {
+        if (currentGameSpeed == NORMAL) {
+          updateSevenSegmentDisplay(3);
+        } else {
+          updateSevenSegmentDisplay(4);
+        }
         smallFieldSnake.reset();
         smallFieldSnake.start(SMALL_FIELD_GRID_SIZE / 2,
                               SMALL_FIELD_GRID_SIZE / 2);
@@ -351,11 +378,7 @@ int main() {
   while (1) {
     touchHandler();
     if (communication.runFrame) {
-      // if(currentGameSize == SIZE16x16){
-        handleStateChange(largeFieldSnake);
-      // } else {
-      //   handleStateChange(smallFieldSnake);
-      // }
+      handleStateChange(largeFieldSnake);
       handleState();
       communication.runFrame = false;
     }
