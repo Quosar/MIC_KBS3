@@ -279,7 +279,7 @@ void Communication::communicate()
         }
       }
 
-      if (communicationFrameCounter >= 15)
+      if (communicationFrameCounter >= communicationFrameCount)
       {
         runFrame = true;
         communicationFrameCounter = 0;

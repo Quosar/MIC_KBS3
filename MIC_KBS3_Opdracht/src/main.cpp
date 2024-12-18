@@ -123,16 +123,15 @@ void directionHandler() {
 int8_t calculateFrameCount(uint8_t snakeLength) {
   int8_t frameCount;
   if (currentGameSpeed == NORMAL) {
-    frameCount = 8 - (snakeLength / 5);
+    frameCount = 10 - (snakeLength / 5);
   } else if (currentGameSpeed == FAST) {
-    frameCount = 4 - (snakeLength / 5);
+    frameCount = 5 - (snakeLength / 5);
   }
   if (frameCount < 2)
     frameCount = 2; // maximum snelheid
   if (frameCount > 8)
     frameCount = 8; // minimum snelheid
 
-  frameCount = 2;
 
   return (int8_t)frameCount;
 }
