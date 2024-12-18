@@ -154,6 +154,13 @@ void setupPins() {
 }
 
 void setupTimers() {
+  // Correct Timer 1 setup for CTC mode with prescaler 64
+  TCCR1A = 0;
+  TCCR1B = 0;
+  TCCR1B |= (1 << WGM12);              // Correct: WGM12 is in TCCR1B
+  TCCR1B |= (1 << CS11) | (1 << CS10); // Prescaler 64
+  OCR1A = COMMUNICATIONSPEED;
+
   // Clear registers
   TCCR0A = 0;
   TCCR0B = 0;
@@ -534,7 +541,7 @@ int main() {
 
   // LCD setup
 
-  //screen.begin();
+  screen.begin();
 
   //cli();
 
