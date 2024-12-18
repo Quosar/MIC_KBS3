@@ -90,11 +90,8 @@ Snake::Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
     : gridSize(gridSize), cellWidth(cellWidth), cellHeight(cellHeight),
       screen(screen), colour(colour) {
   snakeLength = SNAKE_START_LENGHT;          // start lengte van de snake
-  snakeX = new uint8_t[gridSize * gridSize]; // max grootte van de snake
-  snakeY = new uint8_t[gridSize * gridSize]; // max grootte van de snake
   direction = RIGHT;                         // beginrichting is rechts
   bufferedDirection = RIGHT;                 // gebufferde richting dus ook
-  spawnRandApple();
 }
 
 void Snake::start(uint8_t x, uint8_t y) {
@@ -247,12 +244,8 @@ void Snake::reset() {
   // start richting zetten
   direction = RIGHT;
 
-  // screen resetten van oude snakes en appels
-  screen.fillScreen(BLACK);
-
   // nieuwe appel spawnen
   spawnRandApple();
-
 }
 
 // void Snake::setHighscore(uint8_t newScore) {

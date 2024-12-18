@@ -172,17 +172,17 @@ long mapValue(long x, long inMin, long inMax, long outMin, long outMax) {
 
 // game logic die alleen gedaan moet worden wanneer je net in deze gamestate
 // komt
-void handleStateChange(Snake &snake) {
+void handleStateChange() {
   if (currentState != previousState) {
     switch (currentState) {
     case MENU:
       if (previousState == REDRAW) {
         if (currentGameSize == SIZE8x8) {
-          snake.drawElement(3, true, false, false, false);
-          snake.drawElement(4, false, false, false, false);
+          smallFieldSnake.drawElement(3, true, false, false, false);
+          smallFieldSnake.drawElement(4, false, false, false, false);
         } else if (currentGameSize == SIZE16x16) {
-          snake.drawElement(3, false, false, false, false);
-          snake.drawElement(4, true, false, false, false);
+          largeFieldSnake.drawElement(3, false, false, false, false);
+          largeFieldSnake.drawElement(4, true, false, false, false);
         }
 
         if (isFastMode != previousFastMode) {
@@ -202,10 +202,10 @@ void handleStateChange(Snake &snake) {
       screen.fillScreen(BLACK);
       if (currentGameSize == SIZE16x16) {
         largeFieldSnake.reset();
-        largeFieldSnake.start(6,
+        largeFieldSnake.start(8,
                               6);
         largeFieldSnakeOther.reset();
-        largeFieldSnakeOther.start(10, 10);
+        largeFieldSnakeOther.start(8, 10);
 
       } else {
         smallFieldSnake.reset();
@@ -222,7 +222,11 @@ void handleStateChange(Snake &snake) {
       break;
 
     case DEATH:
-      snake.drawDeathScreen(true, 20, 20);
+    if(currentGameSize == SIZE16x16){
+      largeFieldSnake.drawDeathScreen(true, 20, 20);
+    } else {
+      smallFieldSnake.drawDeathScreen(true, 20, 20);
+    }
       currentGameSpeed = NORMAL;
       currentGameSize = SIZE16x16;
       break;
@@ -358,11 +362,8 @@ int main() {
   while (1) {
     touchHandler();
     if (communication.runFrame) {
-      if(currentGameSize == SIZE16x16){
-        handleStateChange(largeFieldSnake);
-      } else {
-        handleStateChange(smallFieldSnake);
-      }
+      screen.print(largeFieldSnakeOther.snakeY[0]);
+      handleStateChange();
       handleState();
       communication.runFrame = false;
     }

@@ -35,6 +35,8 @@ public:
   uint16_t getScore();
   uint16_t getHighscore();
 
+  volatile uint8_t *snakeX; // pointer voor dynamische array
+  volatile uint8_t *snakeY;
   // void setHighscore(uint8_t newScore);
 
 
@@ -47,8 +49,6 @@ private:
 
   uint8_t gridSize;
   uint16_t cellWidth, cellHeight;
-  volatile uint8_t *snakeX; // pointer voor dynamische array
-  volatile uint8_t *snakeY;
   uint16_t colour;
   uint8_t score = 0;
   uint8_t highscore = 0;
