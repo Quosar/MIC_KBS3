@@ -27,12 +27,27 @@ const uint8_t SNAKE_START_LENGHT = 3;
 volatile bool isMainSnake = false;
 
 Snake::Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
-             Display &screen, uint16_t colour, bool primarySnake)
+             Display &screen, uint16_t colour, bool primarySnake, bool sender)
     : screen(screen), gridSize(gridSize), cellWidth(cellWidth),
       cellHeight(cellHeight), colour(colour) {
   snakeLength = SNAKE_START_LENGHT;
-  direction = RIGHT;
-  bufferedDirection = RIGHT;
+  if(primarySnake){
+    if(!sender){
+      direction = UP;
+      bufferedDirection = UP;
+    } else {
+      direction = DOWN;
+      bufferedDirection = DOWN;
+    }
+  } else {
+    if(!sender){
+      direction = DOWN;
+      bufferedDirection = DOWN;
+    } else {
+      direction = UP;
+      bufferedDirection = UP;
+    }
+  }
   gridSize = gridSize;
   cellWidth = cellWidth;
   cellHeight = cellHeight;

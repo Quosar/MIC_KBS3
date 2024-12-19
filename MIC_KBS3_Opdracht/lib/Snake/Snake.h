@@ -8,7 +8,7 @@
 class Snake {
 public:
   Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
-        Display &screen, uint16_t colour, bool primarySnake);
+        Display &screen, uint16_t colour, bool primarySnake, bool sender);
 
   void start(uint8_t x, uint8_t y);
   void updateDirection(uint8_t joyX, uint8_t joyY);

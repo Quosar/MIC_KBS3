@@ -62,15 +62,15 @@ Communication communication;
 
 // Create Snake object
 Snake largeFieldSnake(LARGE_FIELD_GRID_SIZE, TFT_WIDTH / LARGE_FIELD_GRID_SIZE,
-                      TFT_WIDTH / LARGE_FIELD_GRID_SIZE, screen, GREEN, communication.getSender());
+                      TFT_WIDTH / LARGE_FIELD_GRID_SIZE, screen, GREEN, communication.getSender(), communication.getSender());
 
 Snake smallFieldSnake(SMALL_FIELD_GRID_SIZE, TFT_WIDTH / SMALL_FIELD_GRID_SIZE,
-                      TFT_WIDTH / SMALL_FIELD_GRID_SIZE, screen, GREEN, communication.getSender());
+                      TFT_WIDTH / SMALL_FIELD_GRID_SIZE, screen, GREEN, communication.getSender(), !communication.getSender());
 
 Snake largeFieldSnakeOther(LARGE_FIELD_GRID_SIZE, TFT_WIDTH / LARGE_FIELD_GRID_SIZE,
-                      TFT_WIDTH / LARGE_FIELD_GRID_SIZE, screen, MAGENTA, !communication.getSender());
+                      TFT_WIDTH / LARGE_FIELD_GRID_SIZE, screen, MAGENTA, !communication.getSender(), communication.getSender());
 // Snake smallFieldSnakeOther(SMALL_FIELD_GRID_SIZE, TFT_WIDTH / SMALL_FIELD_GRID_SIZE,
-//                       TFT_WIDTH / SMALL_FIELD_GRID_SIZE, screen, MAGENTA, !communication.getSender());                      
+//                       TFT_WIDTH / SMALL_FIELD_GRID_SIZE, screen, MAGENTA, !communication.getSender(), !communication.getSender());                      
 
 // Game Size (8x8 / 16x16)
 enum gameSize { SIZE8x8, SIZE16x16 };
@@ -237,18 +237,15 @@ void handleStateChange() {
       screen.fillScreen(BLACK);
       if (currentGameSize == SIZE16x16) {
                 largeFieldSnakeOther.reset();
-        largeFieldSnakeOther.start((LARGE_FIELD_GRID_SIZE / 2), (LARGE_FIELD_GRID_SIZE / 2) + 2);
+        largeFieldSnakeOther.start(0, 15);
         largeFieldSnake.reset();
-        largeFieldSnake.start((LARGE_FIELD_GRID_SIZE / 2),
-                              (LARGE_FIELD_GRID_SIZE / 2) - 2);
+        largeFieldSnake.start((15),
+                              0);
         if (currentGameSpeed == NORMAL) {
           updateSevenSegmentDisplay(1);
         } else {
           updateSevenSegmentDisplay(2);
         }
-
-        largeFieldSnake.reset();
-        largeFieldSnake.start(6, 6);
       } else {
         if (currentGameSpeed == NORMAL) {
           updateSevenSegmentDisplay(3);
