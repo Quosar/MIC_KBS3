@@ -8,7 +8,7 @@
 class Snake {
 public:
   Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
-         Display screen, uint16_t colour);
+         Display &screen, uint16_t colour);
 
   void start(uint8_t x, uint8_t y);
   void updateDirection(uint8_t joyX, uint8_t joyY);
@@ -20,13 +20,7 @@ public:
   void spawnRandApple();
   void reset();
   void drawScore();
-  void drawDeathScreen(bool isWinner, uint8_t lengthPlr1, uint8_t lengthPlr2);
-  void drawStartMenu();
-  void drawHighscore(uint8_t score);
-  void drawPlayer1Text(bool selected);
-  void drawPlayer2Text(bool selected);
-  void drawGameStartButton(bool isPlayer1);
-  void drawElement(uint8_t element, bool selected, bool isPlayer1, bool redrawBody, bool isStartup);
+
 
   enum Sound { EAT, DEATH, STARTGAME };
 
@@ -50,11 +44,12 @@ public:
   uint8_t snakeLength;
 
 private:
+  Display &screen;
+
   uint8_t gridSize;
   uint16_t cellWidth, cellHeight;
   uint8_t *snakeX; // pointer voor dynamische array
   uint8_t *snakeY;
-  Display screen;
   uint16_t colour;
   uint8_t score = 0;
   uint8_t highscore = 0;

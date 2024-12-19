@@ -40,7 +40,16 @@ public:
   void print(int8_t text);
   void println(int8_t text);
 
-  void refreshBacklight();
+  void drawDeathScreen(bool isWinner, uint8_t lengthPlr1, uint8_t lengthPlr2);
+  void drawStartMenu();
+
+  void drawElement(uint8_t element, bool selected, bool isPlayer1,
+                   bool redrawBody, bool isStartup);
+
+
+  void copyArray(const uint16_t arrayOG[10], uint16_t newArray[10],
+                 uint8_t arraySize);
+void refreshBacklight();
 
   TS_Point getPoint();
 
