@@ -351,6 +351,7 @@ void handleMenuTouch() {
       if ((touchX >= MENU_START_X && touchX <= MENU_START_X + 140) &&
           (touchY >= MENU_START_Y && touchY <= MENU_START_Y + 70)) {
         // Detection
+        communication.gameRunning = true;
         currentState = START;
       }
 
@@ -410,6 +411,9 @@ int main() {
     }
     if (communication.runFrame)
     {
+      if(communication.gameRunning && currentState != INGAME){
+      currentState = START;
+      }
       handleStateChange();
       handleState();
     }
