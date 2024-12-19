@@ -70,6 +70,9 @@ volatile bool isAliveOther = false;
 
 volatile bool gameRunning = true;
 
+const uint8_t soundPitch =
+    1; // The pitch of the audio (the higher the number, the lower the pitch)
+
 void Communication::setupPins()
 {
   DDRD |= (1 << PD6); // PD6 Ouptut
@@ -86,6 +89,12 @@ void Communication::setupPins()
 
 void Communication::setupTimers()
 {
+  TCCR2A |= (1 << WGM22);
+  // TCCR2B |= (1 << CS21);
+
+  OCR2A = soundPitch;
+  TCNT2 = 0;
+
   // Correct Timer 1 setup for CTC mode with prescaler 64
   TCCR1A = 0;
   TCCR1B = 0;
