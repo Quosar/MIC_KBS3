@@ -182,8 +182,8 @@ void Snake::reset() {
   delete[] snakeY;
 
   // Herinitialize de arrays
-  snakeX = new uint8_t[gridSize * gridSize];
-  snakeY = new uint8_t[gridSize * gridSize];
+  snakeX = new uint8_t[128]; // gridsize * gridsize / 2
+  snakeY = new uint8_t[128];
 
   // start richting zetten
   direction = RIGHT;

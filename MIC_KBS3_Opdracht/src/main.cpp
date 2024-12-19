@@ -147,6 +147,7 @@ void handleState() {
     if (currentGameSize == SIZE16x16) {
       communication.communicationFrameCount =
           calculateFrameCount(largeFieldSnake.snakeLength);
+                updateGame(largeFieldSnakeOther);
       updateGame(largeFieldSnake);
     } else {
       communication.communicationFrameCount =
@@ -227,11 +228,11 @@ void handleStateChange() {
     case START:
       screen.fillScreen(BLACK);
       if (currentGameSize == SIZE16x16) {
+                largeFieldSnakeOther.reset();
+        largeFieldSnakeOther.start(8, 10);
         largeFieldSnake.reset();
         largeFieldSnake.start(8,
                               6);
-        largeFieldSnakeOther.reset();
-        largeFieldSnakeOther.start(8, 10);
         if (currentGameSpeed == NORMAL) {
           updateSevenSegmentDisplay(1);
         } else {
