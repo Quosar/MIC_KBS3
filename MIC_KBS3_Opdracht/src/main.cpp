@@ -195,23 +195,23 @@ void handleStateChange(Snake &snake) {
       updateSevenSegmentDisplay(0);
       if (previousState == REDRAW) {
         if (currentGameSize == SIZE8x8) {
-          snake.drawElement(3, true, false, false, false);
-          snake.drawElement(4, false, false, false, false);
+          screen.drawElement(3, true, false, false, false);
+          screen.drawElement(4, false, false, false, false);
         } else if (currentGameSize == SIZE16x16) {
-          snake.drawElement(3, false, false, false, false);
-          snake.drawElement(4, true, false, false, false);
+          screen.drawElement(3, false, false, false, false);
+          screen.drawElement(4, true, false, false, false);
         }
 
         if (isFastMode != previousFastMode) {
           if (isFastMode) {
-            largeFieldSnake.drawElement(5, true, false, true, false);
+            screen.drawElement(5, true, false, true, false);
           } else {
-            largeFieldSnake.drawElement(5, false, false, true, false);
+            screen.drawElement(5, false, false, true, false);
           }
           previousFastMode = isFastMode;
         }
       } else {
-        largeFieldSnake.drawStartMenu();
+        screen.drawStartMenu();
       }
       break;
 
@@ -246,7 +246,7 @@ void handleStateChange(Snake &snake) {
       break;
 
     case DEATH:
-      snake.drawDeathScreen(true, 20, 20);
+      screen.drawDeathScreen(true, 20, 20);
       currentGameSpeed = NORMAL;
       currentGameSize = SIZE16x16;
       break;
@@ -323,7 +323,7 @@ void handleMenuTouch() {
       if ((touchX >= MENU_PLR1_X && touchX <= MENU_PLR1_X + 100) &&
           (touchY >= MENU_PLR1_Y && touchY <= MENU_PLR1_Y + 20)) {
         // communication.isPlayer1 = true;
-        largeFieldSnake.drawElement(1, true, true, true, false);
+        screen.drawElement(1, true, true, true, false);
       }
 
       // For Testing, this does not require player1/player2 selection and is

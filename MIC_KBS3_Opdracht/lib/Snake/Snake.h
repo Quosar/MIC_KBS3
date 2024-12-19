@@ -20,13 +20,7 @@ public:
   void spawnRandApple();
   void reset();
   void drawScore();
-  void drawDeathScreen(bool isWinner, uint8_t lengthPlr1, uint8_t lengthPlr2);
-  void drawStartMenu();
-  void drawHighscore(uint8_t score);
-  void drawPlayer1Text(bool selected);
-  void drawPlayer2Text(bool selected);
-  void drawGameStartButton(bool isPlayer1);
-  void drawElement(uint8_t element, bool selected, bool isPlayer1, bool redrawBody, bool isStartup);
+
 
   enum Sound { EAT, DEATH, STARTGAME };
 
