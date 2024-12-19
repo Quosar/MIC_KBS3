@@ -102,9 +102,9 @@ void updateGame(Snake &snake) {
   if (snake.eatApple(snake.appleX, snake.appleY)) {
     snake.grow();
   }
-  // if (snake.checkCollision()) {
-  //   currentState = DEATH;
-  // }
+  if (snake.checkCollision()) {
+    currentState = DEATH;
+  }
 }
 
 void directionHandler() {
@@ -148,7 +148,6 @@ void handleState() {
       communication.communicationFrameCount =
           calculateFrameCount(largeFieldSnake.snakeLength);
       updateGame(largeFieldSnake);
-      updateGame(largeFieldSnakeOther);
     } else {
       communication.communicationFrameCount =
           calculateFrameCount(smallFieldSnake.snakeLength);
@@ -170,31 +169,58 @@ long mapValue(long x, long inMin, long inMax, long outMin, long outMax) {
   return (x - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
 }
 
+const uint8_t SEVEN_SEGMENT_ADRES = 0x21;
+const uint8_t SEVEN_SEGMENT_DIGITS[] = {
+    0xC0, // 0
+    0xF9, // 1
+    0xA4, // 2
+    0xB0, // 3
+    0x99, // 4
+    0x92, // 5
+    0x82, // 6
+    0xF8, // 7
+    0x80, // 8
+    0x90, // 9
+    0x88, // A
+    0x83, // B
+    0xC6, // C
+    0xA1, // D
+    0x86, // E
+    0x8E  // F
+};
+
+void updateSevenSegmentDisplay(uint8_t value) {
+  Wire.beginTransmission(SEVEN_SEGMENT_ADRES);
+  Wire.write(SEVEN_SEGMENT_DIGITS[value]);
+  Wire.endTransmission(SEVEN_SEGMENT_ADRES);
+}
+
 // game logic die alleen gedaan moet worden wanneer je net in deze gamestate
 // komt
 void handleStateChange() {
   if (currentState != previousState) {
     switch (currentState) {
     case MENU:
+      updateSevenSegmentDisplay(0);
       if (previousState == REDRAW) {
         if (currentGameSize == SIZE8x8) {
-          smallFieldSnake.drawElement(3, true, false, false, false);
-          smallFieldSnake.drawElement(4, false, false, false, false);
+          screen.drawElement(3, true, false, false, false);
+          screen.drawElement(4, false, false, false, false);
         } else if (currentGameSize == SIZE16x16) {
-          largeFieldSnake.drawElement(3, false, false, false, false);
-          largeFieldSnake.drawElement(4, true, false, false, false);
+          screen.drawElement(3, false, false, false, false);
+          screen.drawElement(4, true, false, false, false);
         }
 
         if (isFastMode != previousFastMode) {
           if (isFastMode) {
-            largeFieldSnake.drawElement(5, true, false, true, false);
+            screen.drawElement(5, true, false, true, false);
           } else {
-            largeFieldSnake.drawElement(5, false, false, true, false);
+            screen.drawElement(5, false, false, true, false);
           }
           previousFastMode = isFastMode;
         }
       } else {
-        largeFieldSnake.drawStartMenu();
+        screen.drawStartMenu();
       }
       break;
 
@@ -206,8 +232,20 @@ void handleStateChange() {
                               6);
         largeFieldSnakeOther.reset();
         largeFieldSnakeOther.start(8, 10);
+        if (currentGameSpeed == NORMAL) {
+          updateSevenSegmentDisplay(1);
+        } else {
+          updateSevenSegmentDisplay(2);
+        }
 
+        largeFieldSnake.reset();
+        largeFieldSnake.start(6, 6);
       } else {
+        if (currentGameSpeed == NORMAL) {
+          updateSevenSegmentDisplay(3);
+        } else {
+          updateSevenSegmentDisplay(4);
+        }
         smallFieldSnake.reset();
         smallFieldSnake.start(SMALL_FIELD_GRID_SIZE / 2,
                               SMALL_FIELD_GRID_SIZE / 2);
@@ -222,11 +260,7 @@ void handleStateChange() {
       break;
 
     case DEATH:
-    if(currentGameSize == SIZE16x16){
-      largeFieldSnake.drawDeathScreen(true, 20, 20);
-    } else {
-      smallFieldSnake.drawDeathScreen(true, 20, 20);
-    }
+      screen.drawDeathScreen(true, 20, 20);
       currentGameSpeed = NORMAL;
       currentGameSize = SIZE16x16;
       break;
@@ -303,7 +337,7 @@ void handleMenuTouch() {
       if ((touchX >= MENU_PLR1_X && touchX <= MENU_PLR1_X + 100) &&
           (touchY >= MENU_PLR1_Y && touchY <= MENU_PLR1_Y + 20)) {
         // communication.isPlayer1 = true;
-        largeFieldSnake.drawElement(1, true, true, true, false);
+        screen.drawElement(1, true, true, true, false);
       }
 
       // For Testing, this does not require player1/player2 selection and is
@@ -361,7 +395,9 @@ int main() {
 
   while (1) {
     touchHandler();
-    if (communication.runFrame) {
+    screen.refreshBacklight();
+    if (communication.runFrame)
+    {
       handleStateChange();
       handleState();
     }

@@ -1,14 +1,14 @@
 #ifndef SNAKE___H
 #define SNAKE___H
 
+#include "Display.h"
 #include <Adafruit_GFX.h>
 #include <Adafruit_ILI9341.h>
-#include "Display.h"
 
 class Snake {
 public:
   Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
-         Display &screen, uint16_t colour);
+        Display &screen, uint16_t colour);
 
   void start(uint8_t x, uint8_t y);
   void updateDirection(uint8_t joyX, uint8_t joyY);
@@ -20,13 +20,12 @@ public:
   void spawnRandApple();
   void reset();
   void drawScore();
-  void drawDeathScreen(bool isWinner, uint8_t lengthPlr1, uint8_t lengthPlr2);
-  void drawStartMenu();
-  void drawHighscore(uint8_t score);
-  void drawPlayer1Text(bool selected);
-  void drawPlayer2Text(bool selected);
-  void drawGameStartButton(bool isPlayer1);
-  void drawElement(uint8_t element, bool selected, bool isPlayer1, bool redrawBody, bool isStartup);
+
+  enum Sound { EAT, DEATH, STARTGAME };
+
+  void playSound(Sound sound);
+  void stopSound();
+
   enum Direction { UP, DOWN, LEFT, RIGHT };
   Direction direction;
   Direction getDirection();
@@ -35,7 +34,6 @@ public:
   uint16_t getScore();
   uint16_t getHighscore();
   // void setHighscore(uint8_t newScore);
-
 
   uint8_t appleX; // appel coords public voor communicatie
   uint8_t appleY;
@@ -55,7 +53,7 @@ private:
 
   uint8_t *snakeX; // pointer voor dynamische array
   uint8_t *snakeY;
-  
+
   Direction bufferedDirection;
 
   void clearTail(uint8_t tailX, uint8_t tailY);
