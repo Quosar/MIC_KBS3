@@ -94,13 +94,13 @@ volatile uint8_t currentSoundFrame = 1;       // Current frame of the sound
 volatile uint8_t currentSoundIndex = 0;       // 
 volatile uint8_t currentSoundFrameIndex = 0;
 
-const uint8_t soundEat[][3] = {
+const uint8_t soundPitch = 1; // The pitch of the audio (the higher the number, the lower the pitch)
+const uint8_t soundSpeedFactor = 1; // How fast the audio playback is (higher is slower)
+
+const uint8_t soundMenu[][3] = {
   {1, 1, 20},
   {0, 1, 20},
   {1, 1, 20},
-  {0, 1, 20},
-  {1, 1, 20},
-  {0, 1, 20},
 };
 
 const uint8_t soundMenuSelect8x8[][3] = {
@@ -125,13 +125,37 @@ const uint8_t soundStart[][3] = {
   {1, 1, 75},
 };
 
+const uint8_t soundGrow[][3] = {
+  {1, 3, 15},
+  {0, 3, 15},
+  {1, 2, 30},
+  {0, 2, 30},
+  {1, 1, 45},
+  {0, 1, 45},
+};
+
+const uint8_t soundMove[][3] = {
+  {1, 2, 25},
+};
+
+const uint8_t soundDeath[][3] = {
+  {1, 1, 40},
+  {0, 1, 40},
+  {1, 2, 30},
+  {0, 2, 30},
+  {1, 3, 20},
+  {0, 3, 20},
+  {1, 4, 10},
+  {0, 4, 10},
+};
+
 uint8_t soundQueue[10][3];
 
 enum gameState { MENU, START, INGAME, DEATH, REDRAW };
 volatile gameState currentState = MENU;
 volatile gameState previousState = DEATH;
 
-enum Sound { SOUND_EAT, SOUND_DEATH, SOUND_START, SOUND_MENU8X8, SOUND_MENU16X16, SOUND_MENUNORMAL, SOUND_MENUFAST };
+enum Sound { SOUND_EAT, SOUND_DEATH, SOUND_MOVE, SOUND_START, SOUND_MENU, SOUND_MENU8X8, SOUND_MENU16X16, SOUND_MENUNORMAL, SOUND_MENUFAST };
 
 // communication
 volatile uint32_t firstSyncCheck =
@@ -181,25 +205,47 @@ volatile bool isAlive = false;
 volatile uint8_t checksum;
 
 void copyArrayArray(const uint8_t arrayOG[10][3], uint8_t newArray[10][3],
-               uint8_t arraySize) {
+               uint8_t arraySize, uint8_t playbackSpeed) {
   for (int i = 0; i < arraySize; i++) {
     for (int j = 0; j < 3; j++) {
-      newArray[i][j] = arrayOG[i][j];
+      if (j == 2) {
+        newArray[i][j] = arrayOG[i][j] * playbackSpeed;
+      } else {
+        newArray[i][j] = arrayOG[i][j];
+      }
     }
   }
 }
 
 
 void playSound(Sound sound) {
+  TIMSK2 &= ~(1 << OCIE2A);
+
+  for (int i = 0; i < 10; i++) {
+    for (int j = 0; j < 3; j++) {
+      soundQueue[i][j] = 0;
+    }
+  }
+
   // Copy over the sound array to a temporary array
   if (sound == SOUND_EAT) {
-    copyArrayArray(soundEat, soundQueue, 10);
+    copyArrayArray(soundGrow, soundQueue, 10, soundSpeedFactor);
   } else if (sound == SOUND_START) {
-    copyArrayArray(soundStart, soundQueue, 10);
+    copyArrayArray(soundStart, soundQueue, 10, soundSpeedFactor);
   } else if (sound == SOUND_MENU8X8) {
-    copyArrayArray(soundMenuSelect8x8, soundQueue, 10);
+    copyArrayArray(soundMenuSelect8x8, soundQueue, 10, soundSpeedFactor);
   } else if (sound == SOUND_MENU16X16) {
-    copyArrayArray(soundMenuSelect16x16, soundQueue, 10);
+    copyArrayArray(soundMenuSelect16x16, soundQueue, 10, soundSpeedFactor);
+  } else if (sound == SOUND_MENU) {
+    copyArrayArray(soundMenu, soundQueue, 10, soundSpeedFactor);
+  } else if (sound == SOUND_MOVE) {
+    copyArrayArray(soundMove, soundQueue, 10, soundSpeedFactor);
+  } else if (sound == SOUND_DEATH) {
+    copyArrayArray(soundDeath, soundQueue, 10, soundSpeedFactor);
+  } else if (sound == SOUND_MENUFAST) {
+    copyArrayArray(soundMenu, soundQueue, 10, soundSpeedFactor);
+  } else if (sound == SOUND_MENUNORMAL) {
+    copyArrayArray(soundMenu, soundQueue, 10, soundSpeedFactor);
   }
 
   // Initialize sound array
@@ -207,8 +253,9 @@ void playSound(Sound sound) {
 
   // Enable Timer Compare
   // Floor Timer2 Val
-  TIMSK2 |= (1 << OCIE2A);
   TCNT2 = 0;
+  TIMSK2 |= (1 << OCIE2A);
+
 }
 
 void setupPins() {
@@ -226,6 +273,12 @@ void setupPins() {
 }
 
 void setupTimers() {
+  TCCR2A |= (1 << WGM22);
+  // TCCR2B |= (1 << CS21);
+
+  OCR2A = soundPitch;
+  TCNT2 = 0;
+
   // Correct Timer 1 setup for CTC mode with prescaler 64
   TCCR1A = 0;
   TCCR1B = 0;
@@ -375,11 +428,14 @@ void updateGame(Snake &snake) {
   snake.move(); // Move snake based on received direction
   snake.draw();
   snake.drawScore();
+  playSound(SOUND_MOVE);
   if (snake.eatApple(snake.appleX, snake.appleY)) {
+    playSound(SOUND_EAT);
     snake.grow();
   }
   if (snake.checkCollision()) {
     currentState = DEATH;
+    playSound(SOUND_DEATH);
   }
 }
 
@@ -444,7 +500,7 @@ void handleState() {
           //largeFieldSnake.playSound();
           // soundFrames = SOUND_EAT;
           // soundFrames += 1;
-          playSound(SOUND_MENU8X8);
+
         }
 
         // Mode 2
@@ -454,7 +510,6 @@ void handleState() {
           previousState = REDRAW;
           // soundFrames = SOUND_DEATH;
           // soundFrames += 1;
-          playSound(SOUND_MENU16X16);
         }
 
         // Mode 3
@@ -554,25 +609,31 @@ void handleStateChange(Snake &snake) {
         if (currentGameSize == SIZE8x8) {
           snake.drawElement(3, true, false, false, false);
           snake.drawElement(4, false, false, false, false);
+          playSound(SOUND_MENU8X8);
         } else if (currentGameSize == SIZE16x16) {
           snake.drawElement(3, false, false, false, false);
           snake.drawElement(4, true, false, false, false);
+          playSound(SOUND_MENU16X16);
         }
 
         if (isFastMode != previousFastMode) {
           if (isFastMode) {
             largeFieldSnake.drawElement(5, true, false, true, false);
+            playSound(SOUND_MENUFAST);
           } else {
             largeFieldSnake.drawElement(5, false, false, true, false);
+            playSound(SOUND_MENUNORMAL);
           }
           previousFastMode = isFastMode;
         }
       } else {
+        playSound(SOUND_MENU);
         largeFieldSnake.drawStartMenu();
       }
       break;
 
     case START:
+      playSound(SOUND_START);
       screen.fillScreen(BLACK);
       if (currentGameSize == SIZE16x16) {
         largeFieldSnake.reset();
@@ -594,6 +655,7 @@ void handleStateChange(Snake &snake) {
       break;
 
     case DEATH:
+      playSound(SOUND_DEATH);
       snake.drawDeathScreen(true, 20, 20);
 
       currentGameSize = SIZE16x16;
@@ -623,6 +685,8 @@ int main() {
   // LCD setup
 
   screen.begin();
+
+  screen.refreshBacklight();
 
   //cli();
 
@@ -830,6 +894,13 @@ ISR(TIMER2_COMPA_vect) {
         currentSoundFrame = 1;
         currentSoundFrameIndex = 0;
         currentSoundIndex = 0;
+
+        for (int i = 0; i < 10; i++) {
+          for (int j = 0; j < 3; j++) {
+            soundQueue[i][j] = 0;
+          }
+        }
+
         PORTD &= ~(1 << PD3);
         TIMSK2 &= ~(1 << OCIE2A);
       }
