@@ -20,6 +20,9 @@ public:
     volatile uint8_t snakeDirectionOther;
     volatile bool communicationNearlyInitialized;
     volatile bool gameRunning;
+    volatile uint8_t posApple;
+    volatile uint8_t posAppleOther;
+    volatile bool appleGatheredByPlayer2;
     bool getSender();
     bool getRunFrame();
     void setupPins();

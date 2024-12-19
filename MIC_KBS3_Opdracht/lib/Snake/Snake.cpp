@@ -155,8 +155,7 @@ bool Snake::eatApple(uint8_t appleX, uint8_t appleY) {
   if (snakeX[0] == appleX &&
       snakeY[0] == appleY) { // als hoofd van de snake is op pos van appel
     drawHead(appleX, appleY);
-    spawnRandApple();
-
+    
     return true; // appel is gegeten
   }
   return false; // niet gegeten
@@ -166,6 +165,20 @@ void Snake::spawnRandApple() {
   srand(TCNT0); // rand seed //TODO: seed vervangen voor clock waarde
   appleX = rand() % gridSize; // random appel spawn in het veld
   appleY = rand() % gridSize; // random appel spawn in het veld
+}
+
+uint8_t Snake::getApplePosition(){
+  uint8_t applePosition = 0;
+  applePosition = (appleX << 4);
+  applePosition = applePosition + appleY;
+  return applePosition;
+}
+
+void Snake::setApplePosition(uint8_t applePositon){
+  appleX = (applePositon >> 4);
+  uint8_t temporary = 0;
+  temporary = (applePositon << 4);
+  appleY = (temporary >> 4);
 }
 
 // alleen staart clearen ipv hele scherm

@@ -20,6 +20,8 @@ public:
   void spawnRandApple();
   void reset();
   void drawScore();
+  uint8_t getApplePosition();
+  void setApplePosition(uint8_t applePosition);
 
   enum Sound { EAT, DEATH, STARTGAME };
 

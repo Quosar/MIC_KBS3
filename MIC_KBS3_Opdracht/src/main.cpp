@@ -99,8 +99,24 @@ void updateGame(Snake &snake) {
   snake.move(); // Move snake based on received direction
   snake.draw();
   snake.drawScore();
+  if(communication.appleGatheredByPlayer2){
+    communication.appleGatheredByPlayer2 = false;
+    if(communication.getSender()){
+      snake.spawnRandApple();
+      communication.posApple = snake.getApplePosition();
+    }
+  }
+  if(!communication.getSender()){
+    snake.setApplePosition(communication.posAppleOther);
+  }
   if (snake.eatApple(snake.appleX, snake.appleY)) {
     snake.grow();
+    if(communication.getSender()){
+    snake.spawnRandApple();
+    communication.posApple = snake.getApplePosition();
+    } else {
+      communication.appleGatheredByPlayer2 = true;
+    }
   }
   // if (snake.checkCollision()) {
   //   currentState = DEATH;
