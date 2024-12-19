@@ -68,8 +68,7 @@ Snake smallFieldSnake(SMALL_FIELD_GRID_SIZE, TFT_WIDTH / SMALL_FIELD_GRID_SIZE,
                       TFT_WIDTH / SMALL_FIELD_GRID_SIZE, screen, GREEN);
 
 Snake largeFieldSnakeOther(LARGE_FIELD_GRID_SIZE, TFT_WIDTH / LARGE_FIELD_GRID_SIZE,
-                      TFT_WIDTH / LARGE_FIELD_GRID_SIZE, screen, MAGENTA);
-
+                      TFT_WIDTH / LARGE_FIELD_GRID_SIZE, screen, WHITE);
 // Snake smallFieldSnakeOther(SMALL_FIELD_GRID_SIZE, TFT_WIDTH / SMALL_FIELD_GRID_SIZE,
 //                       TFT_WIDTH / SMALL_FIELD_GRID_SIZE, screen, MAGENTA);                      
 
@@ -164,6 +163,7 @@ void handleState() {
   case START:
     break;
   }
+  communication.runFrame = false;
 }
 
 long mapValue(long x, long inMin, long inMax, long outMin, long outMax) {
@@ -362,16 +362,16 @@ int main() {
   while (1) {
     touchHandler();
     if (communication.runFrame) {
-      screen.print(largeFieldSnakeOther.snakeY[0]);
       handleStateChange();
       handleState();
-      communication.runFrame = false;
     }
   }
   return 0;
 }
 
-ISR(TIMER1_COMPA_vect) { communication.communicate(); }
+ISR(TIMER1_COMPA_vect) { 
+  communication.communicate(); 
+  }
 
 ISR(INT0_vect) {
   TCNT1 = 53;

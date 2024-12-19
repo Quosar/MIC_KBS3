@@ -87,11 +87,17 @@ void copyArray(const uint16_t arrayOG[10], uint16_t newArray[10],
 
 Snake::Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
              Display &screen, uint16_t colour)
-    : gridSize(gridSize), cellWidth(cellWidth), cellHeight(cellHeight),
-      screen(screen), colour(colour) {
-  snakeLength = SNAKE_START_LENGHT;          // start lengte van de snake
-  direction = RIGHT;                         // beginrichting is rechts
-  bufferedDirection = RIGHT;                 // gebufferde richting dus ook
+    : screen(screen), gridSize(gridSize), cellWidth(cellWidth),
+      cellHeight(cellHeight), colour(colour) {
+  snakeLength = SNAKE_START_LENGHT;
+  direction = RIGHT;
+  bufferedDirection = RIGHT;
+  gridSize = gridSize;
+  cellWidth = cellWidth;
+  cellHeight = cellHeight;
+  screen = screen;
+  colour = colour;
+
 }
 
 void Snake::start(uint8_t x, uint8_t y) {

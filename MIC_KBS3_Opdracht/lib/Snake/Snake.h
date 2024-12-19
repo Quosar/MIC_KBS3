@@ -34,9 +34,6 @@ public:
 
   uint16_t getScore();
   uint16_t getHighscore();
-
-  volatile uint8_t *snakeX; // pointer voor dynamische array
-  volatile uint8_t *snakeY;
   // void setHighscore(uint8_t newScore);
 
 
@@ -55,6 +52,9 @@ private:
 
   // enum Direction { UP, DOWN, LEFT, RIGHT };
   // Direction direction;
+
+  uint8_t *snakeX; // pointer voor dynamische array
+  uint8_t *snakeY;
   
   Direction bufferedDirection;
 
