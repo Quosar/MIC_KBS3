@@ -229,10 +229,10 @@ void handleStateChange() {
       screen.fillScreen(BLACK);
       if (currentGameSize == SIZE16x16) {
                 largeFieldSnakeOther.reset();
-        largeFieldSnakeOther.start(8, 10);
+        largeFieldSnakeOther.start((LARGE_FIELD_GRID_SIZE / 2), (LARGE_FIELD_GRID_SIZE / 2) + 2);
         largeFieldSnake.reset();
-        largeFieldSnake.start(8,
-                              6);
+        largeFieldSnake.start((LARGE_FIELD_GRID_SIZE / 2),
+                              (LARGE_FIELD_GRID_SIZE / 2) - 2);
         if (currentGameSpeed == NORMAL) {
           updateSevenSegmentDisplay(1);
         } else {
