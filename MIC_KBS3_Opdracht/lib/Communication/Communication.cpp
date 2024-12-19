@@ -79,6 +79,9 @@ void Communication::setupPins()
 
   DDRD |= (1 << PD7);   // PD7 Ouptut
   PORTD &= ~(1 << PD7); // PD7 begint LOW
+
+  DDRD |= (1 << PD5);
+  DDRD |= (1 << PD3);
 }
 
 void Communication::setupTimers()
@@ -86,18 +89,32 @@ void Communication::setupTimers()
   // Correct Timer 1 setup for CTC mode with prescaler 64
   TCCR1A = 0;
   TCCR1B = 0;
-  OCR1A = 0;
   TCCR1B |= (1 << WGM12);              // Correct: WGM12 is in TCCR1B
   TCCR1B |= (1 << CS11) | (1 << CS10); // Prescaler 64
   OCR1A = COMMUNICATIONSPEED;
 
-  // Correct Timer 0 setup
+  // Clear registers
   TCCR0A = 0;
   TCCR0B = 0;
-  TCCR0A |= (1 << WGM01);   // CTC mode
-  TCCR0B |= (1 << CS00);    // No prescaler
-  TCCR0A &= ~(1 << COM0A0); // Turn on oscillation
+
+  // Fast PWM mode OCR0A als TOP
+  TCCR0A |= (1 << WGM00) | (1 << WGM01);
+  TCCR0B |= (1 << WGM02);
+
+  // No prescaler
+  TCCR0B |= (1 << CS00);
+
+  // Toggle OC0A on compare match (OC0A PD6)
+  TCCR0A |= (1 << COM0A0);
+
+  // Non-inverting PWM on OC0B (backlight PD5)
+  TCCR0A |= (1 << COM0B1);
+
+  // Set OCR0A for 38 kHz
   OCR0A = OCSILLATIONSPEED;
+
+  // Initially set OCR0B for backlight
+  OCR0B = 0;
 }
 
 void Communication::SetupInterrupts()
@@ -112,6 +129,8 @@ void Communication::SetupInterrupts()
   {
     EIMSK |= (1 << INT0); // INT0 interrupt enable
   }
+
+
 }
 
 void Communication::initializeCommunication()
