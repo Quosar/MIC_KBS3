@@ -8,7 +8,7 @@
 class Snake {
 public:
   Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
-        Display &screen, uint16_t colour);
+        Display &screen, uint16_t colour, bool primarySnake);
 
   void start(uint8_t x, uint8_t y);
   void updateDirection(uint8_t joyX, uint8_t joyY);
@@ -39,6 +39,8 @@ public:
   uint8_t appleY;
   uint8_t snakeLength;
 
+  Direction bufferedDirection;
+
 private:
   Display &screen;
 
@@ -54,7 +56,7 @@ private:
   uint8_t *snakeX; // pointer voor dynamische array
   uint8_t *snakeY;
 
-  Direction bufferedDirection;
+  bool isPrimarySnake;
 
   void clearTail(uint8_t tailX, uint8_t tailY);
   void drawCell(uint16_t x, uint16_t y, uint16_t color);

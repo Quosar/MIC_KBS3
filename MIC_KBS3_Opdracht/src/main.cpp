@@ -62,15 +62,15 @@ Communication communication;
 
 // Create Snake object
 Snake largeFieldSnake(LARGE_FIELD_GRID_SIZE, TFT_WIDTH / LARGE_FIELD_GRID_SIZE,
-                      TFT_WIDTH / LARGE_FIELD_GRID_SIZE, screen, GREEN);
+                      TFT_WIDTH / LARGE_FIELD_GRID_SIZE, screen, GREEN, communication.getSender());
 
 Snake smallFieldSnake(SMALL_FIELD_GRID_SIZE, TFT_WIDTH / SMALL_FIELD_GRID_SIZE,
-                      TFT_WIDTH / SMALL_FIELD_GRID_SIZE, screen, GREEN);
+                      TFT_WIDTH / SMALL_FIELD_GRID_SIZE, screen, GREEN, communication.getSender());
 
 Snake largeFieldSnakeOther(LARGE_FIELD_GRID_SIZE, TFT_WIDTH / LARGE_FIELD_GRID_SIZE,
-                      TFT_WIDTH / LARGE_FIELD_GRID_SIZE, screen, WHITE);
+                      TFT_WIDTH / LARGE_FIELD_GRID_SIZE, screen, MAGENTA, !communication.getSender());
 // Snake smallFieldSnakeOther(SMALL_FIELD_GRID_SIZE, TFT_WIDTH / SMALL_FIELD_GRID_SIZE,
-//                       TFT_WIDTH / SMALL_FIELD_GRID_SIZE, screen, MAGENTA);                      
+//                       TFT_WIDTH / SMALL_FIELD_GRID_SIZE, screen, MAGENTA, !communication.getSender());                      
 
 // Game Size (8x8 / 16x16)
 enum gameSize { SIZE8x8, SIZE16x16 };
@@ -102,9 +102,9 @@ void updateGame(Snake &snake) {
   if (snake.eatApple(snake.appleX, snake.appleY)) {
     snake.grow();
   }
-  if (snake.checkCollision()) {
-    currentState = DEATH;
-  }
+  // if (snake.checkCollision()) {
+  //   currentState = DEATH;
+  // }
 }
 
 void directionHandler() {
@@ -112,7 +112,15 @@ void directionHandler() {
     if (currentGameSize == SIZE16x16) {
       largeFieldSnake.updateDirection(nunchuck.state.joy_x_axis,
                                       nunchuck.state.joy_y_axis);
-      largeFieldSnakeOther.updateDirection(nunchuck.state.joy_x_axis, nunchuck.state.joy_y_axis);
+      if(communication.snakeDirectionOther == 0){
+        largeFieldSnakeOther.bufferedDirection = largeFieldSnakeOther.UP;
+      } else if(communication.snakeDirectionOther == 1) {
+        largeFieldSnakeOther.bufferedDirection = largeFieldSnakeOther.DOWN;
+      } else if(communication.snakeDirectionOther == 2) {
+        largeFieldSnakeOther.bufferedDirection = largeFieldSnakeOther.LEFT;
+      } else if(communication.snakeDirectionOther == 3) {
+        largeFieldSnakeOther.bufferedDirection = largeFieldSnakeOther.RIGHT;
+      }
     } else {
       smallFieldSnake.updateDirection(nunchuck.state.joy_x_axis,
                                       nunchuck.state.joy_y_axis);
@@ -383,6 +391,7 @@ void touchHandler() {
 int main() {
   init();
   Wire.begin();
+  Serial.begin(9600);
 
   // aparte setups voor testen
   communication.setupPins();
@@ -395,12 +404,18 @@ int main() {
   sei();
 
   while (1) {
+    if(communication.communicationInitialized){
     touchHandler();
     screen.refreshBacklight();
+    if(communication.printBus){
+      communication.outBus = communication.constructBus(largeFieldSnake);
+      communication.deconstructBus(communication.inBus, largeFieldSnakeOther);
+    }
     if (communication.runFrame)
     {
       handleStateChange();
       handleState();
+    }
     }
   }
   return 0;
@@ -408,10 +423,10 @@ int main() {
 
 ISR(TIMER1_COMPA_vect) { 
   communication.communicate(); 
-  }
+}
 
 ISR(INT0_vect) {
-  TCNT1 = 53;
+  TCNT1 = 106;
   communication.busBitIndex = 0;
   EIMSK &= ~(1 << INT0); // INT0 interrupt disable
   TIMSK1 |= (1 << OCIE1A);

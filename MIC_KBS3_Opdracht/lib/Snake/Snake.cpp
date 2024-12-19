@@ -24,8 +24,10 @@ const uint16_t TFT_HEIGHT = 320;
 
 const uint8_t SNAKE_START_LENGHT = 3;
 
+volatile bool isMainSnake = false;
+
 Snake::Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
-             Display &screen, uint16_t colour)
+             Display &screen, uint16_t colour, bool primarySnake)
     : screen(screen), gridSize(gridSize), cellWidth(cellWidth),
       cellHeight(cellHeight), colour(colour) {
   snakeLength = SNAKE_START_LENGHT;
@@ -36,6 +38,7 @@ Snake::Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
   cellHeight = cellHeight;
   screen = screen;
   colour = colour;
+  isMainSnake = primarySnake;
   OCR0A = 0;
 }
 
@@ -189,7 +192,9 @@ void Snake::reset() {
   direction = RIGHT;
 
   // nieuwe appel spawnen
+  if(isPrimarySnake){
   spawnRandApple();
+  }
 }
 
 // void Snake::setHighscore(uint8_t newScore) {
