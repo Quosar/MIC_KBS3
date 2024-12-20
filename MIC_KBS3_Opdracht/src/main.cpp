@@ -120,7 +120,8 @@ void updateGame(Snake &snake) {
       communication.appleGatheredByPlayer2 = true;
     }
   }
-  if (snake.checkCollision()) {
+  if(communication.getSender()){
+  if(snake.checkCollision(largeFieldSnake)) {
     communication.gameRunning = false;
       if(communication.getSender()){
         if(snake.isPrimarySnake){
@@ -135,7 +136,26 @@ void updateGame(Snake &snake) {
           isWinner = true;
         }
       }
-    currentState = DEATH;
+      currentState = DEATH;
+  }
+  } else {
+    if(snake.checkCollision(largeFieldSnakeOther)) {
+    communication.gameRunning = false;
+      if(communication.getSender()){
+        if(snake.isPrimarySnake){
+          isWinner = true;
+        } else {
+          isWinner = false;
+        }
+      } else {
+        if(snake.isPrimarySnake){
+          isWinner = false;
+        } else {
+          isWinner = true;
+        }
+      }
+      currentState = DEATH;
+    }
   }
 }
 

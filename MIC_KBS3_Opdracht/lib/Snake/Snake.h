@@ -14,7 +14,7 @@ public:
   void updateDirection(uint8_t joyX, uint8_t joyY);
   void move();
   void draw();
-  bool checkCollision();
+  bool checkCollision(Snake &Other);
   void grow();
   bool eatApple(uint8_t appleX, uint8_t appleY);
   void spawnRandApple();

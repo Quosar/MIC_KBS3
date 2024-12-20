@@ -133,19 +133,29 @@ void Snake::draw() {
 }
 
 // collision checken met zichzelf en de borders
-bool Snake::checkCollision() {
+bool Snake::checkCollision(Snake &Other) {
+  bool result = false;
   // check for border collision
   if (snakeX[0] < 0 || snakeX[0] >= gridSize || snakeY[0] < 0 ||
       snakeY[0] >= gridSize) {
-    return true;
+    result = true;
   }
-  // Check collision with itslef
+  // Check collision with itself
   for (uint8_t i = 1; i < snakeLength; i++) {
     if (snakeX[0] == snakeX[i] && snakeY[0] == snakeY[i]) {
-      return true;
+      result = true;
+      break;
     }
   }
-  return false; // als geen collision, return false
+
+  for (uint8_t i = 1; i < Other.snakeLength; i++) {
+    if (snakeX[0] == Other.snakeX[i] && snakeY[0] == Other.snakeY[i]) {
+      result = true;
+      break;
+    }
+  }
+
+  return result;
 }
 
 // lengte groeien van de slang
