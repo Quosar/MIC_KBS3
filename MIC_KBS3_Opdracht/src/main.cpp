@@ -126,7 +126,20 @@ void updateGame(Snake &snake) {
 void directionHandler() {
   if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
     if (currentGameSize == SIZE16x16) {
-      largeFieldSnake.updateDirection(nunchuck.state.joy_x_axis,
+      if(communication.getSender()){
+      largeFieldSnakeOther.updateDirection(nunchuck.state.joy_x_axis,
+                                      nunchuck.state.joy_y_axis);
+      if(communication.snakeDirectionOther == 0){
+        largeFieldSnake.bufferedDirection = largeFieldSnakeOther.UP;
+      } else if(communication.snakeDirectionOther == 1) {
+        largeFieldSnake.bufferedDirection = largeFieldSnakeOther.DOWN;
+      } else if(communication.snakeDirectionOther == 2) {
+        largeFieldSnake.bufferedDirection = largeFieldSnakeOther.LEFT;
+      } else if(communication.snakeDirectionOther == 3) {
+        largeFieldSnake.bufferedDirection = largeFieldSnakeOther.RIGHT;
+      }
+      } else {
+        largeFieldSnake.updateDirection(nunchuck.state.joy_x_axis,
                                       nunchuck.state.joy_y_axis);
       if(communication.snakeDirectionOther == 0){
         largeFieldSnakeOther.bufferedDirection = largeFieldSnakeOther.UP;
@@ -136,6 +149,7 @@ void directionHandler() {
         largeFieldSnakeOther.bufferedDirection = largeFieldSnakeOther.LEFT;
       } else if(communication.snakeDirectionOther == 3) {
         largeFieldSnakeOther.bufferedDirection = largeFieldSnakeOther.RIGHT;
+      }
       }
     } else {
       smallFieldSnake.updateDirection(nunchuck.state.joy_x_axis,
@@ -422,8 +436,13 @@ int main() {
     touchHandler();
     screen.refreshBacklight();
     if(communication.printBus){
-      communication.outBus = communication.constructBus(largeFieldSnake);
-      communication.deconstructBus(communication.inBus, largeFieldSnakeOther);
+      if(communication.getSender()){
+        communication.outBus = communication.constructBus(largeFieldSnakeOther);
+        communication.deconstructBus(communication.inBus, largeFieldSnake);
+      } else {
+        communication.outBus = communication.constructBus(largeFieldSnake);
+        communication.deconstructBus(communication.inBus, largeFieldSnakeOther);
+      }
     }
     if (communication.runFrame)
     {

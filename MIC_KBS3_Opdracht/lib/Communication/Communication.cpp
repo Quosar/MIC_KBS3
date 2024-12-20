@@ -8,7 +8,7 @@
 #define OCSILLATIONSPEED 209   // 38kHz oscilleer snelheid led pin
 #define COMMUNICATIONOFFSETMIN 0
 
-const bool isSender = true; // player1 begint met zenden en zetten timer
+const bool isSender = false; // player1 begint met zenden en zetten timer
 
 // communication
 volatile uint32_t firstSyncCheck =
@@ -169,7 +169,7 @@ uint32_t Communication::constructBus(Snake &snake)
 
   out |= ((uint32_t)snake.direction & 0x03) << 30;   // Bits 31–30: stickDirection
   out |= ((uint32_t)communicationFrameCounter & 0x3F) << 24; // Bits 29–24: frameCount
-  out |= ((uint32_t)snake.snakeLength & 0xFF) << 16;         // Bit 23–16: lengthSnake
+  //out |= ((uint32_t)snake.snakeLength & 0xFF) << 16;         // Bit 23–16: lengthSnake
   out |= ((uint32_t)posApple & 0xFF) << 8;                   // Bit 15–8: posApple
   out |=
       ((isPlayer1 & 0x01) << 7) |              // Bit 7: isPlayer1
@@ -196,7 +196,7 @@ void Communication::deconstructBus(uint32_t bus, Snake &snake)
     {
       communicationFrameCounter = (uint8_t)((bus >> 24) & 0x3F); // Bits 29–24: frameCount
     }
-    snake.snakeLength = (uint8_t)((bus >> 16) & 0xFF); // Bit 23–16: lengthSnake //TOFO naar andere snake zetten
+    //snake.snakeLength = (uint8_t)((bus >> 16) & 0xFF); // Bit 23–16: lengthSnake //TOFO naar andere snake zetten
     posAppleOther = (uint8_t)((bus >> 8) & 0xFF);      // Bit 15–8: posApple
 
     isPlayer1Other = (bus >> 7) & 0x01;              // Bit 7: isPlayer1
