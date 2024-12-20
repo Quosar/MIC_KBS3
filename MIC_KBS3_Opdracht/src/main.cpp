@@ -118,9 +118,9 @@ void updateGame(Snake &snake) {
       communication.appleGatheredByPlayer2 = true;
     }
   }
-  // if (snake.checkCollision()) {
-  //   currentState = DEATH;
-  // }
+  if (snake.checkCollision()) {
+    currentState = DEATH;
+  }
 }
 
 void directionHandler() {
@@ -128,15 +128,7 @@ void directionHandler() {
     if (currentGameSize == SIZE16x16) {
       largeFieldSnake.updateDirection(nunchuck.state.joy_x_axis,
                                       nunchuck.state.joy_y_axis);
-      if(communication.snakeDirectionOther == 0){
-        largeFieldSnakeOther.bufferedDirection = largeFieldSnakeOther.UP;
-      } else if(communication.snakeDirectionOther == 1) {
-        largeFieldSnakeOther.bufferedDirection = largeFieldSnakeOther.DOWN;
-      } else if(communication.snakeDirectionOther == 2) {
-        largeFieldSnakeOther.bufferedDirection = largeFieldSnakeOther.LEFT;
-      } else if(communication.snakeDirectionOther == 3) {
-        largeFieldSnakeOther.bufferedDirection = largeFieldSnakeOther.RIGHT;
-      }
+      largeFieldSnakeOther.updateDirection(nunchuck.state.joy_x_axis, nunchuck.state.joy_y_axis);
     } else {
       smallFieldSnake.updateDirection(nunchuck.state.joy_x_axis,
                                       nunchuck.state.joy_y_axis);
@@ -252,7 +244,7 @@ void handleStateChange() {
     case START:
       screen.fillScreen(BLACK);
       if (currentGameSize == SIZE16x16) {
-                largeFieldSnakeOther.reset();
+        largeFieldSnakeOther.reset();
         largeFieldSnakeOther.start(0, 15);
         largeFieldSnake.reset();
         largeFieldSnake.start((15),
@@ -405,7 +397,6 @@ void touchHandler() {
 int main() {
   init();
   Wire.begin();
-  Serial.begin(9600);
 
   // aparte setups voor testen
   communication.setupPins();
@@ -418,13 +409,8 @@ int main() {
   sei();
 
   while (1) {
-    if(communication.communicationInitialized){
     touchHandler();
     screen.refreshBacklight();
-    if(communication.printBus){
-      communication.outBus = communication.constructBus(largeFieldSnake);
-      communication.deconstructBus(communication.inBus, largeFieldSnakeOther);
-    }
     if (communication.runFrame)
     {
       if(communication.gameRunning && currentState != INGAME){
@@ -433,17 +419,16 @@ int main() {
       handleStateChange();
       handleState();
     }
-    }
   }
   return 0;
 }
 
 ISR(TIMER1_COMPA_vect) { 
   communication.communicate(); 
-}
+  }
 
 ISR(INT0_vect) {
-  TCNT1 = 106;
+  TCNT1 = 53;
   communication.busBitIndex = 0;
   EIMSK &= ~(1 << INT0); // INT0 interrupt disable
   TIMSK1 |= (1 << OCIE1A);

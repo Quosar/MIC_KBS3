@@ -41,8 +41,6 @@ public:
   uint8_t appleY;
   uint8_t snakeLength;
 
-  Direction bufferedDirection;
-
 private:
   Display &screen;
 
@@ -58,7 +56,7 @@ private:
   uint8_t *snakeX; // pointer voor dynamische array
   uint8_t *snakeY;
 
-  bool isPrimarySnake;
+  Direction bufferedDirection;
 
   void clearTail(uint8_t tailX, uint8_t tailY);
   void drawCell(uint16_t x, uint16_t y, uint16_t color);
