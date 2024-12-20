@@ -85,6 +85,8 @@ gameSpeed previousGameSpeed = NORMAL;
 volatile bool isFastMode = false;
 volatile bool previousFastMode = false;
 
+volatile bool isWinner = false;
+
 // Touch Screen Positions
 volatile uint16_t touchX = 0;
 volatile uint16_t touchY = 0;
@@ -118,9 +120,23 @@ void updateGame(Snake &snake) {
       communication.appleGatheredByPlayer2 = true;
     }
   }
-  // if (snake.checkCollision()) {
-  //   currentState = DEATH;
-  // }
+  if (snake.checkCollision()) {
+    communication.gameRunning = false;
+      if(communication.getSender()){
+        if(snake.isPrimarySnake){
+          isWinner = true;
+        } else {
+          isWinner = false;
+        }
+      } else {
+        if(snake.isPrimarySnake){
+          isWinner = false;
+        } else {
+          isWinner = true;
+        }
+      }
+    currentState = DEATH;
+  }
 }
 
 void directionHandler() {
@@ -296,7 +312,7 @@ void handleStateChange() {
       break;
 
     case DEATH:
-      screen.drawDeathScreen(true, 20, 20);
+      screen.drawDeathScreen(isWinner, 20, 20);
       currentGameSpeed = NORMAL;
       currentGameSize = SIZE16x16;
       break;
@@ -446,7 +462,7 @@ int main() {
     }
     if (communication.runFrame)
     {
-      if(communication.gameRunning && currentState != INGAME){
+      if(communication.gameRunning && currentState != INGAME && currentState != DEATH){
       currentState = START;
       }
       handleStateChange();
