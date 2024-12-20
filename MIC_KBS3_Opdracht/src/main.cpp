@@ -87,64 +87,50 @@ volatile bool isTouching = false;
 volatile bool previousTouch = false;
 
 // Sound Variable
-volatile uint8_t soundFrames = 1;             // Pitch of the sound (higher is lower pitch)
-volatile uint8_t currentSoundFrame = 1;       // Current frame of the sound
-volatile uint8_t currentSoundIndex = 0;       // 
+volatile uint8_t soundFrames = 1; // Pitch of the sound (higher is lower pitch)
+volatile uint8_t currentSoundFrame = 1; // Current frame of the sound
+volatile uint8_t currentSoundIndex = 0; //
 volatile uint8_t currentSoundFrameIndex = 0;
 
-const uint8_t soundPitch = 150; // The pitch of the audio (the higher the number, the lower the pitch)
-const uint8_t soundSpeedFactor = 1; // How fast the audio playback is (higher is slower)
+const uint8_t soundPitch =
+    150; // The pitch of the audio (the higher the number, the lower the pitch)
+const uint8_t soundSpeedFactor =
+    1; // How fast the audio playback is (higher is slower)
 
 const uint8_t soundMenu[][3] = {
-  {1, 1, 20},
-  {0, 1, 20},
-  {1, 1, 20},
+    {1, 1, 20},
+    {0, 1, 20},
+    {1, 1, 20},
 };
 
 const uint8_t soundMenuSelect8x8[][3] = {
-  {1, 3, 30},
-  {0, 3, 30},
-  {1, 2, 30},
+    {1, 3, 30},
+    {0, 3, 30},
+    {1, 2, 30},
 };
 
 const uint8_t soundMenuSelect16x16[][3] = {
-  {1, 4, 20},
-  {0, 4, 20},
-  {1, 3, 20},
-  {0, 3, 20},
-  {1, 2, 20},
-  {0, 2, 20},
+    {1, 4, 20}, {0, 4, 20}, {1, 3, 20}, {0, 3, 20}, {1, 2, 20}, {0, 2, 20},
 };
 
 const uint8_t soundStart[][3] = {
-  {1, 4, 30},
-  {1, 3, 45},
-  {1, 2, 60},
-  {1, 1, 75},
+    {1, 4, 30},
+    {1, 3, 45},
+    {1, 2, 60},
+    {1, 1, 75},
 };
 
 const uint8_t soundGrow[][3] = {
-  {1, 3, 15},
-  {0, 3, 15},
-  {1, 2, 30},
-  {0, 2, 30},
-  {1, 1, 45},
-  {0, 1, 45},
+    {1, 3, 15}, {0, 3, 15}, {1, 2, 30}, {0, 2, 30}, {1, 1, 45}, {0, 1, 45},
 };
 
 const uint8_t soundMove[][3] = {
-  {1, 2, 25},
+    {1, 2, 25},
 };
 
 const uint8_t soundDeath[][3] = {
-  {1, 1, 40},
-  {0, 1, 40},
-  {1, 2, 30},
-  {0, 2, 30},
-  {1, 3, 20},
-  {0, 3, 20},
-  {1, 4, 10},
-  {0, 4, 10},
+    {1, 1, 40}, {0, 1, 40}, {1, 2, 30}, {0, 2, 30},
+    {1, 3, 20}, {0, 3, 20}, {1, 4, 10}, {0, 4, 10},
 };
 
 const uint8_t (*soundQueue)[3] = nullptr;
@@ -165,7 +151,6 @@ enum Sound {
   SOUND_MENUFAST
 };
 
-
 void copyArrayArray(const uint8_t arrayOG[10][3], uint8_t newArray[10][3],
                     uint8_t arraySize, uint8_t playbackSpeed) {
   for (int i = 0; i < arraySize; i++) {
@@ -179,7 +164,7 @@ void copyArrayArray(const uint8_t arrayOG[10][3], uint8_t newArray[10][3],
   }
 }
 
-void selectSoundArray (Sound sound) {
+void selectSoundArray(Sound sound) {
   if (sound == SOUND_EAT) {
     soundQueue = soundGrow;
   } else if (sound == SOUND_START) {
@@ -209,7 +194,6 @@ void playSound(Sound sound) {
   selectSoundArray(sound);
 
   // Copy over the sound array to a temporary array
-  
 
   // Initialize sound array
   soundFrames = soundQueue[currentSoundIndex][1];
@@ -253,10 +237,10 @@ int8_t calculateFrameCount(uint8_t snakeLength) {
   if (currentGameSpeed == NORMAL) {
     frameCount = 10 - (snakeLength / 5);
   } else if (currentGameSpeed == FAST) {
-    frameCount = 5 - (snakeLength / 5);
+    frameCount = 5 - (snakeLength / 8);
   }
   if (frameCount < 2)
-    frameCount = 2; // maximum snelheid
+    frameCount = 3; // maximum snelheid
   if (frameCount > 8)
     frameCount = 8; // minimum snelheid
 
@@ -518,15 +502,14 @@ int main() {
   while (1) {
     touchHandler();
     screen.refreshBacklight();
-    if (communication.runFrame)
-    { 
+    if (communication.runFrame) {
       handleStateChange(largeFieldSnake);
       handleState();
-      //playSound(SOUND_MENU);
+      // playSound(SOUND_MENU);
       communication.runFrame = false;
     }
 
-    //Serial.println(currentSoundFrame);
+    // Serial.println(currentSoundFrame);
   }
   return 0;
 }
@@ -560,7 +543,8 @@ ISR(TIMER2_COMPA_vect) {
       currentSoundFrameIndex = 0;
       soundFrames = soundQueue[currentSoundIndex][1];
 
-      // If all arrays in the sound have played (max is maximum allowed sounds in sound array)
+      // If all arrays in the sound have played (max is maximum allowed sounds
+      // in sound array)
       if (currentSoundIndex >= 6) {
 
         // Reset all variables
@@ -578,7 +562,6 @@ ISR(TIMER2_COMPA_vect) {
       }
     }
   }
-
 }
 
 ISR(TIMER1_COMPA_vect) { communication.communicate(); }
@@ -589,4 +572,3 @@ ISR(INT0_vect) {
   EIMSK &= ~(1 << INT0); // INT0 interrupt disable
   TIMSK1 |= (1 << OCIE1A);
 }
-
