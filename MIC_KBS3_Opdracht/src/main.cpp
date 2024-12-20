@@ -116,43 +116,43 @@ void updateGame(Snake &snake) {
       communication.appleGatheredByPlayer2 = true;
     }
   }
-  // if(communication.getSender()){
-  // if(snake.checkCollision(largeFieldSnake)) {
-  //   communication.gameRunning = false;
-  //     if(communication.getSender()){
-  //       if(snake.isPrimarySnake){
-  //         isWinner = true;
-  //       } else {
-  //         isWinner = false;
-  //       }
-  //     } else {
-  //       if(snake.isPrimarySnake){
-  //         isWinner = false;
-  //       } else {
-  //         isWinner = true;
-  //       }
-  //     }
-  //     currentState = DEATH;
-  // }
-  // } else {
-  //   if(snake.checkCollision(largeFieldSnakeOther)) {
-  //   communication.gameRunning = false;
-  //     if(communication.getSender()){
-  //       if(snake.isPrimarySnake){
-  //         isWinner = true;
-  //       } else {
-  //         isWinner = false;
-  //       }
-  //     } else {
-  //       if(snake.isPrimarySnake){
-  //         isWinner = false;
-  //       } else {
-  //         isWinner = true;
-  //       }
-  //     }
-  //     currentState = DEATH;
-  //   }
-  // }
+  if(communication.getSender()){
+  if(snake.checkCollision(largeFieldSnake)) {
+    communication.gameRunning = false;
+      if(communication.getSender()){
+        if(snake.isPrimarySnake){
+          isWinner = true;
+        } else {
+          isWinner = false;
+        }
+      } else {
+        if(snake.isPrimarySnake){
+          isWinner = false;
+        } else {
+          isWinner = true;
+        }
+      }
+      currentState = DEATH;
+  }
+  } else {
+    if(snake.checkCollision(largeFieldSnakeOther)) {
+    communication.gameRunning = false;
+      if(communication.getSender()){
+        if(snake.isPrimarySnake){
+          isWinner = true;
+        } else {
+          isWinner = false;
+        }
+      } else {
+        if(snake.isPrimarySnake){
+          isWinner = false;
+        } else {
+          isWinner = true;
+        }
+      }
+      currentState = DEATH;
+    }
+  }
 }
 
 void directionHandler() {
@@ -162,14 +162,15 @@ void directionHandler() {
       largeFieldSnakeOther.updateDirection(nunchuck.state.joy_x_axis,
                                       nunchuck.state.joy_y_axis);
       if(communication.snakeDirectionOther == 0){
-        largeFieldSnake.bufferedDirection = largeFieldSnakeOther.UP;
+        largeFieldSnake.bufferedDirection = largeFieldSnake.UP;
       } else if(communication.snakeDirectionOther == 1) {
-        largeFieldSnake.bufferedDirection = largeFieldSnakeOther.DOWN;
+        largeFieldSnake.bufferedDirection = largeFieldSnake.DOWN;
       } else if(communication.snakeDirectionOther == 2) {
-        largeFieldSnake.bufferedDirection = largeFieldSnakeOther.LEFT;
+        largeFieldSnake.bufferedDirection = largeFieldSnake.LEFT;
       } else if(communication.snakeDirectionOther == 3) {
-        largeFieldSnake.bufferedDirection = largeFieldSnakeOther.RIGHT;
+        largeFieldSnake.bufferedDirection = largeFieldSnake.RIGHT;
       }
+      largeFieldSnake.validateDirection();
       } else {
         largeFieldSnake.updateDirection(nunchuck.state.joy_x_axis,
                                       nunchuck.state.joy_y_axis);
@@ -182,6 +183,7 @@ void directionHandler() {
       } else if(communication.snakeDirectionOther == 3) {
         largeFieldSnakeOther.bufferedDirection = largeFieldSnakeOther.RIGHT;
       }
+      largeFieldSnakeOther.validateDirection();
       }
     } else {
       smallFieldSnake.updateDirection(nunchuck.state.joy_x_axis,
@@ -215,13 +217,14 @@ void handleState() {
   case INGAME:
     // snelheid aanpassen op lengte slang
     if (currentGameSize == SIZE16x16) {
-      communication.communicationFrameCount =
-          calculateFrameCount(largeFieldSnake.snakeLength);
+      // communication.communicationFrameCount =
+      //     calculateFrameCount(largeFieldSnake.snakeLength);
+      communication.communicationFrameCount = 12;
                 updateGame(largeFieldSnakeOther);
       updateGame(largeFieldSnake);
     } else {
-      communication.communicationFrameCount =
-          calculateFrameCount(smallFieldSnake.snakeLength);
+      // communication.communicationFrameCount =
+      //     calculateFrameCount(smallFieldSnake.snakeLength);
       updateGame(smallFieldSnake);
     }
 
@@ -299,10 +302,9 @@ void handleStateChange() {
       screen.fillScreen(BLACK);
       if (currentGameSize == SIZE16x16) {
                 largeFieldSnakeOther.reset();
-        largeFieldSnakeOther.start(0, 15);
+        largeFieldSnakeOther.start((LARGE_FIELD_GRID_SIZE - 2), (LARGE_FIELD_GRID_SIZE - 2));
         largeFieldSnake.reset();
-        largeFieldSnake.start((15),
-                              0);
+        largeFieldSnake.start(2, 2);
         if (currentGameSpeed == NORMAL) {
           updateSevenSegmentDisplay(1);
         } else {
@@ -328,7 +330,12 @@ void handleStateChange() {
       break;
 
     case DEATH:
-      screen.drawDeathScreen(isWinner, 20, 20);
+    communication.gameRunning = false;
+    if(communication.getSender()){
+      screen.drawDeathScreen(isWinner, largeFieldSnakeOther.snakeLength, largeFieldSnake.snakeLength);
+    } else {
+      screen.drawDeathScreen(isWinner, largeFieldSnake.snakeLength, largeFieldSnakeOther.snakeLength);
+    }
       currentGameSpeed = NORMAL;
       currentGameSize = SIZE16x16;
       break;
@@ -468,27 +475,25 @@ int main() {
     touchHandler();
     screen.refreshBacklight();
     if(communication.printBus){
-      Serial.println(communication.inBus);
       if(communication.getSender()){
         communication.outBus = communication.constructBus(largeFieldSnakeOther);
         communication.deconstructBus(communication.inBus, largeFieldSnake);
+        largeFieldSnake.validateDirection();
+        Serial.println(largeFieldSnake.direction);
       } else {
         communication.outBus = communication.constructBus(largeFieldSnake);
         communication.deconstructBus(communication.inBus, largeFieldSnakeOther);
+        largeFieldSnakeOther.validateDirection();
       }
     }
     if (communication.runFrame)
     {
-      if(communication.gameRunning && currentState != INGAME && currentState != DEATH){
+      if(communication.gameRunning && currentState != INGAME){
       currentState = START;
       }
       handleStateChange();
       handleState();
     }
-    } else {
-      if(communication.printBus){
-        Serial.println(communication.inBus);
-      }
     }
   }
   return 0;

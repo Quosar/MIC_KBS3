@@ -42,7 +42,7 @@ volatile uint8_t syncCount = 30;
 
 // GameFrame variables
 volatile uint8_t communicationFrameCounter = 0;
-volatile uint8_t communicationFrameCount = 15; // mag niet hoger dan 63
+volatile uint8_t communicationFrameCount = 6; // mag niet hoger dan 63
 volatile bool runFrame = true;
 volatile bool runCommunicationFrame = false;
 volatile uint8_t timerOffset = 0;
@@ -163,8 +163,8 @@ uint32_t Communication::constructBus(Snake &snake)
 {
   uint32_t out = 0;
 
-  out |= ((uint32_t)snake.direction & 0x03) << 20;   // Bits 16–15: stickDirection
-  out |= ((uint32_t)communicationFrameCounter & 0x3F) << 14; // Bits 18–8: frameCount
+  out |= ((uint32_t)snake.direction & 0x03) << 20;   // Bits 21–20: stickDirection
+  out |= ((uint32_t)communicationFrameCounter & 0x3F) << 14; // Bits 19–14: frameCount
   out |= ((uint32_t)posApple & 0xFF) << 6;                  // Bit 15–8: posApple
   out |=
       ((uint32_t)(isSmallField & 0x01) << 5);           // Bit 6: isSmallField

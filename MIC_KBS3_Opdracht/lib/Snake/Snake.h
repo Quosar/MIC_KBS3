@@ -37,6 +37,8 @@ public:
   uint16_t getHighscore();
   // void setHighscore(uint8_t newScore);
 
+  void validateDirection();
+
   uint8_t appleX; // appel coords public voor communicatie
   uint8_t appleY;
   uint8_t snakeLength;
@@ -62,7 +64,6 @@ private:
 
   void clearTail(uint8_t tailX, uint8_t tailY);
   void drawCell(uint16_t x, uint16_t y, uint16_t color);
-  void validateDirection();
   void drawHead(uint16_t x, uint16_t y);
 };
 
