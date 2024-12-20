@@ -104,59 +104,62 @@ void updateGame(Snake &snake) {
   if(communication.appleGatheredByPlayer2){
     communication.appleGatheredByPlayer2 = false;
     if(communication.getSender()){
-      snake.spawnRandApple();
-      communication.posApple = snake.getApplePosition();
+      largeFieldSnake.spawnRandApple();
+      communication.posApple = largeFieldSnake.getApplePosition();
+      largeFieldSnakeOther.setApplePosition(communication.posApple);
     }
   }
   if(!communication.getSender()){
-    snake.setApplePosition(communication.posAppleOther);
+    largeFieldSnake.setApplePosition(communication.posAppleOther);
+    largeFieldSnakeOther.setApplePosition(communication.posAppleOther);
   }
   if (snake.eatApple(snake.appleX, snake.appleY)) {
     snake.grow();
     if(communication.getSender()){
-    snake.spawnRandApple();
-    communication.posApple = snake.getApplePosition();
+      largeFieldSnake.spawnRandApple();
+      communication.posApple = largeFieldSnake.getApplePosition();
+      largeFieldSnakeOther.setApplePosition(communication.posApple);
     } else {
       communication.appleGatheredByPlayer2 = true;
     }
   }
-  if(communication.getSender()){
-  if(snake.checkCollision(largeFieldSnake)) {
-    communication.gameRunning = false;
-      if(communication.getSender()){
-        if(snake.isPrimarySnake){
-          isWinner = true;
-        } else {
-          isWinner = false;
-        }
-      } else {
-        if(snake.isPrimarySnake){
-          isWinner = false;
-        } else {
-          isWinner = true;
-        }
-      }
-      currentState = DEATH;
-  }
-  } else {
-    if(snake.checkCollision(largeFieldSnakeOther)) {
-    communication.gameRunning = false;
-      if(communication.getSender()){
-        if(snake.isPrimarySnake){
-          isWinner = true;
-        } else {
-          isWinner = false;
-        }
-      } else {
-        if(snake.isPrimarySnake){
-          isWinner = false;
-        } else {
-          isWinner = true;
-        }
-      }
-      currentState = DEATH;
-    }
-  }
+  // if(communication.getSender()){
+  // if(snake.checkCollision(largeFieldSnake)) {
+  //   communication.gameRunning = false;
+  //     if(communication.getSender()){
+  //       if(snake.isPrimarySnake){
+  //         isWinner = true;
+  //       } else {
+  //         isWinner = false;
+  //       }
+  //     } else {
+  //       if(snake.isPrimarySnake){
+  //         isWinner = false;
+  //       } else {
+  //         isWinner = true;
+  //       }
+  //     }
+  //     currentState = DEATH;
+  // }
+  // } else {
+  //   if(snake.checkCollision(largeFieldSnakeOther)) {
+  //   communication.gameRunning = false;
+  //     if(communication.getSender()){
+  //       if(snake.isPrimarySnake){
+  //         isWinner = true;
+  //       } else {
+  //         isWinner = false;
+  //       }
+  //     } else {
+  //       if(snake.isPrimarySnake){
+  //         isWinner = false;
+  //       } else {
+  //         isWinner = true;
+  //       }
+  //     }
+  //     currentState = DEATH;
+  //   }
+  // }
 }
 
 void directionHandler() {
