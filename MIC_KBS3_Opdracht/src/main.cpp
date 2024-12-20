@@ -44,13 +44,6 @@ const uint16_t TFT_HEIGHT = 320;
 #define DSCREEN_PAGAIN_X 125
 #define DSCREEN_PAGAIN_Y 180
 
-#define IR_LED_PIN PD6         // Pin 6 voor IR LED (OC0A)
-#define IR_RECEIVER_PIN PD2    // Pin 2 voor IR Receiver (INT0)
-#define DATABITCOUNT 32        // bits in een databus
-#define COMMUNICATIONSPEED 200 // snelheid van timer 0 interrupts
-#define OCSILLATIONSPEED 209   // 38kHz oscilleer snelheid led pin
-#define COMMUNICATIONOFFSETMIN 0
-
 // LCD object
 Display screen;
 
@@ -475,6 +468,7 @@ int main() {
     touchHandler();
     screen.refreshBacklight();
     if(communication.printBus){
+      Serial.println(communication.inBus);
       if(communication.getSender()){
         communication.outBus = communication.constructBus(largeFieldSnakeOther);
         communication.deconstructBus(communication.inBus, largeFieldSnake);
@@ -491,6 +485,10 @@ int main() {
       handleStateChange();
       handleState();
     }
+    } else {
+      if(communication.printBus){
+        Serial.println(communication.inBus);
+      }
     }
   }
   return 0;
@@ -501,7 +499,7 @@ ISR(TIMER1_COMPA_vect) {
 }
 
 ISR(INT0_vect) {
-  TCNT1 = 106;
+  TCNT1 = 100;
   communication.busBitIndex = 0;
   EIMSK &= ~(1 << INT0); // INT0 interrupt disable
   TIMSK1 |= (1 << OCIE1A);

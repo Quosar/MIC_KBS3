@@ -3,19 +3,17 @@
 
 #define IR_LED_PIN PD6         // Pin 6 voor IR LED (OC0A)
 #define IR_RECEIVER_PIN PD2    // Pin 2 voor IR Receiver (INT0)
-#define DATABITCOUNT 32        // bits in een databus
+#define DATABITCOUNT 23        // bits in een databus
 #define COMMUNICATIONSPEED 200 // snelheid van timer 1 interrupts
 #define OCSILLATIONSPEED 209   // 38kHz oscilleer snelheid led pin
 #define COMMUNICATIONOFFSETMIN 0
 
-const bool isSender = false; // player1 begint met zenden en zetten timer
+const bool isSender = true; // player1 begint met zenden en zetten timer
 
 // communication
-volatile uint32_t firstSyncCheck =
-    0x00000000;                                 // start bit detecteren
-                                                // gedetecteerd kan worden zoals bijvoorbeeld 0x33333333
-volatile uint32_t secondSyncCheck = 0xAAAAAAAA; // 2863311530
-volatile uint32_t thirdSyncCheck = 0xAE6CB249;  // 2926359113
+volatile uint32_t firstSyncCheck = 0x00000000; // start bit detecteren
+volatile uint32_t secondSyncCheck = 0x00555555; // 11184810
+volatile uint32_t thirdSyncCheck = 0x003D2D5A;  // 2636995072
 volatile uint32_t outBus =
     firstSyncCheck;          // Uitgaande data bus begint als firstSyncCheck om
                              // communicatie te synchroniseren
@@ -40,7 +38,7 @@ volatile bool communicationNearlyInitialized = false;
 volatile uint8_t SyncingIndex = 0;
 volatile bool SyncingIndexFound = false;
 volatile uint8_t syncCounter = 0;
-volatile uint8_t syncCount = 20;
+volatile uint8_t syncCount = 30;
 
 // GameFrame variables
 volatile uint8_t communicationFrameCounter = 0;
@@ -53,20 +51,18 @@ volatile bool offsetFound = false;
 // game variables
 volatile uint8_t snakeDirection = 0;
 volatile uint8_t posApple = 0;
-volatile bool isPlayer1 = false;
+volatile bool isFastGamemode = false;
 volatile bool isSmallField = false;
 volatile bool appleGatheredByPlayer2 = false;
 volatile bool gamePaused = true;
-volatile bool isAlive = false;
 volatile uint8_t checksum;
 
 volatile uint8_t snakeDirectionOther = 0;
 volatile uint8_t posAppleOther = 0;
-volatile bool isPlayer1Other = false;
+volatile bool isFastGamemodeOther = false;
 volatile bool isSmallFieldOther = false;
 volatile bool appleGatheredByPlayer2Other = false;
 volatile bool gamePausedOther = true;
-volatile bool isAliveOther = false;
 
 volatile bool gameRunning = true;
 
@@ -167,16 +163,17 @@ uint32_t Communication::constructBus(Snake &snake)
 {
   uint32_t out = 0;
 
-  out |= ((uint32_t)snake.direction & 0x03) << 30;   // Bits 31–30: stickDirection
-  out |= ((uint32_t)communicationFrameCounter & 0x3F) << 24; // Bits 29–24: frameCount
-  //out |= ((uint32_t)snake.snakeLength & 0xFF) << 16;         // Bit 23–16: lengthSnake
-  out |= ((uint32_t)posApple & 0xFF) << 8;                   // Bit 15–8: posApple
+  out |= ((uint32_t)snake.direction & 0x03) << 20;   // Bits 16–15: stickDirection
+  out |= ((uint32_t)communicationFrameCounter & 0x3F) << 14; // Bits 18–8: frameCount
+  out |= ((uint32_t)posApple & 0xFF) << 6;                  // Bit 15–8: posApple
   out |=
-      ((isPlayer1 & 0x01) << 7) |              // Bit 7: isPlayer1
-      ((isSmallField & 0x01) << 6) |           // Bit 6: isSmallField
-      ((appleGatheredByPlayer2 & 0x01) << 5) | // Bit 5: appleGatheredByPlayer2
-      ((gameRunning & 0x01) << 4) |            // Bit 4: gamePaused
-      ((isAlive & 0x01) << 3);                 // Bit 3: isAlive
+      ((uint32_t)(isSmallField & 0x01) << 5);           // Bit 6: isSmallField
+      if(isSender){
+  out |= ((uint32_t)(appleGatheredByPlayer2 & 0x01) << 4); // Bit 5: appleGatheredByPlayer2
+      } else {
+  out |= ((uint32_t)(isFastGamemode & 0x01) << 4);
+      }
+  out |= ((uint32_t)(gameRunning & 0x01) << 3);            // Bit 4: gamePaused
 
   uint8_t checksum = constructChecksum(out);
   out |= (uint32_t)(checksum & 0x07); // Bits 2–0: checksum
@@ -191,22 +188,22 @@ void Communication::deconstructBus(uint32_t bus, Snake &snake)
 
   if (checksum == calculatedChecksum)
   {
-    snakeDirectionOther = (uint8_t)((bus >> 30) & 0x03); // Bits 31–30: stickDirection
+    snakeDirectionOther = (uint8_t)((bus >> 20) & 0x03); // Bits 31–30: stickDirection
     if (!isSender)
     {
-      communicationFrameCounter = (uint8_t)((bus >> 24) & 0x3F); // Bits 29–24: frameCount
+      communicationFrameCounter = (uint8_t)((bus >> 14) & 0x3F); // Bits 29–24: frameCount
     }
-    //snake.snakeLength = (uint8_t)((bus >> 16) & 0xFF); // Bit 23–16: lengthSnake //TOFO naar andere snake zetten
-    posAppleOther = (uint8_t)((bus >> 8) & 0xFF);      // Bit 15–8: posApple
-
-    isPlayer1Other = (bus >> 7) & 0x01;              // Bit 7: isPlayer1
-    isSmallFieldOther = (bus >> 6) & 0x01;           // Bit 6: isSmallField
-    appleGatheredByPlayer2Other = (bus >> 5) & 0x01; // Bit 5: appleGatheredByPlayer2
+    posAppleOther = (uint8_t)((bus >> 6) & 0xFF);      // Bit 13–6: posApple
+    isSmallFieldOther = (bus >> 5) & 0x01;           // Bit 5: isSmallField
+    if(isSender){
+      appleGatheredByPlayer2Other = (bus >> 4) & 0x01; // Bit 4: appleGatheredByPlayer2
+    } else {
+      isFastGamemode = (bus >> 4) & 0x01; // Bit 4: isFastGamemode
+    }
     if (!isSender)
     {
-      gameRunning = (bus >> 4) & 0x01; // Bit 4: gamePaused
+      gameRunning = (bus >> 3) & 0x01; // Bit 4: gameRunning
     }
-    isAliveOther = (bus >> 3) & 0x01; // Bit 3: isAlive
   }
 }
 
