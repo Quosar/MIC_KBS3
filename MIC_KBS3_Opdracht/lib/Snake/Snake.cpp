@@ -27,7 +27,7 @@ const uint16_t TFT_HEIGHT = 320;
 
 const uint8_t SNAKE_START_LENGHT = 3;
 
-
+ 
 
 Snake::Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
              Display &screen, uint16_t colour)

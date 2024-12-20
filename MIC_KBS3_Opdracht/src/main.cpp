@@ -147,7 +147,7 @@ const uint8_t soundDeath[][3] = {
   {0, 4, 10},
 };
 
-uint8_t soundQueue[10][3];
+const uint8_t (*soundQueue)[3] = nullptr;
 
 enum gameState { MENU, START, INGAME, DEATH, REDRAW };
 volatile gameState currentState = MENU;
@@ -179,35 +179,37 @@ void copyArrayArray(const uint8_t arrayOG[10][3], uint8_t newArray[10][3],
   }
 }
 
+void selectSoundArray (Sound sound) {
+  if (sound == SOUND_EAT) {
+    soundQueue = soundGrow;
+  } else if (sound == SOUND_START) {
+    soundQueue = soundStart;
+  } else if (sound == SOUND_MENU8X8) {
+    soundQueue = soundMenuSelect8x8;
+  } else if (sound == SOUND_MENU16X16) {
+    soundQueue = soundMenuSelect16x16;
+  } else if (sound == SOUND_MENU) {
+    soundQueue = soundMenu;
+  } else if (sound == SOUND_MOVE) {
+    soundQueue = soundMove;
+  } else if (sound == SOUND_DEATH) {
+    soundQueue = soundDeath;
+  } else if (sound == SOUND_MENUFAST) {
+    soundQueue = soundMenu;
+  } else if (sound == SOUND_MENUNORMAL) {
+    soundQueue = soundMenu;
+  }
+}
+
 void playSound(Sound sound) {
   TIMSK2 &= ~(1 << OCIE2A);
 
-  for (int i = 0; i < 10; i++) {
-    for (int j = 0; j < 3; j++) {
-      soundQueue[i][j] = 0;
-    }
-  }
+  soundQueue = nullptr;
+
+  selectSoundArray(sound);
 
   // Copy over the sound array to a temporary array
-  if (sound == SOUND_EAT) {
-    copyArrayArray(soundGrow, soundQueue, 10, soundSpeedFactor);
-  } else if (sound == SOUND_START) {
-    copyArrayArray(soundStart, soundQueue, 10, soundSpeedFactor);
-  } else if (sound == SOUND_MENU8X8) {
-    copyArrayArray(soundMenuSelect8x8, soundQueue, 10, soundSpeedFactor);
-  } else if (sound == SOUND_MENU16X16) {
-    copyArrayArray(soundMenuSelect16x16, soundQueue, 10, soundSpeedFactor);
-  } else if (sound == SOUND_MENU) {
-    copyArrayArray(soundMenu, soundQueue, 10, soundSpeedFactor);
-  } else if (sound == SOUND_MOVE) {
-    copyArrayArray(soundMove, soundQueue, 10, soundSpeedFactor);
-  } else if (sound == SOUND_DEATH) {
-    copyArrayArray(soundDeath, soundQueue, 10, soundSpeedFactor);
-  } else if (sound == SOUND_MENUFAST) {
-    copyArrayArray(soundMenu, soundQueue, 10, soundSpeedFactor);
-  } else if (sound == SOUND_MENUNORMAL) {
-    copyArrayArray(soundMenu, soundQueue, 10, soundSpeedFactor);
-  }
+  
 
   // Initialize sound array
   soundFrames = soundQueue[currentSoundIndex][1];
@@ -517,9 +519,10 @@ int main() {
     touchHandler();
     screen.refreshBacklight();
     if (communication.runFrame)
-    {
+    { 
       handleStateChange(largeFieldSnake);
       handleState();
+      //playSound(SOUND_MENU);
       communication.runFrame = false;
     }
 
@@ -536,11 +539,11 @@ ISR(TIMER2_COMPA_vect) {
   if (currentSoundFrame >= soundFrames) {
 
     // 0 = No Sound; 1 = Play Sound
-    // if (soundQueue[currentSoundIndex][0] == 1) {
-    //   PORTD ^= (1 << PD3);
-    // } else {
-    //   PORTD &= ~(1 << PD3);
-    // }
+    if (soundQueue[currentSoundIndex][0] == 1) {
+      PORTD ^= (1 << PD3);
+    } else {
+      PORTD &= ~(1 << PD3);
+    }
 
     // Add 1 to the currentSoundFrameIndex up to the given frames in the array
     // Reset current Sound Frame
@@ -568,11 +571,7 @@ ISR(TIMER2_COMPA_vect) {
         currentSoundFrameIndex = 0;
         currentSoundIndex = 0;
 
-        for (int i = 0; i < 10; i++) {
-          for (int j = 0; j < 3; j++) {
-            soundQueue[i][j] = 0;
-          }
-        }
+        soundQueue = nullptr;
 
         PORTD &= ~(1 << PD3);
         TIMSK2 &= ~(1 << OCIE2A);
