@@ -495,13 +495,12 @@ int main() {
           communication.outBus =
               communication.constructBus(largeFieldSnakeOther);
           communication.deconstructBus(communication.inBus, largeFieldSnake);
-          largeFieldSnake.validateDirection();
-          Serial.println(largeFieldSnake.direction);
+          directionHandler();
         } else {
           communication.outBus = communication.constructBus(largeFieldSnake);
           communication.deconstructBus(communication.inBus,
                                        largeFieldSnakeOther);
-          largeFieldSnakeOther.validateDirection();
+          directionHandler();
         }
       }
       if (communication.runFrame) {

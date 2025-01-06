@@ -8,7 +8,7 @@
 #define OCSILLATIONSPEED 209   // 38kHz oscilleer snelheid led pin
 #define COMMUNICATIONOFFSETMIN 0
 
-const bool isSender = false; // player1 begint met zenden en zetten timer
+const bool isSender = true; // player1 begint met zenden en zetten timer
 
 // communication
 volatile uint32_t firstSyncCheck = 0x00000000; // start bit detecteren
