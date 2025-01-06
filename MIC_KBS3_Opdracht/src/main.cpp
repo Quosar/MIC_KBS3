@@ -331,8 +331,8 @@ void handleStateChange() {
           updateSevenSegmentDisplay(4);
         }
         smallFieldSnake.reset();
-        smallFieldSnake.start(SMALL_FIELD_GRID_SIZE / 2,
-                              SMALL_FIELD_GRID_SIZE / 2);
+        smallFieldSnake.start(SMALL_FIELD_GRID_SIZE / 1,
+                              SMALL_FIELD_GRID_SIZE / 1);
       }
 
       // teken border 1 pixel onder speelveld
@@ -507,6 +507,7 @@ int main() {
       if (communication.runFrame) {
         if (communication.gameRunning && currentState != INGAME) {
           currentState = START;
+          communication.gameRunning = false;
         }
         handleStateChange();
         handleState();

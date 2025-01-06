@@ -64,7 +64,7 @@ volatile bool isSmallFieldOther = false;
 volatile bool appleGatheredByPlayer2Other = false;
 volatile bool gamePausedOther = true;
 
-volatile bool gameRunning = true;
+volatile bool gameRunning = false;
 
 void Communication::setupPins()
 {
@@ -188,10 +188,10 @@ void Communication::deconstructBus(uint32_t bus, Snake &snake)
 
   if (checksum == calculatedChecksum)
   {
-    snakeDirectionOther = (uint8_t)((bus >> 20) & 0x03); // Bits 31–30: stickDirection
-    if (!isSender)
+    snakeDirectionOther = (uint8_t)((bus >> 20) & 0x03); // Bits 21–20: stickDirection
+    if (!isSender && !communicationInitialized)
     {
-      communicationFrameCounter = (uint8_t)((bus >> 14) & 0x3F); // Bits 29–24: frameCount
+      communicationFrameCounter = (uint8_t)((bus >> 14) & 0x3F); // Bits 19–14: frameCount
     }
     posAppleOther = (uint8_t)((bus >> 6) & 0xFF);      // Bit 13–6: posApple
     isSmallFieldOther = (bus >> 5) & 0x01;           // Bit 5: isSmallField
@@ -204,6 +204,16 @@ void Communication::deconstructBus(uint32_t bus, Snake &snake)
     {
       gameRunning = (bus >> 3) & 0x01; // Bit 4: gameRunning
     }
+  }
+
+  if(snakeDirectionOther == 0){
+    snake.bufferedDirection = snake.UP;
+  } else   if(snakeDirectionOther == 1){
+    snake.bufferedDirection = snake.DOWN;
+  } else  if(snakeDirectionOther == 2){
+    snake.bufferedDirection = snake.LEFT;
+  } else  if(snakeDirectionOther == 3){
+    snake.bufferedDirection = snake.RIGHT;
   }
 }
 
@@ -299,9 +309,7 @@ void Communication::communicate()
       {
         runFrame = true;
         communicationFrameCounter = 0;
-      }
-      if (isSender)
-      {
+      } else {
         communicationFrameCounter = communicationFrameCounter + 1;
       }
       if (!isSender) // zet int 0 interrupt aan om te zorgen dat de !isSender de
