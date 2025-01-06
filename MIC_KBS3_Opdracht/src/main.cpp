@@ -55,15 +55,23 @@ Communication communication;
 
 // Create Snake object
 Snake largeFieldSnake(LARGE_FIELD_GRID_SIZE, TFT_WIDTH / LARGE_FIELD_GRID_SIZE,
-                      TFT_WIDTH / LARGE_FIELD_GRID_SIZE, screen, GREEN, communication.getSender(), communication.getSender());
+                      TFT_WIDTH / LARGE_FIELD_GRID_SIZE, screen, GREEN,
+                      communication.getSender(), communication.getSender());
 
 Snake smallFieldSnake(SMALL_FIELD_GRID_SIZE, TFT_WIDTH / SMALL_FIELD_GRID_SIZE,
-                      TFT_WIDTH / SMALL_FIELD_GRID_SIZE, screen, GREEN, communication.getSender(), !communication.getSender());
+                      TFT_WIDTH / SMALL_FIELD_GRID_SIZE, screen, GREEN,
+                      communication.getSender(), !communication.getSender());
 
-Snake largeFieldSnakeOther(LARGE_FIELD_GRID_SIZE, TFT_WIDTH / LARGE_FIELD_GRID_SIZE,
-                      TFT_WIDTH / LARGE_FIELD_GRID_SIZE, screen, MAGENTA, !communication.getSender(), communication.getSender());
-// Snake smallFieldSnakeOther(SMALL_FIELD_GRID_SIZE, TFT_WIDTH / SMALL_FIELD_GRID_SIZE,
-//                       TFT_WIDTH / SMALL_FIELD_GRID_SIZE, screen, MAGENTA, !communication.getSender(), !communication.getSender());                      
+Snake largeFieldSnakeOther(LARGE_FIELD_GRID_SIZE,
+                           TFT_WIDTH / LARGE_FIELD_GRID_SIZE,
+                           TFT_WIDTH / LARGE_FIELD_GRID_SIZE, screen, MAGENTA,
+                           !communication.getSender(),
+                           communication.getSender());
+// Snake smallFieldSnakeOther(SMALL_FIELD_GRID_SIZE, TFT_WIDTH /
+// SMALL_FIELD_GRID_SIZE,
+//                       TFT_WIDTH / SMALL_FIELD_GRID_SIZE, screen, MAGENTA,
+//                       !communication.getSender(),
+//                       !communication.getSender());
 
 // Game Size (8x8 / 16x16)
 enum gameSize { SIZE8x8, SIZE16x16 };
@@ -90,25 +98,27 @@ enum gameState { MENU, START, INGAME, DEATH, REDRAW };
 volatile gameState currentState = MENU;
 volatile gameState previousState = DEATH;
 
+bool multiplayer = true;
+
 void updateGame(Snake &snake) {
   snake.move(); // Move snake based on received direction
   snake.draw();
   snake.drawScore();
-  if(communication.appleGatheredByPlayer2){
+  if (communication.appleGatheredByPlayer2) {
     communication.appleGatheredByPlayer2 = false;
-    if(communication.getSender()){
+    if (communication.getSender()) {
       largeFieldSnake.spawnRandApple();
       communication.posApple = largeFieldSnake.getApplePosition();
       largeFieldSnakeOther.setApplePosition(communication.posApple);
     }
   }
-  if(!communication.getSender()){
+  if (!communication.getSender()) {
     largeFieldSnake.setApplePosition(communication.posAppleOther);
     largeFieldSnakeOther.setApplePosition(communication.posAppleOther);
   }
   if (snake.eatApple(snake.appleX, snake.appleY)) {
     snake.grow();
-    if(communication.getSender()){
+    if (communication.getSender()) {
       largeFieldSnake.spawnRandApple();
       communication.posApple = largeFieldSnake.getApplePosition();
       largeFieldSnakeOther.setApplePosition(communication.posApple);
@@ -116,35 +126,35 @@ void updateGame(Snake &snake) {
       communication.appleGatheredByPlayer2 = true;
     }
   }
-  if(communication.getSender()){
-  if(snake.checkCollision(largeFieldSnake)) {
-    communication.gameRunning = false;
-      if(communication.getSender()){
-        if(snake.isPrimarySnake){
+  if (communication.getSender()) {
+    if (snake.checkCollision(largeFieldSnake)) {
+      communication.gameRunning = false;
+      if (communication.getSender()) {
+        if (snake.isPrimarySnake) {
           isWinner = true;
         } else {
           isWinner = false;
         }
       } else {
-        if(snake.isPrimarySnake){
+        if (snake.isPrimarySnake) {
           isWinner = false;
         } else {
           isWinner = true;
         }
       }
       currentState = DEATH;
-  }
+    }
   } else {
-    if(snake.checkCollision(largeFieldSnakeOther)) {
-    communication.gameRunning = false;
-      if(communication.getSender()){
-        if(snake.isPrimarySnake){
+    if (snake.checkCollision(largeFieldSnakeOther)) {
+      communication.gameRunning = false;
+      if (communication.getSender()) {
+        if (snake.isPrimarySnake) {
           isWinner = true;
         } else {
           isWinner = false;
         }
       } else {
-        if(snake.isPrimarySnake){
+        if (snake.isPrimarySnake) {
           isWinner = false;
         } else {
           isWinner = true;
@@ -158,36 +168,39 @@ void updateGame(Snake &snake) {
 void directionHandler() {
   if (nunchuck.getState(NUNCHUCK_ADDRESS)) {
     if (currentGameSize == SIZE16x16) {
-      if(communication.getSender()){
-      largeFieldSnakeOther.updateDirection(nunchuck.state.joy_x_axis,
-                                      nunchuck.state.joy_y_axis);
-      if(communication.snakeDirectionOther == 0){
-        largeFieldSnake.bufferedDirection = largeFieldSnake.UP;
-      } else if(communication.snakeDirectionOther == 1) {
-        largeFieldSnake.bufferedDirection = largeFieldSnake.DOWN;
-      } else if(communication.snakeDirectionOther == 2) {
-        largeFieldSnake.bufferedDirection = largeFieldSnake.LEFT;
-      } else if(communication.snakeDirectionOther == 3) {
-        largeFieldSnake.bufferedDirection = largeFieldSnake.RIGHT;
-      }
-      largeFieldSnake.validateDirection();
+      if (communication.getSender()) {
+        largeFieldSnakeOther.updateDirection(nunchuck.state.joy_x_axis,
+                                             nunchuck.state.joy_y_axis);
+        largeFieldSnakeOther.validateDirection();
+        if (communication.snakeDirectionOther == 0) {
+          largeFieldSnake.bufferedDirection = largeFieldSnake.UP;
+        } else if (communication.snakeDirectionOther == 1) {
+          largeFieldSnake.bufferedDirection = largeFieldSnake.DOWN;
+        } else if (communication.snakeDirectionOther == 2) {
+          largeFieldSnake.bufferedDirection = largeFieldSnake.LEFT;
+        } else if (communication.snakeDirectionOther == 3) {
+          largeFieldSnake.bufferedDirection = largeFieldSnake.RIGHT;
+        }
+        largeFieldSnake.validateDirection();
       } else {
         largeFieldSnake.updateDirection(nunchuck.state.joy_x_axis,
-                                      nunchuck.state.joy_y_axis);
-      if(communication.snakeDirectionOther == 0){
-        largeFieldSnakeOther.bufferedDirection = largeFieldSnakeOther.UP;
-      } else if(communication.snakeDirectionOther == 1) {
-        largeFieldSnakeOther.bufferedDirection = largeFieldSnakeOther.DOWN;
-      } else if(communication.snakeDirectionOther == 2) {
-        largeFieldSnakeOther.bufferedDirection = largeFieldSnakeOther.LEFT;
-      } else if(communication.snakeDirectionOther == 3) {
-        largeFieldSnakeOther.bufferedDirection = largeFieldSnakeOther.RIGHT;
-      }
-      largeFieldSnakeOther.validateDirection();
+                                        nunchuck.state.joy_y_axis);
+        largeFieldSnake.validateDirection();
+        if (communication.snakeDirectionOther == 0) {
+          largeFieldSnakeOther.bufferedDirection = largeFieldSnakeOther.UP;
+        } else if (communication.snakeDirectionOther == 1) {
+          largeFieldSnakeOther.bufferedDirection = largeFieldSnakeOther.DOWN;
+        } else if (communication.snakeDirectionOther == 2) {
+          largeFieldSnakeOther.bufferedDirection = largeFieldSnakeOther.LEFT;
+        } else if (communication.snakeDirectionOther == 3) {
+          largeFieldSnakeOther.bufferedDirection = largeFieldSnakeOther.RIGHT;
+        }
+        largeFieldSnakeOther.validateDirection();
       }
     } else {
       smallFieldSnake.updateDirection(nunchuck.state.joy_x_axis,
                                       nunchuck.state.joy_y_axis);
+      smallFieldSnake.validateDirection();
     }
   }
 }
@@ -220,7 +233,7 @@ void handleState() {
       // communication.communicationFrameCount =
       //     calculateFrameCount(largeFieldSnake.snakeLength);
       communication.communicationFrameCount = 12;
-                updateGame(largeFieldSnakeOther);
+      updateGame(largeFieldSnakeOther);
       updateGame(largeFieldSnake);
     } else {
       // communication.communicationFrameCount =
@@ -301,8 +314,9 @@ void handleStateChange() {
     case START:
       screen.fillScreen(BLACK);
       if (currentGameSize == SIZE16x16) {
-                largeFieldSnakeOther.reset();
-        largeFieldSnakeOther.start((LARGE_FIELD_GRID_SIZE - 2), (LARGE_FIELD_GRID_SIZE - 2));
+        largeFieldSnakeOther.reset();
+        largeFieldSnakeOther.start((LARGE_FIELD_GRID_SIZE - 2),
+                                   (LARGE_FIELD_GRID_SIZE - 2));
         largeFieldSnake.reset();
         largeFieldSnake.start(2, 2);
         if (currentGameSpeed == NORMAL) {
@@ -330,12 +344,14 @@ void handleStateChange() {
       break;
 
     case DEATH:
-    communication.gameRunning = false;
-    if(communication.getSender()){
-      screen.drawDeathScreen(isWinner, largeFieldSnakeOther.snakeLength, largeFieldSnake.snakeLength);
-    } else {
-      screen.drawDeathScreen(isWinner, largeFieldSnake.snakeLength, largeFieldSnakeOther.snakeLength);
-    }
+      communication.gameRunning = false;
+      if (communication.getSender()) {
+        screen.drawDeathScreen(isWinner, largeFieldSnakeOther.snakeLength,
+                               largeFieldSnake.snakeLength);
+      } else {
+        screen.drawDeathScreen(isWinner, largeFieldSnake.snakeLength,
+                               largeFieldSnakeOther.snakeLength);
+      }
       currentGameSpeed = NORMAL;
       currentGameSize = SIZE16x16;
       break;
@@ -471,37 +487,36 @@ int main() {
   sei();
 
   while (1) {
-    if(communication.communicationInitialized){
-    touchHandler();
-    screen.refreshBacklight();
-    if(communication.printBus){
-      if(communication.getSender()){
-        communication.outBus = communication.constructBus(largeFieldSnakeOther);
-        communication.deconstructBus(communication.inBus, largeFieldSnake);
-        largeFieldSnake.validateDirection();
-        Serial.println(largeFieldSnake.direction);
-      } else {
-        communication.outBus = communication.constructBus(largeFieldSnake);
-        communication.deconstructBus(communication.inBus, largeFieldSnakeOther);
-        largeFieldSnakeOther.validateDirection();
+    if (communication.communicationInitialized) {
+      touchHandler();
+      screen.refreshBacklight();
+      if (communication.printBus) {
+        if (communication.getSender()) {
+          communication.outBus =
+              communication.constructBus(largeFieldSnakeOther);
+          communication.deconstructBus(communication.inBus, largeFieldSnake);
+          largeFieldSnake.validateDirection();
+          Serial.println(largeFieldSnake.direction);
+        } else {
+          communication.outBus = communication.constructBus(largeFieldSnake);
+          communication.deconstructBus(communication.inBus,
+                                       largeFieldSnakeOther);
+          largeFieldSnakeOther.validateDirection();
+        }
       }
-    }
-    if (communication.runFrame)
-    {
-      if(communication.gameRunning && currentState != INGAME){
-      currentState = START;
+      if (communication.runFrame) {
+        if (communication.gameRunning && currentState != INGAME) {
+          currentState = START;
+        }
+        handleStateChange();
+        handleState();
       }
-      handleStateChange();
-      handleState();
-    }
     }
   }
   return 0;
 }
 
-ISR(TIMER1_COMPA_vect) { 
-  communication.communicate(); 
-}
+ISR(TIMER1_COMPA_vect) { communication.communicate(); }
 
 ISR(INT0_vect) {
   TCNT1 = 100;

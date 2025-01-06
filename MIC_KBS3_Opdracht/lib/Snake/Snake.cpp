@@ -26,6 +26,9 @@ const uint8_t SNAKE_START_LENGHT = 3;
 
 volatile bool isMainSnake = false;
 
+uint8_t snakeStartX;
+uint8_t snakeStartY;
+
 Snake::Snake(uint8_t gridSize, uint16_t cellWidth, uint16_t cellHeight,
              Display &screen, uint16_t colour, bool primarySnake, bool sender)
     : screen(screen), gridSize(gridSize), cellWidth(cellWidth),
@@ -61,6 +64,9 @@ void Snake::start(uint8_t x, uint8_t y) {
   // snake starten in center scherm
   snakeX[0] = x;
   snakeY[0] = y;
+
+  snakeStartX = x;
+  snakeStartY = y;
 }
 
 // joystick met richting updaten
@@ -225,6 +231,9 @@ void Snake::reset() {
   // Herinitialize de arrays
   snakeX = new uint8_t[128]; // gridsize * gridsize / 2
   snakeY = new uint8_t[128];
+
+  snakeX[0] = snakeStartX;
+  snakeY[0] = snakeStartY;
 
   // start richting zetten
   direction = RIGHT;
